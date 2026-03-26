@@ -1,3 +1,8 @@
+#Contactos h2 {
+    font-size: clamp(1.5rem, 3vw, 2em);
+    margin-bottom: 30px;
+    text-align: center;
+}
 
 #contacto-imagenes {
     display: flex;
@@ -14,7 +19,7 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     transition: transform 0.3s;
     justify-content: left;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2), 0 0 0 10px #a2e3f7;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2), 0 0 0 10px #ff050500;
     
 }
 

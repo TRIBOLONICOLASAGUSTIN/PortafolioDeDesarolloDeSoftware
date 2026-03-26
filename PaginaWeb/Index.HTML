@@ -6,15 +6,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="Estilos/Estilos.CSS">
-    <link rel="stylesheet" href="Estilos/EstiloDeHabilidades.CSS">
-    <link rel="stylesheet" href="Estilos/Contacto.CSS">
     
 </head>
 <body>
      <header>
         <h1>PORTAFOLIO</h1>
          <nav class="navbar">
-            <ul style="list-style: none; display: flex; gap: 20px; padding: 0;">
+            <ul style="list-style: none; display: flex; gap: 30px; padding: 0;">
                 <li><a href="#Sobre-Mi">Sobre-Mi</a></li>
                 <li><a href="#Habilidades">Habilidades</a></li>
                 <li><a href="#Experiencias">Experiencia</a></li>
@@ -27,14 +25,23 @@
     </header>
     <main>
         <section id="Sobre-Mi">
-            <img src="Imagen/Mi foto de perfil.jpeg" alt="Foto de Nicolas Tribolo" style="max-width: 300px; height: auto;">
-            <p>Me encuentro cursando en Cuarto año de la Carrera de Ingeniería en Sistemas de Información, me considero una persona con muchas ganas de aprender y crecer profesionalmente.</p>
+            <div class ="sobre-mi-flex">
+                <img src="Imagen/Mi foto de perfil.jpeg" alt="Foto de Nicolas Tribolo" style="max-width: 300px; height: auto;">
+                    <p>Hola me llamo Nicolas Agustin Tribolo soy estudiante de la carrera de Ingenieria En Sistemas De Informacion, en la Universidad Tecnologica acional de San Francisco
+                        
+                    </p>
+            </div>
         </section>
 
         <section id="Habilidades">
             <h2>Habilidades </h2>
             <ul>
       
+                <img src="Imagen/C_Logo.png" alt="C" />
+                <img src="Imagen/descarga.png" alt="CSS" />
+                <img src="Imagen/html5.svg" alt="HTML" />
+                <img src="Imagen/Python-logo-notext.svg.png"alt="Python" /> 
+
                 <img src="Imagen/C_Logo.png" alt="C" />
                 <img src="Imagen/descarga.png" alt="CSS" />
                 <img src="Imagen/html5.svg" alt="HTML" />
@@ -63,23 +70,31 @@
             </ul>
         </section>
 
-        <section id="Redes Sociales">
+        <section id="Redes-Sociales">
             <h2>Redes Sociales</h2>
-            <a href="https://github.com/TRIBOLONICOLASAGUSTIN" target="_blank">GitHub</a> |
-            <a href="https://www.linkedin.com/feed/" target="_blank">LinkedIn</a>
+            <div class ="redes-sociales-imagenes">
+                <a href="https://github.com/TRIBOLONICOLASAGUSTIN" target="_blank">GitHub
+
+                    <img src="Imagen/733609.png" class="redes-sociales-imagenes img" alt="GitHub" />
+                    
+                </a> 
+
+                <a href="https://www.linkedin.com/feed/" target="_blank">LinkedIn
+                    <img src="Imagen/linkedin-1-svgrepo-com.svg" class = "redes-sociales-imagenes img" alt="Linkedin"/>
+                </a>
+            </div>
         </section>
 
         <section id="Contactos">
             <h2>Contactos</h2>
-                <div id ="contacto-imagenes">
-                    <a href="mailto:nicotribolo2005@gmail.com">
-                        <img src="Imagen/email-alt-svgrepo-com.svg" class="contacto-logo" alt="Email">
-                    </a>
-                </div>
-            <ul>
-                <li>Tel: 123456789 </li>
-            </ul>
-
+            <div id="contacto-imagenes">
+                <a href="mailto:nicotribolo2005@gmail.com">
+                    <img src="Imagen/email-alt-svgrepo-com.svg" class="contacto-logo" alt="Email">
+                </a>
+                 <a href="tel:123456789">
+                    <img src="Imagen/304968.png" class="telefono-logo" alt="Teléfono">
+                </a>
+            </div>
         </section>
     </main>
         <script src="Configuracion/Configuracion.js"></script>

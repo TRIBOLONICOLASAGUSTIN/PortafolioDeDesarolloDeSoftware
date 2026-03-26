@@ -1,0 +1,24 @@
+#Redes-Sociales h2{
+    font-size: clamp(1.5rem, 3vw, 2em);
+    margin-bottom: 30px;
+    text-align: center;
+
+}
+
+.redes-sociales-imagenes {
+    display: flex;
+    gap: 20px;
+    margin-top: 20px;
+
+}
+
+.redes-sociales-imagenes img {
+    border-radius: 40%;
+    height: 80px;
+    width: 80px;
+    object-fit: cover;
+    transition: transform 0.3s;
+}
+.redes-sociales-imagenes img:hover {
+    transform: scale(1.3);
+}
