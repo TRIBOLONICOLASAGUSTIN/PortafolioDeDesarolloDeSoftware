@@ -5,7 +5,7 @@
     text-align: center;
 }
 
-Habilidades h2 {
+#Habilidades h2 {
     font-size: clamp(1.5rem, 3vw, 2em);
     margin-bottom: 30px;
 }
