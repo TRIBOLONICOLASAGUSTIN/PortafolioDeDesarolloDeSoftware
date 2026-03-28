@@ -3,6 +3,7 @@
 @import url("./Sobre-Mi.CSS");
 @import url("./Redes.CSS");
 @import url("./Contacto.CSS");
+@import url("./Educacion.CSS");
 
 body {
     font-family: "Montserrat", Helvetica, Arial, sans-serif;
@@ -59,6 +60,7 @@ p {
     text-decoration: none;
     color: inherit;
     font-weight: bold;
+    font-size: 1.8rem;
 }
 
 h1{
