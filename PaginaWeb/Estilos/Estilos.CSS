@@ -5,6 +5,7 @@
 @import url("./Contacto.CSS");
 @import url("./Educacion.CSS");
 @import url("./Experiencia.CSS");
+@import url("./Proyectos.CSS");
 
 body {
     font-family: "Montserrat", Helvetica, Arial, sans-serif;
@@ -37,7 +38,7 @@ header, nav, main {
 }
 
 p {
-    font-size: 1.3rem;
+    font-size: 1.6rem;
 }
 
 .navbar {
