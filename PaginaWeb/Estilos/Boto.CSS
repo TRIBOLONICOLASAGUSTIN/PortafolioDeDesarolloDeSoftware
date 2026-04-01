@@ -1,6 +1,6 @@
 body.dark-mode {
     --bg-color: #121212;
-    --text-color: #ffffff;
+    --text-color:#fff;
     --surface-bg: #181818;
     --surface-card: #232323;
 }
@@ -9,7 +9,7 @@ body.dark-mode {
 }
 
 .dark-mode .navbar {
-    background-color: #222;
+   background-color: #232323;
     border-color: #444;
 }
 
@@ -18,7 +18,7 @@ body.dark-mode {
 }
 
 #Modo-Boton {
-    background-color: #222;
+    background-color: #fffafa;
     color: #f5f5f5;
     border: 2px solid #8ecae6;
     border-radius: 8px;
