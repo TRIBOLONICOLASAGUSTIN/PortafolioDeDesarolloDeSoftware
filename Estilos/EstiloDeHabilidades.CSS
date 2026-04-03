@@ -1,0 +1,62 @@
+#Habilidades {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    text-align: center;
+}
+
+#Habilidades h2 {
+    font-size: clamp(1.8rem, 3vw, 2em);
+    margin-bottom: 30px;
+}
+
+#Habilidades ul {
+    display: flex;
+    width: max-content;
+    animation: scroll 12s linear infinite;
+
+}
+
+#Habilidades li {
+    list-style: none;
+    margin: 20px 40px;
+    position: relative;
+}
+
+#Habilidades img {
+    width: 100px;
+    height: 100px;
+    transition: transform 0.3s;
+    padding: 5%;
+}
+
+#Habilidades li:hover img {
+    transform: scale(1.5);
+}
+
+#Habilidades li::after {
+    content: attr(data-name);
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface-card);
+    padding: 4px 8px;
+    border-radius: 5px;
+    font-size: 12px;
+    opacity: 0;
+    transition: 0.3s;
+}
+
+#Habilidades li:hover::after {
+    opacity: 1;
+}
+
+@keyframes scroll {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(-50%);
+    }
+}
