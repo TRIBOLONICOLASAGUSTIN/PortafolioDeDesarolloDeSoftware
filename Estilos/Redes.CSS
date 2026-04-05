@@ -1,24 +1,52 @@
-#Redes-Sociales h2{
-    font-size: clamp(1.8rem, 3vw, 2em);
-    margin-bottom: 30px;
-    text-align: center;
+#Redes-Sociales {
+  margin-top: 44px;
+  padding: 28px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+}
 
+#Redes-Sociales h2 {
+  font-size: clamp(1.6rem, 2.3vw, 2rem);
+  margin: 0 0 20px;
+  text-align: center;
 }
 
 .redes-sociales-imagenes {
-    display: flex;
-    gap: 20px;
-    margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
 
+.redes-sociales-imagenes a {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  text-decoration: none;
+  background: var(--surface);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
+}
+
+.redes-sociales-imagenes a:hover {
+  transform: translateY(-2px);
+  background: color-mix(in srgb, var(--surface) 95%, #ffffff);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
 }
 
 .redes-sociales-imagenes img {
-    border-radius: 40%;
-    height: 80px;
-    width: 80px;
-    object-fit: cover;
-    transition: transform 0.3s;
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  border-radius: 0;
+  transition: transform 0.25s ease;
 }
-.redes-sociales-imagenes img:hover {
-    transform: scale(1.3);
+
+.redes-sociales-imagenes a:hover img {
+  transform: scale(1.06);
 }

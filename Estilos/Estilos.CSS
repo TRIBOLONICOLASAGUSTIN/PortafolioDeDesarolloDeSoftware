@@ -7,73 +7,98 @@
 @import url("./Experiencia.CSS");
 @import url("./Proyectos.CSS");
 
+:root {
+--bg: #f3f4f6;
+--surface: #ffffff;
+--text: #0f172a;
+--muted: #64748b;
+--accent: #2f80b5;
+--border: #e2e8f0;
+--header-h: 78px;
+}
+
 body {
-    font-family: "Montserrat", Helvetica, Arial, sans-serif;
-    margin: 0;
-    padding: 24px;
-
-    --bg-color: #087a6b9f;
-    --text-color: #000;
-    --surface-bg: #ffffff;
-    --surface-card: #eeeeee;
-
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    font-size: 1.2rem;
-    transition: 0.3s;
+margin: 0;
+font-family: "Montserrat", Helvetica, Arial, sans-serif;
+background: var(--bg);
+color: var(--text);
+font-size: 16px;
+line-height: 1.5;
+padding-top: var(--header-h);
+transition: background-color 0.25s ease, color 0.25s ease;
 }
 
-section {
-    background: var(--surface-bg);
-    margin: 20px auto;
-    padding: 20px;
-    border-radius: 10px;
-    max-width: 1200px;
-    width: 90%;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+header {
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: var(--header-h);
+z-index: 1000;
+display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 0 26px;
+background: color-mix(in srgb, var(--surface) 88%, transparent);
+border-bottom: 1px solid var(--border);
+backdrop-filter: blur(10px);
 }
 
-header, nav, main {
-    margin-bottom: 30px;
-}
-
-p {
-    font-size: 1.6rem;
+h1 {
+margin: 0;
+font-size: 2.5rem;
+letter-spacing: 0.8px;
 }
 
 .navbar {
-    background-color: rgb(239, 237, 235);
-    border: 2px solid black;
-    border-radius: 8px;
-    padding: 10px 20px;
+display: flex;
+align-items: center;
+gap: 14px;
+background: transparent;
+border: 0;
+padding: 0;
+margin: 0;
+}
 
-    position: sticky;
-    top: 0;
-    width: 90%;
-    margin: 10px auto;
-
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 20px;
+.navbar ul {
+margin: 0;
+padding: 0;
+display: flex;
+align-items: center;
+gap: 26px;
+list-style: none;
 }
 
 .navbar a {
-    text-decoration: none;
-    color: inherit;
-    font-weight: bold;
-    font-size: 1.8rem;
+text-decoration: none;
+color: var(--text);
+font-weight: 600;
+font-size: 1.05rem;
+opacity: 0.92;
 }
 
-h1{
-    text-align: center;
-    font-size: 2.5rem;
-    color: inherit;
+.navbar a:hover {
+color: var(--accent);
+opacity: 1;
 }
 
-footer {
-    text-align: right;
-    padding: 10px;
-    font-size: 0.8rem;
+main {
+max-width: 1220px;
+margin: 0 auto;
+padding: 34px 24px 56px;
 }
 
+section {
+background: transparent;
+margin: 0;
+padding: 0;
+border-radius: 0;
+box-shadow: none;
+}
+
+p {
+font-size: 1.16rem;
+color: var(--muted);
+margin: 0;
+max-width: 680px;
+}

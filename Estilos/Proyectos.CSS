@@ -1,9 +1,31 @@
+#Proyectos {
+  margin-top: 44px;
+  padding: 28px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+}
+
 #Proyectos h2 {
-    font-size: clamp(1.8rem, 3vw, 2em);
-    margin-bottom: 30px;
-    text-align: center;
+  font-size: clamp(1.6rem, 2.3vw, 2rem);
+  margin: 0 0 20px;
+  text-align: center;
 }
 
 #Proyectos ul {
-    font-size: 1.3em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+
+#Proyectos li {
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface) 90%, #eff6ff);
+  font-size: 1.03rem;
 }

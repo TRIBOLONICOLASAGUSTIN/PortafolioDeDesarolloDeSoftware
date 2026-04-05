@@ -1,62 +1,72 @@
 #Habilidades {
-    position: relative;
-    width: 100%;
-    overflow: hidden;
-    text-align: center;
+  margin-top: 44px;
+  padding: 28px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
 }
 
 #Habilidades h2 {
-    font-size: clamp(1.8rem, 3vw, 2em);
-    margin-bottom: 30px;
+  font-size: clamp(1.6rem, 2.3vw, 2rem);
+  margin: 0 0 18px;
+  text-align: center;
 }
 
 #Habilidades ul {
-    display: flex;
-    width: max-content;
-    animation: scroll 12s linear infinite;
-
+  margin: 0;
+  padding: 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: max-content;
+  animation: habilidades-scroll 12s linear infinite;
+  list-style: none;
 }
 
 #Habilidades li {
-    list-style: none;
-    margin: 20px 40px;
-    position: relative;
+  width: 86px;
+  height: 86px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 90%, #dbeafe);
+  position: relative;
+  transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
 #Habilidades img {
-    width: 100px;
-    height: 100px;
-    transition: transform 0.3s;
-    padding: 5%;
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
 }
 
-#Habilidades li:hover img {
-    transform: scale(1.5);
+#Habilidades li:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent);
 }
 
 #Habilidades li::after {
-    content: attr(data-name);
-    position: absolute;
-    bottom: -25px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--surface-card);
-    padding: 4px 8px;
-    border-radius: 5px;
-    font-size: 12px;
-    opacity: 0;
-    transition: 0.3s;
+  content: attr(data-name);
+  position: absolute;
+  bottom: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.78rem;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  white-space: nowrap;
 }
 
 #Habilidades li:hover::after {
-    opacity: 1;
+  opacity: 1;
 }
 
-@keyframes scroll {
-    from {
-        transform: translateX(0);
-    }
-    to {
-        transform: translateX(-50%);
-    }
+@keyframes habilidades-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
