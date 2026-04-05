@@ -8,12 +8,13 @@
   <link rel="stylesheet" href="Estilos2.CSS/Formulario.CSS">
 </head>
 <body>
- <form class="form">
+ <form class="form" action="https://formspree.io/f/mykbbndv"
+  method="POST">
     <div class ="form__container">
-        <h2 class="form__container">Contáctame hola soy Nicote</nav></h2>
-        <input type="text" class="form__input"  placeholder="Nombre:">
-        <input type="email" class="form__input" placeholder="Correo Electrónico:">
-        <textarea class="form__input form__input--message" placeholder="Mensaje:"></textarea>
+        <h2 class="form__title">Contáctame </nav></h2>
+        <input type="text" class="form__input"  placeholder="Nombre:" name="name">
+        <input type="email" class="form__input" placeholder="Correo Electrónico:" name="email">
+        <textarea class="form__input form__input--message" placeholder="Mensaje:" name="message"></textarea>
 
         
         <input type="submit" value="Enviar" class="form__cta">
