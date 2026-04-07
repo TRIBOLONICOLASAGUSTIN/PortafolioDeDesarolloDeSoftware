@@ -2,7 +2,6 @@
 @import url("./Boto.CSS");
 @import url("./Sobre-Mi.CSS");
 @import url("./Redes.CSS");
-@import url("./Contacto.CSS");
 @import url("./Educacion.CSS");
 @import url("./Experiencia.CSS");
 @import url("./Proyectos.CSS");
@@ -37,7 +36,8 @@ height: var(--header-h);
 z-index: 1000;
 display: flex;
 align-items: center;
-justify-content: space-between;
+justify-content: flex-start;
+gap: 30px;
 padding: 0 26px;
 background: color-mix(in srgb, var(--surface) 88%, transparent);
 border-bottom: 1px solid var(--border);

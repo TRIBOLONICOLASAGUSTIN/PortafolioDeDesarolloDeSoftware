@@ -4,7 +4,7 @@
   padding: 0;
   display: grid;
   gap: 10px;
-  color: #c4cfdf;
+  color: var(--muted);
 }
 
 .educacion-lista li {

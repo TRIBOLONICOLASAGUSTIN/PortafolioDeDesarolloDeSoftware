@@ -11,7 +11,7 @@
 #Habilidades h2 {
   font-size: clamp(1.6rem, 2.3vw, 2rem);
   margin: 0 0 18px;
-  text-align: center;
+  text-align: left;
 }
 
 #Habilidades ul {
@@ -19,54 +19,37 @@
   padding: 6px 0;
   display: flex;
   align-items: center;
-  gap: 20px;
-  width: max-content;
-  animation: habilidades-scroll 12s linear infinite;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
   list-style: none;
 }
 
 #Habilidades li {
-  width: 86px;
-  height: 86px;
+  min-width: 120px;
+  height: auto;
+  padding: 10px 16px;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   border: 1px solid var(--border);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--surface) 90%, #dbeafe);
-  position: relative;
-  transition: transform 0.2s ease, border-color 0.2s ease;
-}
-
-#Habilidades img {
-  width: 52px;
-  height: 52px;
-  object-fit: contain;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 88%, #e2e8f0);
+  color: var(--accent);
+  font-size: 1.05rem;
+  font-weight: 700;
+  transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
 }
 
 #Habilidades li:hover {
-  transform: translateY(-4px);
+  transform: translateY(-2px);
   border-color: var(--accent);
+  background: color-mix(in srgb, var(--surface) 78%, #dbeafe);
 }
 
-#Habilidades li::after {
-  content: attr(data-name);
-  position: absolute;
-  bottom: -28px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.78rem;
-  color: var(--muted);
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  white-space: nowrap;
-}
-
-#Habilidades li:hover::after {
-  opacity: 1;
-}
-
-@keyframes habilidades-scroll {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+#Habilidades .skill-icon {
+  font-size: 0.95rem;
+  color: var(--accent);
+  font-weight: 700;
 }
