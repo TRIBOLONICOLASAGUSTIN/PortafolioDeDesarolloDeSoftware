@@ -1,5 +1,5 @@
 #Habilidades {
-  margin-top: 44px;
+  margin-top: 26px;
   padding: 28px;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -11,7 +11,7 @@
 #Habilidades h2 {
   font-size: clamp(1.6rem, 2.3vw, 2rem);
   margin: 0 0 18px;
-  text-align: left;
+  text-align: center;
 }
 
 #Habilidades ul {

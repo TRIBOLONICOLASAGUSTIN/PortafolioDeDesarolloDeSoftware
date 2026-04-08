@@ -94,6 +94,7 @@ margin: 0;
 padding: 0;
 border-radius: 0;
 box-shadow: none;
+scroll-margin-top: calc(var(--header-h) + 14px);
 }
 
 p {
