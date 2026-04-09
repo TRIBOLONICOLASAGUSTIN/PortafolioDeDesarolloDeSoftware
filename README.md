@@ -1,4 +1,8 @@
 # PortafolioDeDesarolloDeSoftware
-usos servicios externos por CDN/API:
-Google Fonts (CDN)
-Formspree (API de formularios)
+
+## Sitio publicado
+https://tribolonicolasagustin.github.io/PortafolioDeDesarolloDeSotfware/
+
+## Servicios externos por CDN/API
+- Google Fonts (CDN)
+- Formspree (API de formularios)
