@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AT Computación</title>
+<meta name="description" content="Reparación de notebooks y PCs, venta de componentes y armado de equipos. Seguí tu reparación online y pedí presupuesto por WhatsApp.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============ Tokens ============ */
+:root{
+  --bg:#070a13; --bg-2:#0c1120; --surface:rgba(255,255,255,.045); --surface-2:rgba(255,255,255,.08);
+  --border:rgba(255,255,255,.10); --text:#e8ecf6; --muted:#94a0b8;
+  --cyan:#22d3ee; --violet:#a78bfa; --green:#25d366; --amber:#fbbf24; --red:#f87171;
+  --grad:linear-gradient(135deg,var(--cyan),var(--violet));
+  --shadow:0 20px 60px -20px rgba(0,0,0,.6);
+  --radius:18px; --glow-a:.55;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#f5f7fc; --bg-2:#ffffff; --surface:rgba(255,255,255,.75); --surface-2:rgba(15,23,42,.05);
+    --border:rgba(15,23,42,.10); --text:#0f172a; --muted:#5b6478;
+    --cyan:#0891b2; --violet:#7c3aed; --shadow:0 20px 50px -25px rgba(15,23,42,.35); --glow-a:.22;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#f5f7fc; --bg-2:#ffffff; --surface:rgba(255,255,255,.75); --surface-2:rgba(15,23,42,.05);
+  --border:rgba(15,23,42,.10); --text:#0f172a; --muted:#5b6478;
+  --cyan:#0891b2; --violet:#7c3aed; --shadow:0 20px 50px -25px rgba(15,23,42,.35); --glow-a:.22;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;overflow-x:clip}
+body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden;transition:background .4s,color .4s}
+h1,h2,h3,.brand{font-family:"Space Grotesk",Inter,sans-serif;line-height:1.15}
+a{color:inherit;text-decoration:none}
+button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+img,svg{display:block}
+.wrap{width:min(1180px,100% - 32px);margin-inline:auto}
+.grad-text{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-radius:8px}
+
+/* ============ Background glows ============ */
+.bg{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.bg::after{content:"";position:absolute;inset:0;background-image:radial-gradient(var(--border) 1px,transparent 1px);background-size:28px 28px;mask-image:radial-gradient(ellipse at 50% 0%,#000 30%,transparent 75%)}
+.blob{position:absolute;width:520px;height:520px;border-radius:50%;filter:blur(110px);opacity:var(--glow-a)}
+.blob.a{background:var(--cyan);top:-160px;left:-120px;animation:drift 18s ease-in-out infinite}
+.blob.b{background:var(--violet);top:20%;right:-180px;animation:drift 22s ease-in-out infinite reverse}
+.blob.c{background:var(--violet);bottom:-220px;left:30%;opacity:calc(var(--glow-a)*.6);animation:drift 26s ease-in-out infinite}
+@keyframes drift{50%{transform:translate(80px,60px) scale(1.15)}}
+
+/* ============ Nav ============ */
+header{position:sticky;top:0;z-index:50;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);background:color-mix(in srgb,var(--bg) 70%,transparent);border-bottom:1px solid var(--border)}
+.nav{display:flex;align-items:center;gap:16px;height:68px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.15rem}
+.logo{width:36px;height:36px;border-radius:10px;background:var(--grad);display:grid;place-items:center;color:#fff;font-size:.85rem;font-weight:700;box-shadow:0 0 24px -4px var(--cyan)}
+.links{display:flex;gap:4px;margin-left:auto}
+.links a{padding:8px 14px;border-radius:10px;color:var(--muted);font-weight:500;font-size:.95rem;transition:.2s}
+.links a:hover{color:var(--text);background:var(--surface-2)}
+.icon-btn{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;border:1px solid var(--border);background:var(--surface);transition:.2s;position:relative}
+.icon-btn:hover{border-color:var(--cyan);transform:translateY(-1px)}
+.icon-btn svg{width:18px;height:18px}
+.search-btn{display:flex;align-items:center;gap:10px;height:40px;padding:0 12px;border-radius:12px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:.9rem}
+.search-btn kbd{font-family:inherit;font-size:.72rem;padding:2px 6px;border:1px solid var(--border);border-radius:6px}
+.badge{position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--grad);color:#fff;font-size:.72rem;font-weight:700;display:grid;place-items:center;transform:scale(0);transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+.badge.show{transform:scale(1)}
+.badge.bump{animation:bump .4s}
+@keyframes bump{50%{transform:scale(1.4)}}
+.menu-btn{display:none}
+@media (max-width:900px){
+  .links{display:none;position:absolute;top:68px;left:0;right:0;flex-direction:column;padding:12px 16px 20px;background:var(--bg-2);border-bottom:1px solid var(--border)}
+  .links.open{display:flex}
+  .menu-btn{display:grid}
+  .search-btn span,.search-btn kbd{display:none}
+  .search-btn{margin-left:auto}
+}
+
+/* ============ Buttons ============ */
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 22px;border-radius:14px;font-weight:600;transition:transform .2s,box-shadow .2s,background .2s}
+.btn svg{width:18px;height:18px}
+.btn-primary{background:var(--grad);color:#fff;box-shadow:0 10px 30px -10px var(--cyan)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 16px 40px -10px var(--violet)}
+.btn-ghost{border:1px solid var(--border);background:var(--surface)}
+.btn-ghost:hover{border-color:var(--cyan);transform:translateY(-2px)}
+.btn-wa{background:var(--green);color:#fff}
+.btn-wa:hover{transform:translateY(-2px);box-shadow:0 12px 30px -10px var(--green)}
+
+/* ============ Hero ============ */
+.hero{padding:72px 0 56px;display:grid;grid-template-columns:1.1fr 1fr;gap:48px;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:99px;border:1px solid var(--border);background:var(--surface);font-size:.85rem;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 var(--green);animation:ping 2s infinite}
+@keyframes ping{70%{box-shadow:0 0 0 8px transparent}}
+.hero h1{font-size:clamp(2.3rem,5.4vw,4rem);margin:18px 0;letter-spacing:-.02em}
+.typed{display:inline-block;min-width:2ch;border-right:3px solid var(--cyan);padding-right:4px;animation:caret .9s steps(1) infinite}
+@keyframes caret{50%{border-color:transparent}}
+.hero p.lead{font-size:1.1rem;color:var(--muted);max-width:52ch}
+.cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+.stats{display:flex;gap:32px;margin-top:40px;flex-wrap:wrap}
+.stat b{font-family:"Space Grotesk";font-size:1.8rem;display:block}
+.stat span{color:var(--muted);font-size:.88rem}
+
+/* Laptop illustration */
+.device{position:relative;perspective:1200px;overflow-x:clip;padding:16px 0}
+.laptop{width:100%;max-width:480px;margin-inline:auto;animation:float 6s ease-in-out infinite;transform-style:preserve-3d}
+@keyframes float{50%{transform:translateY(-14px) rotateX(4deg)}}
+.screen{aspect-ratio:16/10;border-radius:16px 16px 4px 4px;background:#0b1020;border:10px solid #1c2233;position:relative;overflow:hidden;box-shadow:0 0 60px -10px var(--cyan)}
+.screen::before{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.08) 50%,transparent 60%);animation:sheen 5s infinite}
+@keyframes sheen{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.base{height:16px;margin:0 -6%;border-radius:0 0 18px 18px;background:linear-gradient(#2a3247,#141927)}
+.diag{position:absolute;inset:14px;font:500 .72rem/1.7 ui-monospace,Menlo,monospace;color:#9fb3d1}
+.diag .row{display:flex;justify-content:space-between;gap:8px}
+.diag .ok{color:#34d399}.diag .warn{color:var(--amber)}
+.bar{height:6px;border-radius:3px;background:rgba(255,255,255,.08);margin:3px 0 8px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--grad);width:0;animation:fill 3.2s ease-out infinite alternate}
+@keyframes fill{to{width:var(--w)}}
+.chip{position:absolute;padding:10px 14px;border-radius:14px;background:var(--bg-2);border:1px solid var(--border);box-shadow:var(--shadow);font-size:.82rem;display:flex;align-items:center;gap:8px;animation:float 5s ease-in-out infinite}
+.chip.c1{top:6%;left:-4%;animation-delay:-1s}
+.chip.c2{bottom:14%;right:-4%;animation-delay:-2.5s}
+.chip b{font-family:"Space Grotesk"}
+@media (max-width:900px){.hero{grid-template-columns:1fr;padding-top:40px}.chip.c1{left:0}.chip.c2{right:0}}
+
+/* ============ Marquee ============ */
+.marquee{border-block:1px solid var(--border);padding:18px 0;overflow:hidden;mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+.track{display:flex;gap:56px;width:max-content;animation:scroll 32s linear infinite}
+.track span{font-family:"Space Grotesk";font-weight:600;font-size:1.15rem;color:var(--muted);opacity:.75;white-space:nowrap}
+@keyframes scroll{to{transform:translateX(-50%)}}
+
+/* ============ Sections ============ */
+section{padding:88px 0}
+.head{display:flex;justify-content:space-between;align-items:end;gap:24px;margin-bottom:40px;flex-wrap:wrap}
+.eyebrow{color:var(--cyan);font-weight:600;font-size:.85rem;letter-spacing:.12em;text-transform:uppercase}
+.head h2{font-size:clamp(1.8rem,3.6vw,2.6rem);margin-top:8px;letter-spacing:-.01em}
+.head p{color:var(--muted);max-width:46ch}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:var(--shadow)}
+
+/* reveal */
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .8s ease,transform .8s cubic-bezier(.2,.8,.2,1)}
+.reveal.in{opacity:1;transform:none}
+
+/* ============ Services ============ */
+.services{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.svc{padding:28px;position:relative;overflow:hidden;transition:transform .3s,border-color .3s}
+.svc:hover{transform:translateY(-4px);border-color:color-mix(in srgb,var(--cyan) 50%,transparent)}
+.svc .ic{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;background:var(--surface-2);margin-bottom:18px;color:var(--cyan)}
+.svc .ic svg{width:24px;height:24px}
+.svc h3{font-size:1.2rem;margin-bottom:8px}
+.svc p{color:var(--muted);font-size:.95rem}
+.svc::after{content:"";position:absolute;inset:auto -40% -60% auto;width:200px;height:200px;border-radius:50%;background:var(--violet);filter:blur(70px);opacity:0;transition:.4s}
+.svc:hover::after{opacity:.35}
+@media (max-width:900px){.services{grid-template-columns:1fr}}
+
+/* ============ Categories (3D tilt) ============ */
+.cats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.cat{padding:22px;aspect-ratio:1/1.05;display:flex;flex-direction:column;justify-content:space-between;transform-style:preserve-3d;transition:transform .15s ease-out,border-color .3s;will-change:transform}
+.cat:hover{border-color:color-mix(in srgb,var(--violet) 55%,transparent)}
+.cat .emoji{font-size:2.4rem;transform:translateZ(40px)}
+.cat h3{font-size:1.1rem;transform:translateZ(30px)}
+.cat small{color:var(--muted);transform:translateZ(20px);display:block}
+@media (max-width:900px){.cats{grid-template-columns:repeat(2,1fr)}}
+
+/* ============ Products ============ */
+.filters{display:flex;gap:8px;flex-wrap:wrap}
+.filters button{padding:8px 16px;border-radius:99px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:.9rem;transition:.2s}
+.filters button.active,.filters button:hover{color:var(--text);border-color:var(--cyan)}
+.filters button.active{background:color-mix(in srgb,var(--cyan) 15%,transparent)}
+.products{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.prod{padding:16px;display:flex;flex-direction:column;transition:transform .3s,opacity .3s}
+.prod:hover{transform:translateY(-5px)}
+.prod.hide{display:none}
+.thumb{aspect-ratio:4/3;border-radius:12px;background:radial-gradient(circle at 30% 20%,color-mix(in srgb,var(--cyan) 30%,transparent),transparent 60%),radial-gradient(circle at 80% 90%,color-mix(in srgb,var(--violet) 30%,transparent),transparent 60%),var(--surface-2);display:grid;place-items:center;font-size:3rem;margin-bottom:14px;position:relative}
+.tag{position:absolute;top:10px;left:10px;font-size:.7rem;font-weight:700;padding:4px 8px;border-radius:6px;background:var(--grad);color:#fff}
+.prod h3{font-size:1rem;margin-bottom:4px}
+.prod .spec{color:var(--muted);font-size:.85rem;flex:1}
+.price-row{display:flex;align-items:center;justify-content:space-between;margin-top:14px}
+.price{font-family:"Space Grotesk";font-weight:700;font-size:1.2rem}
+.price s{display:block;font-size:.78rem;color:var(--muted);font-weight:500}
+.add{width:40px;height:40px;border-radius:12px;background:var(--grad);color:#fff;display:grid;place-items:center;transition:transform .2s}
+.add:hover{transform:scale(1.1) rotate(90deg)}
+.add.done{background:var(--green);transform:scale(1.1)}
+.add svg{width:18px;height:18px}
+@media (max-width:1000px){.products{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:480px){.products{gap:12px}.prod{padding:12px}.price{font-size:1.05rem}}
+
+/* ============ Tracker ============ */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+@media (max-width:900px){.split{grid-template-columns:1fr}}
+.panel{padding:28px}
+.panel h3{font-size:1.35rem;margin-bottom:6px}
+.panel > p{color:var(--muted);font-size:.95rem;margin-bottom:20px}
+.field{display:flex;gap:10px}
+input,select,textarea{font:inherit;color:var(--text);background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;width:100%;transition:border-color .2s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--cyan)}
+select option{background:var(--bg-2);color:var(--text)}
+.demo-codes{margin-top:10px;font-size:.82rem;color:var(--muted)}
+.demo-codes button{color:var(--cyan);text-decoration:underline;text-underline-offset:3px;font-size:.82rem}
+.result{margin-top:22px}
+.order-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.order-head b{font-family:"Space Grotesk";font-size:1.05rem}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;color:var(--green)}
+.steps{list-style:none;position:relative}
+.steps li{position:relative;padding:0 0 18px 36px}
+.steps li::before{content:"";position:absolute;left:11px;top:24px;bottom:0;width:2px;background:var(--border)}
+.steps li:last-child::before{display:none}
+.steps li.done::before{background:var(--grad)}
+.steps .mark{position:absolute;left:0;top:0;width:24px;height:24px;border-radius:50%;border:2px solid var(--border);background:var(--bg);display:grid;place-items:center;transition:.4s}
+.steps li.done .mark{background:var(--grad);border-color:transparent;color:#fff}
+.steps li.current .mark{border-color:var(--cyan);box-shadow:0 0 0 4px color-mix(in srgb,var(--cyan) 25%,transparent);animation:pulse 1.6s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 8px transparent}}
+.steps .mark svg{width:12px;height:12px}
+.steps b{display:block;font-size:.95rem}
+.steps small{color:var(--muted)}
+.steps li.pending{opacity:.5}
+.flash{animation:flash 1.2s}
+@keyframes flash{30%{background:color-mix(in srgb,var(--cyan) 18%,transparent)}}
+.err{color:var(--red);font-size:.9rem}
+
+/* Quote */
+.qgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.qgrid label{font-size:.85rem;color:var(--muted);display:flex;flex-direction:column;gap:6px}
+.qgrid .full{grid-column:1/-1}
+.checks{display:flex;flex-wrap:wrap;gap:8px}
+.checks label{flex-direction:row;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface-2);cursor:pointer;color:var(--text);font-size:.88rem}
+.checks input{width:auto;accent-color:var(--cyan)}
+.estimate{margin-top:18px;padding:18px;border-radius:14px;background:color-mix(in srgb,var(--cyan) 8%,transparent);border:1px dashed color-mix(in srgb,var(--cyan) 45%,transparent);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.estimate b{font-family:"Space Grotesk";font-size:1.5rem}
+.estimate small{color:var(--muted);display:block}
+@media (max-width:480px){.qgrid{grid-template-columns:1fr}}
+
+/* ============ Process ============ */
+.process{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;counter-reset:s}
+.proc{padding:24px;counter-increment:s}
+.proc::before{content:"0" counter(s);font-family:"Space Grotesk";font-weight:700;font-size:2.2rem;display:block;margin-bottom:10px}
+.proc h3{font-size:1.05rem;margin-bottom:6px}
+.proc p{color:var(--muted);font-size:.9rem}
+@media (max-width:900px){.process{grid-template-columns:1fr 1fr}}
+@media (max-width:480px){.process{grid-template-columns:1fr}}
+
+/* ============ Reviews ============ */
+.reviews{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.rev{padding:24px}
+.stars{color:var(--amber);letter-spacing:2px;margin-bottom:10px}
+.rev p{font-size:.95rem;margin-bottom:16px}
+.who{display:flex;align-items:center;gap:10px;font-size:.88rem}
+.av{width:36px;height:36px;border-radius:50%;background:var(--grad);display:grid;place-items:center;color:#fff;font-weight:700;font-size:.85rem}
+.who small{color:var(--muted);display:block}
+@media (max-width:900px){.reviews{grid-template-columns:1fr}}
+
+/* ============ CTA band / Footer ============ */
+.band{padding:48px;text-align:center;position:relative;overflow:hidden}
+.band::before{content:"";position:absolute;inset:-2px;background:var(--grad);opacity:.12;z-index:-1}
+.band h2{font-size:clamp(1.7rem,3.6vw,2.5rem);margin-bottom:12px}
+.band p{color:var(--muted);margin-bottom:24px}
+.band .cta{justify-content:center}
+@media (max-width:480px){.band{padding:32px 20px}}
+footer{border-top:1px solid var(--border);padding:48px 0 100px;color:var(--muted);font-size:.92rem}
+.fgrid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:28px}
+footer h4{color:var(--text);font-family:"Space Grotesk";margin-bottom:12px}
+footer li{list-style:none;margin-bottom:6px}
+footer a:hover{color:var(--cyan)}
+@media (max-width:900px){.fgrid{grid-template-columns:1fr 1fr}}
+
+/* ============ Floating WhatsApp ============ */
+.wa-fab{position:fixed;right:20px;bottom:20px;z-index:60;width:60px;height:60px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;box-shadow:0 10px 30px -6px rgba(37,211,102,.6)}
+.wa-fab::before{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid var(--green);animation:ring 2.2s infinite}
+@keyframes ring{to{transform:scale(1.6);opacity:0}}
+.wa-fab svg{width:30px;height:30px}
+.wa-tip{position:fixed;right:90px;bottom:32px;z-index:60;background:var(--bg-2);border:1px solid var(--border);padding:8px 14px;border-radius:12px;font-size:.88rem;box-shadow:var(--shadow);opacity:0;transform:translateX(10px);transition:.4s;pointer-events:none}
+.wa-tip.show{opacity:1;transform:none}
+@media (max-width:480px){.wa-tip{display:none}}
+
+/* ============ Drawer (cart) ============ */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:80;opacity:0;pointer-events:none;transition:.3s}
+.scrim.open{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(420px,100%);z-index:90;background:var(--bg-2);border-left:1px solid var(--border);transform:translateX(100%);transition:transform .4s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column}
+.drawer.open{transform:none}
+.drawer header{position:static;display:flex;align-items:center;justify-content:space-between;padding:18px 20px;background:none}
+.drawer .items{flex:1;overflow:auto;padding:12px 20px}
+.line{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
+.line .e{font-size:1.6rem;width:48px;height:48px;border-radius:10px;background:var(--surface-2);display:grid;place-items:center;flex:none}
+.line .info{flex:1;min-width:0}
+.line .info b{display:block;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.line .info small{color:var(--muted)}
+.qty{display:flex;align-items:center;gap:6px}
+.qty button{width:28px;height:28px;border-radius:8px;border:1px solid var(--border)}
+.empty{text-align:center;color:var(--muted);padding:48px 0}
+.drawer footer{padding:20px;border-top:1px solid var(--border)}
+.total{display:flex;justify-content:space-between;margin-bottom:14px;font-size:1.05rem}
+.total b{font-family:"Space Grotesk";font-size:1.3rem}
+.drawer .btn{width:100%;justify-content:center}
+
+/* ============ Search modal ============ */
+.modal{position:fixed;inset:0;z-index:100;display:grid;place-items:start center;padding:12vh 16px 16px;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:.25s}
+.modal.open{opacity:1;pointer-events:auto}
+.sbox{width:min(600px,100%);background:var(--bg-2);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;transform:translateY(-12px) scale(.98);transition:.25s}
+.modal.open .sbox{transform:none}
+.sbox input{border:0;border-bottom:1px solid var(--border);border-radius:0;padding:18px 20px;font-size:1.05rem;background:transparent}
+.sres{max-height:50vh;overflow:auto;padding:8px}
+.sres a{display:flex;gap:12px;align-items:center;padding:10px 12px;border-radius:10px}
+.sres a:hover,.sres a.sel{background:var(--surface-2)}
+.sres small{color:var(--muted);margin-left:auto}
+
+/* ============ Toast ============ */
+.toast{position:fixed;left:50%;bottom:24px;z-index:110;transform:translate(-50%,120px);background:var(--bg-2);border:1px solid var(--border);padding:12px 18px;border-radius:14px;box-shadow:var(--shadow);font-size:.92rem;transition:transform .4s cubic-bezier(.34,1.56,.64,1);max-width:calc(100% - 32px)}
+.toast.show{transform:translate(-50%,0)}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .reveal{opacity:1;transform:none}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+<div class="bg" aria-hidden="true"><div class="blob a"></div><div class="blob b"></div><div class="blob c"></div></div>
+
+<header>
+  <nav class="wrap nav" aria-label="Principal">
+    <a href="#" class="brand"><span class="logo">AT</span>AT Computación</a>
+    <div class="links" id="links">
+      <a href="#servicios">Servicios</a>
+      <a href="#tienda">Tienda</a>
+      <a href="#seguimiento">Seguí tu equipo</a>
+      <a href="#presupuesto">Presupuesto</a>
+      <a href="#contacto">Contacto</a>
+    </div>
+    <button class="search-btn" id="openSearch" aria-label="Buscar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Buscar</span><kbd>Ctrl K</kbd></button>
+    <button class="icon-btn" id="themeBtn" aria-label="Cambiar tema"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+    <button class="icon-btn" id="cartBtn" aria-label="Ver pedido"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6h15l-1.5 9h-12z"/><path d="M6 6 5 3H2"/><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/></svg><span class="badge" id="badge">0</span></button>
+    <button class="icon-btn menu-btn" id="menuBtn" aria-label="Menú" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  </nav>
+</header>
+
+<main>
+  <!-- HERO -->
+  <div class="wrap hero">
+    <div>
+      <span class="pill"><span class="dot"></span> Abierto ahora · Respondemos en minutos</span>
+      <h1>Tu <span class="grad-text typed" id="typed">notebook</span><br>vuelve a volar.</h1>
+      <p class="lead">Reparación profesional de notebooks y PCs, venta de componentes y armado a medida. Diagnóstico sin cargo y seguimiento online de tu equipo en tiempo real.</p>
+      <div class="cta">
+        <a class="btn btn-wa" data-wa="Hola AT Computación! Quiero consultar por una reparación." href="#"><svg viewBox="0 0 24 24" fill="currentColor"><use href="#wa"/></svg>Escribinos por WhatsApp</a>
+        <a class="btn btn-ghost" href="#seguimiento">Seguir mi reparación</a>
+      </div>
+      <div class="stats">
+        <div class="stat"><b data-count="4800">0</b><span>equipos reparados</span></div>
+        <div class="stat"><b data-count="72" data-suffix="h">0</b><span>tiempo promedio</span></div>
+        <div class="stat"><b data-count="90" data-suffix=" días">0</b><span>de garantía</span></div>
+      </div>
+    </div>
+    <div class="device" aria-hidden="true">
+      <div class="laptop">
+        <div class="screen">
+          <div class="diag">
+            <div class="row"><span>&gt; diagnóstico_AT.exe</span><span class="ok">● online</span></div>
+            <div class="row"><span>CPU</span><span>42°C</span></div><div class="bar"><i style="--w:42%"></i></div>
+            <div class="row"><span>RAM 16 GB</span><span class="ok">OK</span></div><div class="bar"><i style="--w:68%"></i></div>
+            <div class="row"><span>SSD NVMe</span><span class="ok">salud 98%</span></div><div class="bar"><i style="--w:98%"></i></div>
+            <div class="row"><span>Batería</span><span class="warn">reemplazar</span></div><div class="bar"><i style="--w:31%"></i></div>
+          </div>
+        </div>
+        <div class="base"></div>
+      </div>
+      <div class="chip c1">🛠️ <span><b>Diagnóstico</b> gratis</span></div>
+      <div class="chip c2">⚡ <span>Listo en <b>72 h</b></span></div>
+    </div>
+  </div>
+
+  <div class="marquee" aria-hidden="true"><div class="track" id="track"></div></div>
+
+  <!-- SERVICIOS -->
+  <section id="servicios">
+    <div class="wrap">
+      <div class="head reveal">
+        <div><span class="eyebrow">Servicios</span><h2>Lo arreglamos, lo mejoramos <span class="grad-text">o lo armamos.</span></h2></div>
+        <p>Técnicos certificados, repuestos originales y garantía escrita en cada trabajo.</p>
+      </div>
+      <div class="services">
+        <article class="card svc reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg></div><h3>Reparación de notebooks</h3><p>Pantallas, bisagras, teclados, placas madre, baterías y daños por líquidos.</p></article>
+        <article class="card svc reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M12 17h.01"/></svg></div><h3>PC de escritorio y gamer</h3><p>Armado a medida, upgrades, refrigeración y limpieza profunda con cambio de pasta térmica.</p></article>
+        <article class="card svc reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><circle cx="12" cy="12" r="5"/></svg></div><h3>Software y datos</h3><p>Formateo, eliminación de virus, recuperación de datos y migración a SSD sin perder nada.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- CATEGORÍAS -->
+  <section style="padding-top:0">
+    <div class="wrap">
+      <div class="head reveal"><div><span class="eyebrow">Catálogo</span><h2>Componentes para cada proyecto</h2></div></div>
+      <div class="cats" id="cats"></div>
+    </div>
+  </section>
+
+  <!-- TIENDA -->
+  <section id="tienda" style="padding-top:0">
+    <div class="wrap">
+      <div class="head reveal">
+        <div><span class="eyebrow">Destacados</span><h2>Ofertas de la semana</h2></div>
+        <div class="filters" id="filters" role="tablist"></div>
+      </div>
+      <div class="products" id="products"></div>
+    </div>
+  </section>
+
+  <!-- SEGUIMIENTO + PRESUPUESTO -->
+  <section id="seguimiento">
+    <div class="wrap">
+      <div class="head reveal"><div><span class="eyebrow">Online 24/7</span><h2>Seguí tu equipo <span class="grad-text">en tiempo real</span></h2></div><p>Ingresá el código de tu orden y mirá en qué etapa está la reparación, sin llamar.</p></div>
+      <div class="split">
+        <div class="card panel reveal">
+          <h3>Rastreador de reparación</h3>
+          <p>El código está en tu comprobante (ej. ATC-1042).</p>
+          <form class="field" id="trackForm">
+            <input id="trackInput" placeholder="ATC-0000" autocomplete="off" aria-label="Código de orden">
+            <button class="btn btn-primary" style="padding:12px 18px">Buscar</button>
+          </form>
+          <div class="demo-codes">Probá la demo: <button data-code="ATC-1042">ATC-1042</button> · <button data-code="ATC-1043">ATC-1043</button> · <button data-code="ATC-1044">ATC-1044</button></div>
+          <div class="result" id="trackResult" aria-live="polite"></div>
+        </div>
+        <div class="card panel reveal" id="presupuesto">
+          <h3>Cotizador rápido</h3>
+          <p>Estimación orientativa. El precio final se confirma tras el diagnóstico gratuito.</p>
+          <form class="qgrid" id="quoteForm">
+            <label>Equipo<select id="qDevice"><option value="1">Notebook</option><option value="1.15">PC gamer</option><option value="0.9">PC de oficina</option><option value="1.3">MacBook</option></select></label>
+            <label>Urgencia<select id="qUrg"><option value="1">Normal (72 h)</option><option value="1.35">Express (24 h)</option></select></label>
+            <div class="full"><label style="margin-bottom:6px">¿Qué necesitás?</label>
+              <div class="checks" id="qServices">
+                <label><input type="checkbox" value="18000" data-n="Limpieza + pasta térmica" checked>Limpieza</label>
+                <label><input type="checkbox" value="25000" data-n="Formateo + backup">Formateo</label>
+                <label><input type="checkbox" value="60000" data-n="Cambio de pantalla">Pantalla</label>
+                <label><input type="checkbox" value="45000" data-n="Cambio de batería">Batería</label>
+                <label><input type="checkbox" value="30000" data-n="Upgrade a SSD (mano de obra)">SSD</label>
+                <label><input type="checkbox" value="85000" data-n="Reparación de placa">Placa</label>
+              </div>
+            </div>
+          </form>
+          <div class="estimate">
+            <div><small>Estimado desde</small><b id="qTotal">$0</b></div>
+            <a class="btn btn-wa" href="#" id="quoteWa"><svg viewBox="0 0 24 24" fill="currentColor"><use href="#wa"/></svg>Pedir turno</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROCESO -->
+  <section style="padding-top:0">
+    <div class="wrap">
+      <div class="head reveal"><div><span class="eyebrow">Cómo trabajamos</span><h2>Simple, claro y sin sorpresas</h2></div></div>
+      <div class="process">
+        <div class="card proc reveal"><h3>Traés tu equipo</h3><p>O coordinamos retiro a domicilio por WhatsApp.</p></div>
+        <div class="card proc reveal"><h3>Diagnóstico gratis</h3><p>Te enviamos el presupuesto detallado en 24 h.</p></div>
+        <div class="card proc reveal"><h3>Aprobás y reparamos</h3><p>Seguís cada etapa online con tu código de orden.</p></div>
+        <div class="card proc reveal"><h3>Retirás con garantía</h3><p>90 días de garantía escrita sobre el trabajo realizado.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESEÑAS -->
+  <section style="padding-top:0">
+    <div class="wrap">
+      <div class="head reveal"><div><span class="eyebrow">Reseñas (ejemplo)</span><h2>Lo que dicen nuestros clientes</h2></div><p>Textos de muestra: se reemplazan por reseñas reales antes de publicar.</p></div>
+      <div class="reviews">
+        <div class="card rev reveal"><div class="stars">★★★★★</div><p>“Me cambiaron la pantalla en un día y pude seguir todo desde el celular. Impecable.”</p><div class="who"><span class="av">CL</span><div>Cliente de ejemplo<small>Notebook Lenovo</small></div></div></div>
+        <div class="card rev reveal"><div class="stars">★★★★★</div><p>“Armé mi PC gamer con ellos. Me asesoraron sin venderme de más y quedó silenciosa.”</p><div class="who"><span class="av">MR</span><div>Cliente de ejemplo<small>PC Ryzen 5</small></div></div></div>
+        <div class="card rev reveal"><div class="stars">★★★★★</div><p>“Recuperaron las fotos de un disco que daba por perdido. Muy recomendables.”</p><div class="who"><span class="av">JP</span><div>Cliente de ejemplo<small>Recuperación de datos</small></div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section id="contacto" style="padding-top:0">
+    <div class="wrap">
+      <div class="card band reveal">
+        <h2>¿Tu equipo anda lento o no prende?</h2>
+        <p>Mandanos un mensaje con el modelo y el problema. Te respondemos al toque.</p>
+        <div class="cta">
+          <a class="btn btn-wa" data-wa="Hola AT Computación! Mi equipo tiene este problema: " href="#"><svg viewBox="0 0 24 24" fill="currentColor"><use href="#wa"/></svg>Hablar por WhatsApp</a>
+          <a class="btn btn-ghost" href="#presupuesto">Calcular presupuesto</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap fgrid">
+    <div><a href="#" class="brand" style="color:var(--text);margin-bottom:12px"><span class="logo">AT</span>AT Computación</a><p style="margin-top:12px;max-width:34ch">Reparación, componentes y armado de equipos. Datos de contacto de ejemplo hasta confirmar los reales.</p></div>
+    <div><h4>Local</h4><ul><li>Dirección a confirmar</li><li>Lun a Vie 9–19 h</li><li>Sáb 9–13 h</li></ul></div>
+    <div><h4>Contacto</h4><ul><li><a href="#" data-wa="Hola!">WhatsApp</a></li><li><a href="mailto:contacto@example.com">contacto@example.com</a></li></ul></div>
+    <div><h4>Navegar</h4><ul><li><a href="#servicios">Servicios</a></li><li><a href="#tienda">Tienda</a></li><li><a href="#seguimiento">Seguimiento</a></li></ul></div>
+  </div>
+  <div class="wrap" style="margin-top:32px">© <span id="yr"></span> AT Computación · Prototipo fase 0</div>
+</footer>
+
+<!-- Floating WhatsApp -->
+<span class="wa-tip" id="waTip">¿Necesitás ayuda? 👋</span>
+<a class="wa-fab" data-wa="Hola AT Computación! Tengo una consulta." href="#" aria-label="Escribir por WhatsApp"><svg viewBox="0 0 24 24" fill="currentColor"><use href="#wa"/></svg></a>
+
+<!-- Cart drawer -->
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="Tu pedido" aria-hidden="true">
+  <header><h3>Tu pedido</h3><button class="icon-btn" id="closeCart" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button></header>
+  <div class="items" id="items"></div>
+  <footer><div class="total"><span>Total</span><b id="cartTotal">$0</b></div><a class="btn btn-wa" id="sendOrder" href="#"><svg viewBox="0 0 24 24" fill="currentColor"><use href="#wa"/></svg>Enviar pedido por WhatsApp</a></footer>
+</aside>
+
+<!-- Search -->
+<div class="modal" id="search" role="dialog" aria-modal="true" aria-label="Buscar">
+  <div class="sbox"><input id="sInput" placeholder="Buscar productos, servicios, secciones…" autocomplete="off"><div class="sres" id="sRes"></div></div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<svg width="0" height="0" style="position:absolute"><symbol id="wa" viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.4.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></symbol></svg>
+
+<script>
+/* ===== Config: reemplazar por datos reales ===== */
+const WA_NUMBER = "5490000000000"; // placeholder
+const fmt = n => "$" + Math.round(n).toLocaleString("es-AR");
+const waLink = msg => `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`;
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ===== Data ===== */
+const CATS = [
+  {e:"🧠",n:"Procesadores",c:"cpu",k:38},{e:"🎮",n:"Placas de video",c:"gpu",k:24},
+  {e:"💾",n:"Almacenamiento",c:"storage",k:56},{e:"🧩",n:"Memorias RAM",c:"ram",k:41},
+  {e:"💻",n:"Notebooks",c:"notebook",k:19},{e:"⌨️",n:"Periféricos",c:"perif",k:87},
+  {e:"🔌",n:"Fuentes",c:"psu",k:22},{e:"🖥️",n:"Monitores",c:"monitor",k:31}
+];
+const PRODUCTS = [
+  {id:1,e:"🧠",n:"AMD Ryzen 5 7600",s:"6 núcleos · 5.1 GHz · AM5",p:289000,o:329000,c:"cpu",t:"-12%"},
+  {id:2,e:"🎮",n:"RTX 4060 8 GB",s:"DLSS 3 · Ray tracing",p:519000,c:"gpu",t:"TOP"},
+  {id:3,e:"💾",n:"SSD NVMe 1 TB",s:"Gen4 · 5000 MB/s",p:89900,o:109000,c:"storage",t:"-18%"},
+  {id:4,e:"🧩",n:"Kit RAM 16 GB DDR5",s:"2×8 GB · 5600 MHz",p:74500,c:"ram"},
+  {id:5,e:"💻",n:"Notebook 15.6\" i5",s:"16 GB · SSD 512 GB",p:899000,o:979000,c:"notebook",t:"-8%"},
+  {id:6,e:"⌨️",n:"Teclado mecánico",s:"Switch red · RGB",p:52000,c:"perif"},
+  {id:7,e:"🔌",n:"Fuente 650 W 80+ Bronze",s:"Semi modular",p:68000,c:"psu"},
+  {id:8,e:"🖥️",n:"Monitor 24\" 165 Hz",s:"IPS · 1 ms",p:239000,c:"monitor",t:"NUEVO"}
+];
+const STEPS = ["Recibido","Diagnóstico","Presupuesto aprobado","En reparación","Control de calidad","Listo para retirar"];
+const ORDERS = {
+  "ATC-1042":{eq:"Notebook HP 14\" — no enciende",at:3,times:["Lun 09:12","Lun 15:40","Mar 10:05"]},
+  "ATC-1043":{eq:"PC gamer — limpieza y pasta térmica",at:4,times:["Dom 18:20","Lun 10:00","Lun 10:30","Lun 16:45"]},
+  "ATC-1044":{eq:"MacBook Air — cambio de batería",at:5,times:["Jue 11:00","Jue 17:10","Vie 09:00","Vie 14:30","Sáb 10:15"]}
+};
+
+/* ===== Theme ===== */
+const root = document.documentElement;
+try{const t=localStorage.getItem("atc-theme"); if(t) root.dataset.theme=t;}catch(e){}
+$("#themeBtn").onclick = () => {
+  const cur = root.dataset.theme || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  root.dataset.theme = cur === "light" ? "dark" : "light";
+  try{localStorage.setItem("atc-theme",root.dataset.theme)}catch(e){}
+};
+
+/* ===== Nav ===== */
+$("#menuBtn").onclick = e => { const o=$("#links").classList.toggle("open"); e.currentTarget.setAttribute("aria-expanded",o); };
+$$("#links a").forEach(a=>a.onclick=()=>$("#links").classList.remove("open"));
+$("#yr").textContent = new Date().getFullYear();
+
+/* ===== WhatsApp links ===== */
+$$("[data-wa]").forEach(a=>{a.href=waLink(a.dataset.wa);a.target="_blank";a.rel="noopener"});
+setTimeout(()=>$("#waTip").classList.add("show"),3500);
+setTimeout(()=>$("#waTip").classList.remove("show"),9500);
+
+/* ===== Typed hero word ===== */
+(function(){
+  const words=["notebook","PC gamer","MacBook","PC de oficina"], el=$("#typed");
+  if(reduced) return;
+  let w=0,i=words[0].length,del=true;
+  (function tick(){
+    const word=words[w];
+    if(del){ i--; if(i===0){del=false; w=(w+1)%words.length;} }
+    else{ i++; if(i===words[w].length){del=true; el.textContent=words[w]; return setTimeout(tick,2200);} }
+    el.textContent=words[w].slice(0,i)||"​";
+    setTimeout(tick, del?55:95);
+  })();
+})();
+
+/* ===== Marquee ===== */
+const brands=["AMD","Intel","NVIDIA","Kingston","Samsung","Lenovo","HP","ASUS","Logitech","Corsair","Western Digital","Gigabyte"];
+$("#track").innerHTML=[...brands,...brands].map(b=>`<span>${b}</span>`).join("");
+
+/* ===== Categories + tilt ===== */
+$("#cats").innerHTML = CATS.map(c=>`<a href="#tienda" class="card cat reveal" data-c="${c.c}"><span class="emoji">${c.e}</span><div><h3>${c.n}</h3><small>${c.k} productos</small></div></a>`).join("");
+$$(".cat").forEach(el=>{
+  el.addEventListener("click",()=>setFilter(el.dataset.c));
+  if(reduced || matchMedia("(hover: none)").matches) return;
+  el.addEventListener("mousemove",e=>{
+    const r=el.getBoundingClientRect(), x=(e.clientX-r.left)/r.width-.5, y=(e.clientY-r.top)/r.height-.5;
+    el.style.transform=`perspective(700px) rotateY(${x*16}deg) rotateX(${-y*16}deg) translateZ(6px)`;
+  });
+  el.addEventListener("mouseleave",()=>el.style.transform="");
+});
+
+/* ===== Products ===== */
+$("#products").innerHTML = PRODUCTS.map(p=>`
+  <article class="card prod reveal" data-c="${p.c}">
+    <div class="thumb">${p.t?`<span class="tag">${p.t}</span>`:""}${p.e}</div>
+    <h3>${p.n}</h3><div class="spec">${p.s}</div>
+    <div class="price-row"><div class="price">${p.o?`<s>${fmt(p.o)}</s>`:""}${fmt(p.p)}</div>
+    <button class="add" data-id="${p.id}" aria-label="Agregar ${p.n}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></button></div>
+  </article>`).join("");
+const FILTERS=[["all","Todos"],["cpu","CPU"],["gpu","GPU"],["storage","Almacenamiento"],["ram","RAM"],["notebook","Notebooks"]];
+$("#filters").innerHTML=FILTERS.map(([k,n],i)=>`<button role="tab" data-f="${k}" class="${i?"":"active"}">${n}</button>`).join("");
+function setFilter(f){
+  if(!FILTERS.some(([k])=>k===f)) f="all";
+  $$("#filters button").forEach(b=>b.classList.toggle("active",b.dataset.f===f));
+  $$(".prod").forEach(p=>p.classList.toggle("hide",f!=="all"&&p.dataset.c!==f));
+}
+$$("#filters button").forEach(b=>b.onclick=()=>setFilter(b.dataset.f));
+
+/* ===== Cart ===== */
+const cart=new Map();
+function addToCart(id,btn){
+  cart.set(id,(cart.get(id)||0)+1); renderCart();
+  const p=PRODUCTS.find(x=>x.id===id); toast(`${p.e} ${p.n} agregado al pedido`);
+  if(btn){btn.classList.add("done");setTimeout(()=>btn.classList.remove("done"),700);}
+  const b=$("#badge"); b.classList.remove("bump"); void b.offsetWidth; b.classList.add("bump");
+}
+$$(".add").forEach(b=>b.onclick=()=>addToCart(+b.dataset.id,b));
+function renderCart(){
+  let n=0,total=0;
+  const html=[...cart].map(([id,q])=>{const p=PRODUCTS.find(x=>x.id===id); n+=q; total+=p.p*q;
+    return `<div class="line"><span class="e">${p.e}</span><div class="info"><b>${p.n}</b><small>${fmt(p.p)} c/u</small></div>
+    <div class="qty"><button data-d="-1" data-id="${id}" aria-label="Quitar uno">−</button><span>${q}</span><button data-d="1" data-id="${id}" aria-label="Agregar uno">+</button></div></div>`}).join("");
+  $("#items").innerHTML=html||`<div class="empty">🛒<br>Tu pedido está vacío.<br>Agregá productos desde la tienda.</div>`;
+  $("#cartTotal").textContent=fmt(total);
+  $("#badge").textContent=n; $("#badge").classList.toggle("show",n>0);
+  $$("#items .qty button").forEach(b=>b.onclick=()=>{const id=+b.dataset.id,q=(cart.get(id)||0)+ +b.dataset.d; q>0?cart.set(id,q):cart.delete(id); renderCart();});
+  const msg="Hola AT Computación! Quiero hacer este pedido:\n"+[...cart].map(([id,q])=>{const p=PRODUCTS.find(x=>x.id===id);return `• ${q}× ${p.n} — ${fmt(p.p*q)}`}).join("\n")+`\nTotal: ${fmt(total)}`;
+  const s=$("#sendOrder"); s.href=n?waLink(msg):"#"; s.target=n?"_blank":""; s.style.opacity=n?1:.5; s.style.pointerEvents=n?"":"none";
+}
+function openCart(o){ $("#drawer").classList.toggle("open",o); $("#scrim").classList.toggle("open",o); $("#drawer").setAttribute("aria-hidden",!o); }
+$("#cartBtn").onclick=()=>openCart(true); $("#closeCart").onclick=$("#scrim").onclick=()=>openCart(false);
+renderCart();
+
+/* ===== Tracker ===== */
+let liveTimer=null;
+function renderOrder(code){
+  clearTimeout(liveTimer);
+  code=code.trim().toUpperCase();
+  const o=ORDERS[code], out=$("#trackResult");
+  if(!o){ out.innerHTML=`<p class="err">No encontramos la orden <b>${code.replace(/[<>&"]/g,"")||"—"}</b>. Revisá el código o escribinos por WhatsApp.</p>`; return; }
+  const draw=(flash)=>{
+    out.innerHTML=`<div class="order-head"><div><b>${code}</b><br><small style="color:var(--muted)">${o.eq}</small></div>${o.at<STEPS.length-1?'<span class="live"><span class="dot"></span>En vivo</span>':'<span class="live">✓ Finalizado</span>'}</div>
+    <ol class="steps">${STEPS.map((s,i)=>`<li class="${i<o.at?"done":i===o.at?"current":"pending"}${flash&&i===o.at?" flash":""}"><span class="mark">${i<o.at?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5 9-10"/></svg>':""}</span><b>${s}</b><small>${o.times[i]||(i===o.at?"En curso…":"Pendiente")}</small></li>`).join("")}</ol>`;
+  };
+  draw(false);
+  // Demo: simula una actualización en tiempo real
+  if(o.at<STEPS.length-1){
+    liveTimer=setTimeout(()=>{
+      o.times[o.at]=o.times[o.at]||"Ahora"; o.at++; draw(true);
+      toast(`🔔 ${code}: ${STEPS[o.at]}`);
+    },6000);
+  }
+}
+$("#trackForm").onsubmit=e=>{e.preventDefault();renderOrder($("#trackInput").value)};
+$$("[data-code]").forEach(b=>b.onclick=()=>{$("#trackInput").value=b.dataset.code;renderOrder(b.dataset.code)});
+
+/* ===== Quote ===== */
+function calcQuote(){
+  const m=+$("#qDevice").value*+$("#qUrg").value;
+  const sel=$$("#qServices input:checked");
+  const total=sel.reduce((a,c)=>a+ +c.value,0)*m;
+  $("#qTotal").textContent=fmt(total);
+  const msg=`Hola AT Computación! Quiero un turno.\nEquipo: ${$("#qDevice").selectedOptions[0].text}\nUrgencia: ${$("#qUrg").selectedOptions[0].text}\nServicios: ${sel.map(c=>c.dataset.n).join(", ")||"a definir"}\nEstimado web: ${fmt(total)}`;
+  $("#quoteWa").href=waLink(msg); $("#quoteWa").target="_blank"; $("#quoteWa").rel="noopener";
+}
+$("#quoteForm").addEventListener("input",calcQuote); calcQuote();
+
+/* ===== Search (Ctrl+K) ===== */
+const INDEX=[
+  ...PRODUCTS.map(p=>({e:p.e,n:p.n,k:fmt(p.p),go:()=>{setFilter(p.c);location.hash="#tienda"}})),
+  ...CATS.map(c=>({e:c.e,n:c.n,k:"Categoría",go:()=>{setFilter(c.c);location.hash="#tienda"}})),
+  {e:"📍",n:"Seguir mi reparación",k:"Sección",go:()=>location.hash="#seguimiento"},
+  {e:"🧮",n:"Calcular presupuesto",k:"Sección",go:()=>location.hash="#presupuesto"},
+  {e:"🛠️",n:"Servicios técnicos",k:"Sección",go:()=>location.hash="#servicios"},
+  {e:"💬",n:"Hablar por WhatsApp",k:"Contacto",go:()=>open(waLink("Hola AT Computación!"),"_blank")}
+];
+let sIdx=0,sList=[];
+const norm=s=>s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+function renderSearch(){
+  const q=norm($("#sInput").value);
+  sList=INDEX.filter(x=>norm(x.n).includes(q)).slice(0,8); sIdx=0;
+  $("#sRes").innerHTML=sList.map((x,i)=>`<a href="#" data-i="${i}" class="${i?"":"sel"}"><span>${x.e}</span>${x.n}<small>${x.k}</small></a>`).join("")||`<p style="padding:14px;color:var(--muted)">Sin resultados. ¿Probaste preguntarnos por WhatsApp?</p>`;
+  $$("#sRes a").forEach(a=>a.onclick=e=>{e.preventDefault();pick(+a.dataset.i)});
+}
+function pick(i){ const x=sList[i]; if(!x) return; openSearch(false); x.go(); }
+function openSearch(o){ $("#search").classList.toggle("open",o); if(o){$("#sInput").value="";renderSearch();$("#sInput").focus();} }
+$("#openSearch").onclick=()=>openSearch(true);
+$("#search").onclick=e=>{if(e.target.id==="search")openSearch(false)};
+$("#sInput").oninput=renderSearch;
+$("#sInput").onkeydown=e=>{
+  const as=$$("#sRes a");
+  if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault(); sIdx=(sIdx+(e.key==="ArrowDown"?1:-1)+as.length)%Math.max(as.length,1); as.forEach((a,i)=>a.classList.toggle("sel",i===sIdx));}
+  if(e.key==="Enter"){e.preventDefault();pick(sIdx)}
+};
+addEventListener("keydown",e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();openSearch(!$("#search").classList.contains("open"))}
+  if(e.key==="Escape"){openSearch(false);openCart(false)}
+});
+
+/* ===== Toast ===== */
+let tT; function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(tT);tT=setTimeout(()=>t.classList.remove("show"),2600)}
+
+/* ===== Reveal + counters ===== */
+const io=new IntersectionObserver(es=>es.forEach(e=>{
+  if(!e.isIntersecting) return;
+  const el=e.target; el.classList.add("in"); io.unobserve(el);
+  if(el.dataset.count){
+    const to=+el.dataset.count, suf=el.dataset.suffix||"", t0=performance.now(), d=reduced?0:1600;
+    (function step(t){const k=d?Math.min((t-t0)/d,1):1; el.textContent=(to>=1000?"+":"")+Math.round(to*(1-Math.pow(1-k,3))).toLocaleString("es-AR")+suf; if(k<1)requestAnimationFrame(step)})(t0);
+  }
+}),{threshold:.15});
+$$(".reveal,[data-count]").forEach((el,i)=>{ if(el.classList.contains("reveal")) el.style.transitionDelay=`${(i%4)*80}ms`; io.observe(el); });
+</script>
+</body>
+</html>
