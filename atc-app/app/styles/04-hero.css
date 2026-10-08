@@ -1,17 +1,17 @@
 /* =========================================================
    Hero
    ========================================================= */
-.hero{padding:clamp(28px,3.2vw,44px) 0 0;text-align:center;overflow:clip;background:var(--bg)}
+.hero{padding:clamp(32px,4vw,56px) 0 0;text-align:center;overflow:clip;background:var(--bg)}
 .status{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--text-2)}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
 .dot.off{background:var(--text-3)}
-.hero h1{font-size:clamp(44px,5.4vw,76px);line-height:1.04;letter-spacing:-.035em;margin-top:12px;text-wrap:balance}
+.hero h1{font-size:clamp(44px,7.6vw,92px);line-height:1.03;letter-spacing:-.035em;margin-top:14px;text-wrap:balance}
 .hl{color:var(--text-2)}
-.hero-sub{font-size:clamp(19px,1.8vw,22px);line-height:1.4;letter-spacing:-.015em;color:var(--text-2);max-width:640px;margin:18px auto 0;font-weight:400;text-wrap:balance}
-.ctas{display:flex;gap:14px 26px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:28px}
+.hero-sub{font-size:clamp(19px,2.3vw,24px);line-height:1.38;letter-spacing:-.018em;color:var(--text-2);max-width:680px;margin:20px auto 0;font-weight:500;text-wrap:balance}
+.ctas{display:flex;gap:14px 26px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:30px}
 .hero [data-in]{opacity:0;transform:translateY(16px);animation:in .7s var(--ease) forwards;animation-delay:var(--d,0s)}
 
-.stage{--p:0;position:relative;width:min(960px,92vw);margin:clamp(28px,3vw,40px) auto 0;perspective:2400px}
+.stage{--p:0;position:relative;width:min(1040px,94vw);margin:clamp(28px,3.4vw,48px) auto 0;perspective:2400px}
 .laptop{transform-origin:50% 100%;transform:rotateX(calc((1 - var(--p)) * 10deg)) scale(calc(.94 + var(--p) * .06)) translateY(calc((1 - var(--p)) * 8px));will-change:transform}
 .lid{padding:.55%;border-radius:24px 22px 0 0;background:linear-gradient(180deg,#e4e5e9,#b9bbc1)}
 .bezel{position:relative;padding:2.1% 2.1% 2.8%;border-radius:18px 18px 0 0;background:#050506}

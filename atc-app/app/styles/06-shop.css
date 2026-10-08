@@ -3,7 +3,7 @@
    ========================================================= */
 .shop-links{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 30px;margin-top:24px}
 .shop-links .lnk{font-size:17px}
-.cats{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;margin:clamp(44px,6vw,64px) 0 0;padding:6px 2px 4px;scroll-snap-type:x proximity}
+.cats{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;margin:clamp(32px,4.5vw,48px) 0 0;padding:6px 2px 4px;scroll-snap-type:x proximity}
 .cats>:first-child{margin-left:auto}.cats>:last-child{margin-right:auto}
 .cats::-webkit-scrollbar{display:none}
 .cat{flex:none;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;gap:12px;width:124px;padding:8px 6px 0;font-size:14px;font-weight:500;letter-spacing:-.01em;color:var(--text-2);transition:color .25s}
@@ -18,8 +18,8 @@
 .pcard{position:relative;flex:0 0 clamp(268px,25vw,312px);scroll-snap-align:start;display:flex;flex-direction:column;min-height:460px;padding:26px 26px 24px;border-radius:24px;background:var(--card);box-shadow:var(--shadow);transition:transform .45s var(--ease),box-shadow .45s var(--ease)}
 .p-hit{position:absolute;inset:0;z-index:1;border-radius:inherit}
 .p-tag{min-height:18px;font-size:13px;font-weight:600;color:var(--warn)}
-.p-img{display:grid;place-items:center;height:210px;margin:8px 0 18px}
-.p-img .r{width:92%;height:100%;transition:transform .7s var(--ease)}
+.p-img{display:grid;place-items:center;height:232px;margin:8px 0 18px}
+.p-img .r{width:96%;height:100%;transition:transform .7s var(--ease)}
 .p-brand{font-size:13px;color:var(--text-3);font-weight:500}
 .p-name{font-size:21px;font-weight:600;letter-spacing:-.025em;line-height:1.2;margin-top:4px}
 .p-spec{font-size:14px;color:var(--text-2);margin-top:6px;line-height:1.4}
@@ -39,9 +39,9 @@
 .p-empty b{font-size:21px;letter-spacing:-.02em}
 
 /* Compare */
-.tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;margin-top:64px}
+.tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;margin-top:44px}
 .tier{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center}
-.tier .r{width:min(260px,100%);height:170px}
+.tier .r{width:min(288px,100%);height:190px}
 .tier h3{font-size:28px;letter-spacing:-.03em;margin-top:22px}
 .tier .tg{color:var(--text-2);margin-top:6px;min-height:50px}
 .tier .from{font-size:17px;font-weight:600;margin-top:14px}

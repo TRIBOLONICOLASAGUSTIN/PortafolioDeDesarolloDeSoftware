@@ -36,7 +36,7 @@
 .qv{position:absolute;z-index:81;left:50%;top:50%;width:min(940px,calc(100vw - 48px));max-height:min(680px,calc(100dvh - 48px));display:grid;grid-template-columns:1.05fr 1fr;overflow:hidden;border-radius:32px;background:var(--bg);box-shadow:var(--e3);translate:-50% -50%;transform:scale(.96);opacity:0;visibility:hidden;pointer-events:none;transition:transform .4s var(--ease),opacity .3s,visibility 0s linear .4s}
 .qv.open{transform:none;opacity:1;visibility:visible;pointer-events:auto;transition:transform .4s var(--ease),opacity .3s,visibility 0s}
 .qv-img{display:grid;place-items:center;padding:40px;background:var(--bg-alt)}
-.qv-img .r{width:100%;max-width:400px;height:300px}
+.qv-img .r{width:100%;max-width:440px;height:330px}
 .qv{grid-template-rows:minmax(0,1fr)}
 .qv-info{display:flex;flex-direction:column;min-height:0;padding:48px 40px 36px;overflow:auto}
 .qv-info .p-tag{min-height:0}

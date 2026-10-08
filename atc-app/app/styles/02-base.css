@@ -22,7 +22,7 @@ img{max-width:100%}
 @media (max-width:734px){br.d{display:none}}
 
 /* Sections */
-.sec{padding:clamp(84px,11vw,140px) 0;background:var(--bg)}
+.sec{padding:clamp(60px,7.5vw,100px) 0;background:var(--bg)}
 .sec.alt{background:var(--bg-alt);--card:var(--tile)}
 .h2{font-size:clamp(34px,5.2vw,56px);line-height:1.07;letter-spacing:-.03em;text-wrap:balance}
 .h2 .muted{color:var(--text-2)}
