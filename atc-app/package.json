@@ -1,0 +1,20 @@
+{
+  "name": "atc-app",
+  "version": "0.1.0",
+  "description": "AT Computación — proyecto real. Hito 1: base de datos y seguridad.",
+  "scripts": {
+    "db:start": "bash scripts/db-local.sh start",
+    "db:stop": "bash scripts/db-local.sh stop",
+    "db:reset": "bash scripts/db-local.sh reset",
+    "test:db": "bash scripts/db-local.sh reset && node --test --test-concurrency=1 tests/db/*.test.mjs",
+    "check:docs": "node scripts/check-doc-ids.mjs"
+  },
+  "devDependencies": {
+    "pg": "8.23.1"
+  },
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  }
+}
