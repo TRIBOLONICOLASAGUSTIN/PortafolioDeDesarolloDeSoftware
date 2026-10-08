@@ -1,5 +1,5 @@
 // Verifica que docs/atc/seguridad.md y las pruebas citen exactamente los mismos IDs
-// (RLS-n, FN-n, TRK-n, GEN-n, RET-n). Sale con 1 si:
+// (RLS-n, FN-n, TRK-n, GEN-n, RET-n de la base; API-n de la ruta de seguimiento). Sale con 1 si:
 //   - un ID documentado no tiene prueba,
 //   - una prueba no tiene ID o su ID no está documentado,
 //   - dos pruebas usan el mismo ID,
@@ -11,17 +11,17 @@ import { fileURLToPath } from 'node:url';
 
 const app = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DOC = join(app, '..', 'docs', 'atc', 'seguridad.md');
-const TESTS = join(app, 'tests', 'db');
-const ID = /\b(?:RLS|FN|TRK|GEN|RET)-\d+\b/g;
+const TEST_DIRS = [join(app, 'tests', 'db'), join(app, 'tests', 'api')];
+const ID = /\b(?:RLS|FN|TRK|GEN|RET|API)-\d+\b/g;
 
 const documented = new Set(readFileSync(DOC, 'utf8').match(ID) ?? []);
 const tested = new Map(); // ID → archivo de la prueba
 const problems = [];
 
-for (const file of readdirSync(TESTS).filter(f => f.endsWith('.test.mjs')).sort()) {
-  const src = readFileSync(join(TESTS, file), 'utf8');
+for (const [dir, file] of TEST_DIRS.flatMap(d => readdirSync(d).filter(f => f.endsWith('.test.mjs')).sort().map(f => [d, f]))) {
+  const src = readFileSync(join(dir, file), 'utf8');
   const calls = src.match(/^\s*test\(/gm)?.length ?? 0;
-  const ids = [...src.matchAll(/^\s*test\(\s*['"`]((?:RLS|FN|TRK|GEN|RET)-\d+) ·/gm)].map(m => m[1]);
+  const ids = [...src.matchAll(/^\s*test\(\s*['"`]((?:RLS|FN|TRK|GEN|RET|API)-\d+) ·/gm)].map(m => m[1]);
   if (ids.length !== calls) problems.push(`${file}: ${calls - ids.length} prueba(s) sin ID al principio del nombre`);
   if (/\btest\.(?:skip|todo|only)\b|\b(?:skip|todo|only)\s*:\s*true\b/.test(src)) problems.push(`${file}: hay pruebas salteadas (skip/todo/only)`);
   for (const id of ids) {

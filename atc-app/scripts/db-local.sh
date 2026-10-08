@@ -56,6 +56,9 @@ reset() {
   "${PSQL[@]}" -d "$DB" -f tests/db/shim-supabase.sql
   for f in supabase/migrations/*.sql; do "${PSQL[@]}" -d "$DB" -f "$f"; done
   "${PSQL[@]}" -d "$DB" -f supabase/seed.sql
+  # SOLO en este cluster de pruebas (trust, 127.0.0.1): atc_tracker puede iniciar sesión sin contraseña,
+  # para probar /api/seguimiento contra la base real. En producción: seguridad.md §8 punto 4.
+  "${PSQL[@]}" -d postgres -c "alter role atc_tracker login"
   echo "Base $DB lista en 127.0.0.1:$PORT (shim + $(ls supabase/migrations/*.sql | wc -l | tr -d ' ') migraciones + seed)."
 }
 

@@ -1,3 +1,7 @@
 tests/atc/capturas/
 node_modules/
 atc-app/node_modules/
+atc-app/.next/
+atc-app/next-env.d.ts
+atc-app/*.tsbuildinfo
+atc-app/.env*.local

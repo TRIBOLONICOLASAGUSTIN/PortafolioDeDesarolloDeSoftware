@@ -1,8 +1,9 @@
-# AT Computación — Seguridad (Hito 1: base de datos)
+# AT Computación — Seguridad (Hito 1: base de datos · Hito 2: servidor)
 
-> Estado: **Hito 1 implementado y probado** (19/19 pruebas en verde contra Postgres 16).
+> Estado: **Hito 1 implementado y probado** (19/19 pruebas en verde contra Postgres 16). **Hito 2 (servidor) implementado y probado**: `/api/seguimiento`, CSP con nonce y encabezados (7/7 pruebas `API-n` contra la app compilada y la base local).
+> Servidor: `atc-app/app/api/seguimiento/route.ts`, `atc-app/lib/server/`, `atc-app/proxy.ts` (CSP), `atc-app/next.config.ts` (encabezados) · Pruebas: `atc-app/tests/api/seguimiento.test.mjs`.
 > Código: `atc-app/supabase/migrations/` · Pruebas: `atc-app/tests/db/seguridad.test.mjs` · Cómo correrlas: `atc-app/README.md`.
-> Cada control cita la prueba que lo demuestra (IDs `RLS-n`, `FN-n`, `TRK-n`, `GEN-n`, `RET-n`). `npm run check:docs` falla si un ID de este documento no tiene prueba o al revés.
+> Cada control cita la prueba que lo demuestra (IDs `RLS-n`, `FN-n`, `TRK-n`, `GEN-n`, `RET-n` de la base y `API-n` del servidor). `npm run check:docs` falla si un ID de este documento no tiene prueba o al revés.
 > Las rutas `0100`, `0200`, `0300` y `0400` son las migraciones `atc-app/supabase/migrations/20261008000NNN_*.sql`; el número después de `:` es la línea.
 
 ---
@@ -53,6 +54,31 @@
 - **La solución:** solo la ejecuta `atc_tracker`, un rol sin permisos sobre ninguna tabla cuya contraseña vive únicamente en las variables de entorno del servidor (`0200:130`, `0300:207`).
 - **Respaldo:** aunque el servidor fallara, la base aplica sus propios bloqueos (`0300:160`).
 
+### Capa del servidor (Hito 2): `POST /api/seguimiento`
+
+Orden de los controles en `route.ts`, del más barato al más caro:
+
+1. **Mismo sitio:** `Sec-Fetch-Site` y `Origin` → si no coinciden, 403 (API-3).
+2. **Formato:** JSON de 1 KB como máximo, validado con Zod (`codigo` ≤ 64, `telefono3` ≤ 8, sin claves extra) → si no, 400 sin detalles (API-3). El formato fino lo valida la base, así el intento cuenta para los bloqueos.
+3. **Configuración completa** o 503: en producción, si falta algo, la ruta falla cerrada y nunca usa datos de demo (API-6).
+4. **IP confiable:** sale del encabezado que fija la plataforma (`ATC_IP_HEADER`, por ejemplo `cf-connecting-ip`). **Nunca** del primer valor de `X-Forwarded-For`: si se configura ese, se considera configuración incompleta (API-5).
+5. **Límite por IP en el servidor:** 20 pedidos cada 10 minutos (`ATC_RL_MAX`), contados con la IP hasheada. En producción usa Upstash (contador compartido entre instancias); si Upstash no responde, la ruta falla cerrada. Responde 429 con `Retry-After` (API-4).
+6. **Turnstile** verificado en el servidor (obligatorio en producción).
+7. **Base:** `public.track_order` con el rol `atc_tracker`, con pool chico y timeouts. La respuesta es la de la base, sin agregados, con `Cache-Control: no-store` (API-1). Los errores dan 503 genérico y el log nunca incluye el código ni el teléfono.
+
+| Modo | Cuándo | Diferencias |
+|---|---|---|
+| `demo` | Fuera de producción y sin `ATC_TRACKER_DATABASE_URL` | Responde con las 3 órdenes de ejemplo (espejo de `seed.sql`), con la misma respuesta uniforme. **Imposible en producción.** |
+| `local` | Desarrollo, o `ATC_LOCAL=1` **y** base en 127.0.0.1 | Límite en memoria. Turnstile solo si hay clave. IP 127.0.0.1 si no llega el encabezado. |
+| `prod` | Todo lo demás | Exige `ATC_TRACKER_DATABASE_URL`, `TURNSTILE_SECRET_KEY`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` y `ATC_IP_HEADER`. |
+
+**Página:** CSP con un nonce nuevo en cada pedido (`proxy.ts`).
+- Scripts solo con nonce + `'strict-dynamic'`, sin `'unsafe-inline'` ni `'unsafe-eval'`.
+- `object-src 'none'`, `base-uri 'self'` y `frame-ancestors 'none'`.
+- Encabezados: HSTS, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy` y sin `X-Powered-By` (API-7).
+- Los estilos admiten `'unsafe-inline'` **solo** en atributos (`style-src-attr`), por las variables CSS de las animaciones (§10).
+- Mientras haya datos de ejemplo, la página lleva `noindex`.
+
 ---
 
 ## 4. Matriz de permisos
@@ -77,8 +103,8 @@ Verificada por **RLS-2**, **FN-2** y **FN-3** contra `information_schema` y `pg_
 
 | # | Amenaza | Control | Dónde | Prueba |
 |---|---|---|---|---|
-| 1 | **IDOR / enumeración de órdenes** | Código público aleatorio Crockford de 30 bits + últimos 3 dígitos del teléfono. El UUID interno nunca sale. Las órdenes anonimizadas dejan de ser rastreables. | `0300:46` (`gen_public_code`), `0100:62` (formato), `0300:119` (`track_order`) | GEN-1, TRK-1, TRK-3, RET-1 |
-| 2 | **Fuerza bruta** | <ul><li>Bloqueo por código intentado: 5 fallas/15 min y 10/24 h.</li><li>Bloqueo por IP: 30 fallas/1 h.</li><li>Se cuenta exista o no el código, así no revela cuáles existen.</li></ul>Del lado del servidor (Hito 2) se suman Turnstile y Upstash. | `0300:145-163` | TRK-5, TRK-6 |
+| 1 | **IDOR / enumeración de órdenes** | Código público aleatorio Crockford de 30 bits + últimos 3 dígitos del teléfono. El UUID interno nunca sale. Las órdenes anonimizadas dejan de ser rastreables. | `0300:46` (`gen_public_code`), `0100:62` (formato), `0300:119` (`track_order`) | GEN-1, TRK-1, TRK-3, RET-1, API-2 (la ruta también responde igual) |
+| 2 | **Fuerza bruta** | <ul><li>Bloqueo por código intentado: 5 fallas/15 min y 10/24 h.</li><li>Bloqueo por IP: 30 fallas/1 h.</li><li>Se cuenta exista o no el código, así no revela cuáles existen.</li></ul>Del lado del servidor se suman Turnstile y Upstash. | `0300:145-163` | TRK-5, TRK-6 |
 | 3 | **Tablas expuestas con la anon key** | RLS en todas las tablas; se revocan los permisos de fábrica de Supabase; GRANTs mínimos. | `0200:20-38`, `0200:67-80` | RLS-1, RLS-2, RLS-3, RLS-4 |
 | 4 | **Uso o filtración de la service_role** | La app no la usa. El seguimiento va con `atc_tracker`, que solo ejecuta `track_order`, con `statement_timeout` de 2 s. | `0200:126-137`, `0300:206-207` | FN-2, FN-3 |
 | 5 | **Inyección SQL / datos inválidos** | CHECKs de formato y largo en todos los campos. Sin SQL dinámico. Parámetros siempre ligados. Normalización con tope de 64 caracteres. | `0100`, `0300:85-103` | TRK-2, TRK-4 |
@@ -87,7 +113,10 @@ Verificada por **RLS-2**, **FN-2** y **FN-3** contra `information_schema` y `pg_
 | 8 | **Alteración del historial** | `order_events` sin UPDATE ni DELETE para nadie del API (bitácora). | `0200:74`, `0200:102-109` | RLS-7 |
 | 9 | **Datos personales de más** (Ley 25.326) | Respuesta mínima. Intentos guardados solo como HMAC-SHA256 con pepper. Purga a los 30 días. Anonimización a los 24 meses. | `0300:19-38`, `0300:141-142`, `0300:183-203`, `0300:214-249` | TRK-1, TRK-7, RET-1 |
 | 10 | **Archivos subidos** | *Pendiente (Hito 3):* bucket privado, validación de tipo y tamaño, sin EXIF, URLs firmadas. | — | — |
-| 11 | **Cabeceras HTTP, XSS, clickjacking** | *Pendiente (Hito 2):* CSP con nonce, HSTS, `frame-ancestors 'none'`, `nosniff`. | — | — |
+| 11 | **Cabeceras HTTP, XSS, clickjacking** | CSP con nonce por pedido y `'strict-dynamic'`; HSTS, `frame-ancestors 'none'`, `X-Frame-Options`, `nosniff`, sin `X-Powered-By`. React escapa todo el texto; el único HTML insertado son los SVG propios. | `proxy.ts`, `next.config.ts` | API-7 |
+| 14 | **Abuso de la ruta de seguimiento** (desde otro sitio, cuerpos enormes, formato roto) | Mismo sitio, máximo 1 KB, Zod estricto, respuestas sin detalles. | `route.ts` | API-3 |
+| 15 | **IP falsificada para esquivar el límite** | La IP sale del encabezado de la plataforma, nunca de `X-Forwarded-For`; límite del servidor + bloqueos de la base. | `lib/server/config.ts`, `lib/server/ratelimit.ts` | API-4, API-5 |
+| 16 | **Despliegue con configuración incompleta** | La ruta falla cerrada (503) y nunca cae en modo demo. | `lib/server/config.ts` | API-6 |
 | 12 | **Pagos** | **Fuera de alcance:** no se cobra online; el sitio nunca toca datos de tarjeta. | — | — |
 | 13 | **Pérdida de datos** | Backups y prueba de restauración (§8, §9). | — | — |
 
@@ -162,9 +191,13 @@ Verificada por **RLS-2**, **FN-2** y **FN-3** contra `information_schema` y `pg_
           (values ('anon'), ('authenticated'), ('atc_tracker')) r(rolname)
     where n.nspname in ('public','private') and has_function_privilege(r.rolname, p.oid, 'EXECUTE');
    ```
-8. **Servidor (Hito 2):**
-   - Claves de Turnstile y Upstash, encabezados de seguridad y CSP.
-   - **La IP que se le pasa a `track_order` tiene que ser la que fija la plataforma de hosting**, nunca el primer valor de `X-Forwarded-For`: ese lo escribe el cliente, y cambiándolo se esquivaría el bloqueo por IP. Lleva prueba propia en el Hito 2.
+8. **Servidor (Hito 2, ya programado):** cargar las variables de entorno del servidor, nunca en el repo:
+   - `ATC_TRACKER_DATABASE_URL`: conexión como `atc_tracker`, con la contraseña del punto 4.
+   - `TURNSTILE_SECRET_KEY` y `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, de Cloudflare.
+   - `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN`.
+   - `ATC_IP_HEADER` **(verificar según el hosting)**: Cloudflare `cf-connecting-ip`, Vercel `x-vercel-forwarded-for` y Netlify `x-nf-client-connection-ip`. Confirmarlo en la documentación del proveedor elegido.
+   - `ATC_INDEXAR=1` recién con los datos reales. `ATC_DEMO` **nunca** en el sitio real.
+   - **La IP que se le pasa a `track_order` tiene que ser la que fija la plataforma de hosting**, nunca el primer valor de `X-Forwarded-For`: ese lo escribe el cliente, y cambiándolo se esquivaría el bloqueo por IP. Lo prueba API-5.
 9. **No mergear a `main`** mientras haya datos de ejemplo (GitHub Pages publica el repo).
 
 ---
@@ -217,6 +250,9 @@ select date_trunc('hour', created_at) h, outcome, count(*) from private.track_at
 | `service_role`/`postgres` tienen permiso total | Son la llave de administración | Nunca se usan en la app; solo en el panel o la CLI |
 | Las notas de novedades las ve el cliente | Es su función | Regla: no escribir datos personales en las notas |
 | El bloqueo por IP confía en la IP que le pasa el servidor | La base solo ve la conexión del servidor, no la del cliente | El servidor toma la IP que fija la plataforma (§8 punto 8). El bloqueo por código no depende de la IP |
+| Turnstile y Upstash probados solo en su lógica, no contra los servicios reales | Sin cuentas durante el desarrollo | Si fallan, la ruta falla cerrada (503). Probarlos en el despliegue (§8 punto 8) |
+| `style-src-attr 'unsafe-inline'` | Las animaciones usan variables CSS en atributos `style` | Solo afecta atributos de estilo, no scripts. El riesgo es inyección de CSS, acotado porque React escapa el texto |
+| La página se arma en cada pedido (por el nonce) | Es el precio de la CSP estricta | Una sola página, liviana: costo bajo |
 | Comportamientos propios de Supabase probados con un **shim**, no contra Supabase real | Sin cuenta durante el desarrollo | Auditoría rápida en producción (§8 punto 7) |
 
 ---
@@ -225,4 +261,5 @@ select date_trunc('hour', created_at) h, outcome, count(*) from private.track_at
 
 | Fecha | Cambio |
 |---|---|
+| 2026-10-08 | **Hito 2 (servidor):** sitio en Next.js 16 con `/api/seguimiento` (mismo sitio, Zod, límite por IP con Upstash, IP de la plataforma, Turnstile y `atc_tracker`), modos demo/local/prod con falla cerrada, CSP con nonce y encabezados. 7 pruebas nuevas (API-1…7). La bolsa limita el largo de la dirección y el nombre. |
 | 2026-10-08 | **Hito 1:** esquema, RLS, revocación de los permisos de fábrica, `is_owner`, rol `atc_tracker`, `track_order` con bloqueos, HMAC con pepper, retención y 19 pruebas. Se corrige la documentación previa: el código tiene 30 bits (no 40), y ~40 bits sumando el teléfono. `track_order` deja de estar pensada para `anon`. Queda documentado que el bloqueo por IP depende de que el servidor pase la IP real. La contraseña de `atc_tracker` se carga con `\password` (nunca en claro en el SQL Editor). |

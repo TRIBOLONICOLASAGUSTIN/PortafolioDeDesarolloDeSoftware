@@ -1,20 +1,39 @@
 {
   "name": "atc-app",
   "version": "0.1.0",
-  "description": "AT Computación — proyecto real. Hito 1: base de datos y seguridad.",
+  "description": "AT Computación — proyecto real: sitio público en Next.js (Hito 2) sobre la base segura del Hito 1.",
   "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
     "db:start": "bash scripts/db-local.sh start",
     "db:stop": "bash scripts/db-local.sh stop",
     "db:reset": "bash scripts/db-local.sh reset",
     "test:db": "bash scripts/db-local.sh reset && node --test --test-concurrency=1 tests/db/*.test.mjs",
-    "check:docs": "node scripts/check-doc-ids.mjs"
+    "test:api": "bash scripts/db-local.sh reset && node --test --test-concurrency=1 tests/api/*.test.mjs",
+    "test:e2e": "bash scripts/db-local.sh reset && node tests/e2e/verificar.mjs",
+    "check:docs": "node scripts/check-doc-ids.mjs",
+    "test": "npm run typecheck && npm run build && npm run test:db && npm run test:api && npm run test:e2e && npm run check:docs"
   },
   "devDependencies": {
-    "pg": "8.23.1"
+    "@types/node": "22.20.5",
+    "@types/pg": "8.23.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "typescript": "5.9.3"
   },
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=20.9.0"
+  },
+  "dependencies": {
+    "next": "16.4.0",
+    "pg": "8.23.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "server-only": "0.0.1",
+    "zod": "4.6.5"
   }
 }
