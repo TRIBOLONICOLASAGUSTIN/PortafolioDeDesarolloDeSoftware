@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Este repo es el portfolio de Nicolás (`index.html`, `Estilos/`, etc.; se publica con GitHub Pages desde `main`).
-Adentro vive el prototipo de **AT Computación**: `preview/fase-0-inicio.html`, con su documentación en `docs/atc/`.
+Adentro vive el prototipo de **AT Computación**: `preview/fase-0-inicio.html`, con su documentación en `docs/atc/`. El proyecto real arranca en `atc-app/` (Hito 1: base de datos y seguridad).
 Las reglas de abajo aplican a todo lo de AT Computación.
 
 ## El negocio (la verdad manda sobre el diseño)
@@ -63,19 +63,35 @@ Las reglas de abajo aplican a todo lo de AT Computación.
 - Las maquetas decorativas llevan `aria-hidden`.
 - Los títulos no saltan de nivel.
 
-## Seguridad (prototipo ahora y proyecto real después) — detalle en `docs/atc/guia-de-diseno.md` §6
-- **Códigos de seguimiento** aleatorios (Crockford base32, ~40 bits, p. ej. `AT-7KQ2-9M`), nunca secuenciales. Para ver una orden se piden el código y los últimos 3 dígitos del teléfono.
-- **Datos personales:** el seguimiento muestra solo lo mínimo (nombre + inicial), de acuerdo con la Ley 25.326.
-- **Proyecto real** (Next.js + Supabase):
-  - RLS en todas las tablas; el público accede solo por la función RPC `track_order(code, phone_last3)`, que es SECURITY DEFINER.
-  - La service_role key nunca llega al navegador.
-  - Límite de intentos con un contador compartido (Upstash/KV) + Turnstile.
+## Seguridad — detalle en `docs/atc/seguridad.md` (manda sobre la guía)
+- **Códigos de seguimiento** aleatorios, nunca secuenciales: `AT-XXXX-XX`, 6 caracteres Crockford base32 = **30 bits**. Para ver una orden se piden el código y los últimos 3 dígitos del teléfono (~10 bits más).
+- **Datos personales** (Ley 25.326):
+  - El seguimiento muestra solo lo mínimo (nombre + inicial).
+  - Los intentos se borran a los 30 días.
+  - Las órdenes entregadas se anonimizan a los 24 meses.
+- **Base** (`atc-app/`, Supabase):
+  - RLS en todas las tablas, y se revocan los permisos de fábrica: Supabase les da todo a `anon` y `authenticated`, y Postgres les da EXECUTE a todos. Lo nuevo nace cerrado.
+  - `track_order(code, phone3, ip)` (SECURITY DEFINER) es la única puerta pública a una orden. **Solo la ejecuta `atc_tracker`**, un rol del servidor sin acceso a tablas. **Nunca `anon`:** la anon key es pública y permitiría saltearse Turnstile y el límite por IP.
+  - Bloqueos dentro de la base: por código intentado, 5 fallas en 15 min o 10 en 24 h; por IP, 30 en 1 h.
+  - Misma respuesta para "no existe", "teléfono incorrecto" y "formato inválido". Los intentos se guardan solo como HMAC.
+  - La app **no usa la service_role** (solo las migraciones). La contraseña de `atc_tracker` vive solo en las variables de entorno del servidor: nunca en el repo ni en el chat.
+- **Servidor** (Hito 2, Next.js):
+  - Antes de llamar a `track_order`: Zod, Turnstile y límite por IP con un contador compartido (Upstash/KV).
   - CSP con nonce.
+
+## `atc-app/` (proyecto real)
+- Antes de cada commit que toque la base: `npm ci && npm run test:db && npm run check:docs`. Usa un Postgres 16 temporal que imita Supabase; `npm run db:stop` lo borra.
+- Cada cambio de base lleva:
+  - Una migración nueva.
+  - Una prueba con ID (`RLS|FN|TRK|GEN|RET-n`).
+  - Su fila en `seguridad.md` §5 y §11.
+- `check:docs` falla si los IDs de las pruebas y de `seguridad.md` no coinciden.
+- `supabase/seed.sql` es de ejemplo: no va a producción.
 
 ## Forma de trabajar (para no gastar tokens de más)
 - **Ediciones puntuales:** reemplazos con verificación de que el texto aparece exactamente una vez (`assert s.count(old)==1`). **Nunca reescribir el HTML completo.** Pesa ~145 KB, y cada lectura o escritura completa cuesta decenas de miles de tokens.
 - **Antes de editar,** ubicar con `grep -n` y leer solo las líneas necesarias.
-- **Verificar** con `node tests/atc/verificar.mjs` (sin errores, sin desborde, flujos funcionando, contraste AA, sin bucles no aprobados).
+- **Verificar** con `node tests/atc/verificar.mjs` (sin errores, sin desborde, flujos funcionando, contraste AA, sin bucles no aprobados). Si no encuentra Playwright (instalado global en la nube): `PW="$(npm root -g)/playwright/index.mjs" node tests/atc/verificar.mjs`.
 - **Capturas** solo de la sección que se tocó.
 - **No usar multi-agente ni workflows** salvo que el usuario lo pida explícitamente.
 - **Un commit + push por lote,** con mensaje en castellano.

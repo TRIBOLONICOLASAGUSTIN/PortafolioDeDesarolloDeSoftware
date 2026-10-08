@@ -89,6 +89,32 @@ Varios hallazgos repiten el mismo problema visto desde distintos ángulos. En el
 - [x] El seguimiento muestra solo nombre + inicial (minimizar datos personales, Ley 25.326).
 - [x] Texto de privacidad: "Tus datos están protegidos: se necesita el código y tu teléfono".
 
+## Proyecto real (`atc-app/`) — detalle en `docs/atc/seguridad.md`
+
+- [x] **Hito 1 — Base de datos y seguridad.**
+  - Esquema, RLS y revocación de los permisos de fábrica.
+  - `track_order` solo para `atc_tracker`, con bloqueos y HMAC.
+  - Retención de datos.
+  - 19 pruebas y `check:docs`.
+- [ ] **Figma.**
+  - Antes: permitir `mcp.figma.com` en el acceso de red del entorno, autorizar el plugin y abrir una sesión nueva.
+  - Las 6 diapositivas de la guía §5 en Figma Slides.
+  - Los diagramas de fronteras y de `track_order` en FigJam.
+- [ ] **Hito 2 — Servidor (Next.js).**
+  - `/api/seguimiento` con Zod, Turnstile y límite por IP (Upstash), conectado como `atc_tracker`.
+  - **IP tomada de la plataforma, no de `X-Forwarded-For`** (`seguridad.md` §8 punto 8).
+  - Encabezados de seguridad y CSP con nonce.
+  - Modo demo.
+- [ ] **Hito 3 — Panel del dueño.**
+  - Link mágico solo para su mail.
+  - ABM de productos y órdenes.
+  - Novedades y mensaje de WhatsApp armado.
+- [ ] **Antes de producción:**
+  - Checklist de `seguridad.md` §8.
+  - Datos reales del dueño.
+  - Repo propio.
+  - Recién ahí, pensar en `main`.
+
 ---
 
 # Detalle de los 60 hallazgos
