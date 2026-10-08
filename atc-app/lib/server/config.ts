@@ -9,7 +9,9 @@ export type TrackingConfig =
   | { ok: true; mode: 'local' | 'prod'; dbUrl: string }
   | { ok: false; missing: string[] };
 
-const REQUIRED_PROD = ['ATC_TRACKER_DATABASE_URL', 'TURNSTILE_SECRET_KEY', 'UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN', 'ATC_IP_HEADER'];
+// NEXT_PUBLIC_TURNSTILE_SITE_KEY es obligatoria: sin ella el widget no se renderiza en el navegador,
+// nunca llega el token y todo seguimiento falla 403. Sin esto, prod se vería sano y el seguimiento muerto.
+const REQUIRED_PROD = ['ATC_TRACKER_DATABASE_URL', 'TURNSTILE_SECRET_KEY', 'NEXT_PUBLIC_TURNSTILE_SITE_KEY', 'UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN', 'ATC_IP_HEADER'];
 
 const isLocalDb = (url: string) => {
   try { return ['127.0.0.1', 'localhost', '[::1]'].includes(new URL(url).hostname); } catch { return false; }

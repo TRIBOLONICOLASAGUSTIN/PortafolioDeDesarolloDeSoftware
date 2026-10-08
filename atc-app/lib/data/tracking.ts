@@ -16,7 +16,7 @@ export type TrackFound = {
   presupuesto: number | null; garantia_hasta: string | null;
   novedades: { estado: OrderStatus; nota: string | null; fecha: string }[];
 };
-export type TrackResult = TrackFound | { ok: false; motivo: 'no_encontrada' | 'demasiados_intentos' | 'no_disponible' | 'verificacion' };
+export type TrackResult = TrackFound | { ok: false; motivo: 'no_encontrada' | 'demasiados_intentos' | 'no_disponible' | 'verificacion' | 'solicitud_invalida' | 'origen' };
 
 // Órdenes DE EJEMPLO para el modo demo (solo fuera de producción y sin base): espejo de supabase/seed.sql.
 const ev = (estado: OrderStatus, fecha: string, nota: string) => ({ estado, nota, fecha });

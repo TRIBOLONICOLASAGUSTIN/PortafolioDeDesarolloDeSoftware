@@ -15,11 +15,16 @@ const MSG = {
   demasiados_intentos: 'Hiciste muchos intentos seguidos. Esperá unos minutos o escribinos por WhatsApp.',
   no_disponible: 'No pudimos consultar el seguimiento en este momento. Probá en un rato o escribinos por WhatsApp.',
   verificacion: 'No pudimos verificar que seas una persona. Recargá la página y probá de nuevo.',
+  solicitud_invalida: 'Revisá el código y el teléfono, e intentá de nuevo.',
+  origen: 'No pudimos procesar el pedido. Recargá la página e intentá de nuevo.',
 };
 
 // Lo que escribe la gente → formato del comprobante: mayúsculas, sin I/L/O (Crockford), "7KQ2-9M".
+// Si pegan el código completo ("AT-7KQ2-9M"), se quita el prefijo AT (igual que normalize_code en la base).
 const tidyCode = (s: string) => {
-  const v = s.toUpperCase().replace(/[^0-9A-Z]/g, '').replace(/[IL]/g, '1').replace(/O/g, '0').slice(0, 6);
+  let v = s.toUpperCase().replace(/[^0-9A-Z]/g, '');
+  if (v.length === 8 && v.startsWith('AT')) v = v.slice(2);
+  v = v.replace(/[IL]/g, '1').replace(/O/g, '0').slice(0, 6);
   return v.length > 4 ? `${v.slice(0, 4)}-${v.slice(4)}` : v;
 };
 

@@ -12,13 +12,14 @@ export const dynamic = 'force-dynamic';
 const MAX_BODY = 1024;
 const Body = z.object({
   codigo: z.string().min(1).max(64),
-  telefono3: z.string().max(8),
+  telefono3: z.string().regex(/^\d{3}$/),
   turnstileToken: z.string().max(2048).optional(),
 }).strict();
 
 const json = (body: unknown, status = 200, extra: Record<string, string> = {}) =>
   Response.json(body, { status, headers: { 'Cache-Control': 'no-store', ...extra } });
-const invalid = () => json({ ok: false, error: 'solicitud_invalida' }, 400);
+// Las fallas usan siempre { ok:false, motivo } (ver TrackResult): el cliente las mapea a un mensaje.
+const invalid = () => json({ ok: false, motivo: 'solicitud_invalida' }, 400);
 const unavailable = () => json({ ok: false, motivo: 'no_disponible' }, 503);
 
 function sameSite(req: Request) {
@@ -48,7 +49,7 @@ async function readLimited(req: Request, max: number): Promise<string | null> {
 let warned = false;
 
 export async function POST(req: Request) {
-  if (!sameSite(req)) return json({ ok: false, error: 'origen' }, 403);
+  if (!sameSite(req)) return json({ ok: false, motivo: 'origen' }, 403);
   if (!(req.headers.get('content-type') ?? '').toLowerCase().startsWith('application/json')) return invalid();
   const text = await readLimited(req, MAX_BODY);
   if (text === null) return invalid();

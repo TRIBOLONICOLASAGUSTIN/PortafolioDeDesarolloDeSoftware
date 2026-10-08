@@ -42,13 +42,13 @@ test('API-1 · Con datos correctos responde 200 solo con las claves permitidas, 
 });
 
 test('API-2 · Teléfono incorrecto, código inexistente y formato inválido dan exactamente la misma respuesta', async () => {
-  const a = await post(local, { codigo: 'AT-7KQ2-9M', telefono3: '000' });
-  const b = await post(local, { codigo: 'AT-ZZZZ-ZZ', telefono3: '321' });
-  const c = await post(local, { codigo: "' OR 1=1--", telefono3: 'abc' });
+  const a = await post(local, { codigo: 'AT-7KQ2-9M', telefono3: '000' });   // teléfono incorrecto
+  const b = await post(local, { codigo: 'AT-ZZZZ-ZZ', telefono3: '321' });   // código inexistente
+  const c = await post(local, { codigo: "' OR 1=1--", telefono3: '321' });   // formato inválido (pasa Zod, la base lo normaliza a nulo)
   for (const r of [a, b, c]) { assert.equal(r.status, 200); assert.equal(r.text, '{"ok":false,"motivo":"no_encontrada"}'); }
 });
 
-test('API-3 · Pedidos inválidos o de otro sitio se rechazan sin detalles (405/400/403)', async () => {
+test('API-3 · Pedidos inválidos o de otro sitio se rechazan sin detalles (405/400/403), con forma uniforme { ok:false, motivo }', async () => {
   const get = await fetch(`${local.base}/api/seguimiento`);
   assert.equal(get.status, 405);
   const cases = [
@@ -56,12 +56,14 @@ test('API-3 · Pedidos inválidos o de otro sitio se rechazan sin detalles (405/
     await post(local, null, { raw: '{"codigo":' }),
     await post(local, { codigo: 'AT-3FJ8-WX', telefono3: '548', extra: 1 }),
     await post(local, { codigo: 'A'.repeat(65), telefono3: '548' }),
+    await post(local, { codigo: 'AT-3FJ8-WX', telefono3: 'ab' }),      // teléfono malformado (Zod estricto: 3 dígitos)
+    await post(local, { codigo: 'AT-3FJ8-WX', telefono3: '5480' }),    // teléfono de 4 dígitos
     await post(local, null, { raw: JSON.stringify({ codigo: 'AT-3FJ8-WX', telefono3: '548', turnstileToken: 'x'.repeat(1500) }) }),
   ];
-  for (const r of cases) { assert.equal(r.status, 400); assert.equal(r.text, '{"ok":false,"error":"solicitud_invalida"}'); }
+  for (const r of cases) { assert.equal(r.status, 400); assert.equal(r.text, '{"ok":false,"motivo":"solicitud_invalida"}'); }
   for (const headers of [{ origin: 'https://atacante.example' }, { 'sec-fetch-site': 'cross-site' }]) {
     const r = await post(local, { codigo: 'AT-3FJ8-WX', telefono3: '548' }, { headers });
-    assert.equal(r.status, 403); assert.equal(r.text, '{"ok":false,"error":"origen"}');
+    assert.equal(r.status, 403); assert.equal(r.text, '{"ok":false,"motivo":"origen"}');
   }
 });
 

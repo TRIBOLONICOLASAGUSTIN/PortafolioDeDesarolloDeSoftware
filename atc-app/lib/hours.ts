@@ -26,7 +26,7 @@ export function openStatus(now = new Date()) {
 /** "Jue 14:37" para la barra de la notebook del inicio. */
 export function clockLabel(now = new Date()) {
   const { day, hour, minute } = storeNow(now);
-  return `${SHORT[day]} ${hour}:${String(minute).padStart(2, '0')}`;
+  return `${SHORT[day]} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 }
 
 export function greeting(now = new Date()) {

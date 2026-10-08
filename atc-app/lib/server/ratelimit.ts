@@ -5,7 +5,8 @@ import { createHash } from 'node:crypto';
 // Ventana fija de 10 minutos. Producción: Upstash Redis por REST (contador compartido entre instancias).
 // Desarrollo y pruebas locales: en memoria (en serverless no serviría: cada instancia tendría el suyo).
 const WINDOW_S = 600;
-const max = () => Number(process.env.ATC_RL_MAX ?? 20);
+// Si ATC_RL_MAX no es un número positivo, se usa 20 (un valor inválido no debe bloquear todo el tráfico).
+const max = () => { const m = Number(process.env.ATC_RL_MAX); return Number.isFinite(m) && m > 0 ? m : 20; };
 const keyFor = (ip: string) => {
   const bucket = Math.floor(Date.now() / 1000 / WINDOW_S);
   // La IP se guarda como hash: el contador no necesita la IP en crudo.
