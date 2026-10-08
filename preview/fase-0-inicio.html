@@ -77,9 +77,9 @@ img{max-width:100%}
 /* Sections */
 .sec{padding:clamp(84px,11vw,140px) 0;background:var(--bg)}
 .sec.alt{background:var(--bg-alt);--card:var(--tile)}
-.h2{font-size:clamp(34px,5.2vw,56px);line-height:1.07;letter-spacing:-.035em}
+.h2{font-size:clamp(34px,5.2vw,56px);line-height:1.07;letter-spacing:-.035em;text-wrap:balance}
 .h2 .muted{color:var(--text-2)}
-.lede{font-size:clamp(19px,2vw,21px);line-height:1.42;color:var(--text-2);letter-spacing:-.017em;max-width:640px;margin-top:18px}
+.lede{text-wrap:pretty;font-size:clamp(19px,2vw,21px);line-height:1.42;color:var(--text-2);letter-spacing:-.017em;max-width:640px;margin-top:18px}
 .head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px 40px;flex-wrap:wrap}
 .head.center{flex-direction:column;align-items:center;text-align:center}
 .head.center .lede{margin-inline:auto}
@@ -260,12 +260,19 @@ img{max-width:100%}
 /* =========================================================
    Shop
    ========================================================= */
-.cats{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:44px 0 0;padding:4px 2px 6px;scroll-snap-type:x proximity}
+.shop-links{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 30px;margin-top:24px}
+.shop-links .lnk{font-size:17px}
+.cats{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;margin:clamp(44px,6vw,64px) 0 0;padding:6px 2px 4px;scroll-snap-type:x proximity}
+.cats>:first-child{margin-left:auto}.cats>:last-child{margin-right:auto}
 .cats::-webkit-scrollbar{display:none}
-.cat{flex:none;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;gap:8px;width:108px;padding:14px 6px 12px;border-radius:18px;font-size:13px;font-weight:500;color:var(--text);transition:background-color .25s,box-shadow .25s}
-.cat .r{width:78px;height:52px}
-.cat:hover{background:var(--fill-2)}
-.cat[aria-pressed="true"]{background:var(--card);box-shadow:var(--shadow)}
+.cat{flex:none;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;gap:12px;width:124px;padding:8px 6px 0;font-size:14px;font-weight:500;letter-spacing:-.01em;color:var(--text-2);transition:color .25s}
+.cat .r{width:96px;height:64px;color:var(--text-3);transition:transform .5s var(--ease)}
+.cat span{position:relative;padding-bottom:12px;white-space:nowrap}
+.cat span::after{content:'';position:absolute;left:50%;bottom:0;width:0;height:2px;border-radius:2px;background:var(--text);translate:-50% 0;transition:width .35s var(--ease)}
+.cat:hover{color:var(--text)}
+.cat:hover .r{transform:translateY(-3px)}
+.cat[aria-pressed="true"]{color:var(--text);font-weight:600}
+.cat[aria-pressed="true"] span::after{width:24px}
 .shelf{display:flex;gap:20px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:28px max(22px,calc((100vw - 1120px) / 2)) 44px;scroll-padding-inline:max(22px,calc((100vw - 1120px) / 2))}
 .shelf::-webkit-scrollbar{display:none}
 .pcard{position:relative;flex:0 0 clamp(268px,25vw,312px);scroll-snap-align:start;display:flex;flex-direction:column;min-height:470px;padding:26px 26px 24px;border-radius:22px;background:var(--card);box-shadow:var(--shadow);transition:transform .45s var(--ease),box-shadow .45s var(--ease)}
@@ -283,7 +290,9 @@ img{max-width:100%}
 .stock{display:block;font-size:12px;font-weight:500;margin-top:2px}
 .stock.ok{color:var(--ok)}.stock.low{color:var(--warn)}.stock.out{color:var(--danger)}
 .p-foot .btn{position:relative;z-index:2}
+.shelf>.pcard:first-child,.shelf>.p-empty:first-child{margin-left:auto}.shelf>:last-child{margin-right:auto}
 .shelf-nav{display:flex;justify-content:flex-end;gap:12px}
+.shelf-nav.off{visibility:hidden}
 .round{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--fill);color:var(--text);transition:opacity .2s,background-color .2s}
 .round:hover{background:var(--line)}
 .round[disabled]{opacity:.35;cursor:default}
@@ -686,8 +695,10 @@ footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1
   .pay-ic{width:38px;height:38px;margin-bottom:10px}
   .pay-i b{font-size:16px}
   .pay-i small{font-size:13px}
-  .cat{width:92px}
-  .cat .r{width:66px;height:44px}
+  .cats{margin-top:40px}
+  .cat{width:96px;gap:10px;font-size:13px}
+  .cat .r{width:72px;height:48px}
+  .shop-links{flex-direction:column;align-items:center;gap:12px}
   .shelf{gap:14px;padding-inline:20px;scroll-padding-inline:20px}
   .pcard{flex-basis:min(300px,80vw);min-height:440px;padding:22px 22px 20px}
   .p-img{height:170px}
@@ -870,10 +881,10 @@ footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1
   <g transform="translate(145 0)"><rect x="8" y="20" width="14" height="16" rx="3" fill="#1d1d1f"/><rect x="0" y="34" width="30" height="96" rx="7" fill="#2b2b2e"/><rect x="0" y="66" width="30" height="34" fill="#fff" opacity=".93"/><rect x="6" y="76" width="18" height="3.4" rx="1.7" fill="#2b2b2e"/><rect x="4" y="38" width="4" height="86" rx="2" fill="#fff" opacity=".15"/></g>
 </symbol>
 <symbol id="r-all" viewBox="0 0 200 150">
-  <rect x="44" y="12" width="52" height="52" rx="14" fill="url(#g-wall-a)"/>
-  <rect x="104" y="12" width="52" height="52" rx="14" fill="url(#g-wall-b)"/>
-  <rect x="44" y="72" width="52" height="52" rx="14" fill="url(#g-wall-c)"/>
-  <rect x="104" y="72" width="52" height="52" rx="14" fill="url(#g-wall-d)"/>
+  <rect x="46" y="14" width="50" height="50" rx="14" fill="currentColor"/>
+  <rect x="104" y="14" width="50" height="50" rx="14" fill="currentColor" opacity=".55"/>
+  <rect x="46" y="72" width="50" height="50" rx="14" fill="currentColor" opacity=".55"/>
+  <rect x="104" y="72" width="50" height="50" rx="14" fill="currentColor" opacity=".3"/>
 </symbol>
 
 <!-- UI icons -->
@@ -1032,11 +1043,14 @@ footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1
      ========================================================= -->
 <section class="sec alt" id="tienda" style="padding-bottom:clamp(60px,8vw,96px)">
   <div class="wrap">
-    <div class="head rv">
-      <h2 class="h2">Tienda. <span class="muted">La forma más simple<br class="d"> de comprar tu tecnología.</span></h2>
-      <div style="display:grid;gap:6px;justify-items:start">
-        <span class="muted" style="font-size:15px">¿Necesitás ayuda para elegir?</span>
-        <a class="lnk" data-wa="¡Hola! Necesito ayuda para elegir un producto." target="_blank" rel="noopener">Hablá con un especialista</a>
+    <div class="head center rv">
+      <span class="kicker">Tienda</span>
+      <h2 class="h2">La forma más simple de comprar tu tecnología.</h2>
+      <p class="lede">Stock real, precios claros y el asesoramiento de quien después le hace el service a tu equipo.</p>
+      <div class="shop-links">
+        <a class="lnk" data-wa="¡Hola! Necesito ayuda para elegir un producto." target="_blank" rel="noopener">Te ayudamos a elegir</a>
+        <a class="lnk" href="#notebooks">Comparar notebooks</a>
+        <button class="lnk" type="button" id="shopSearch">Buscar un producto</button>
       </div>
     </div>
     <div class="cats rv" id="cats" role="group" aria-label="Categorías"></div>
@@ -1541,6 +1555,7 @@ $('#next').addEventListener('click', () => shelf.scrollBy({ left: step() * 2, be
 function arrows() {
   $('#prev').disabled = shelf.scrollLeft < 8;
   $('#next').disabled = shelf.scrollLeft + shelf.clientWidth >= shelf.scrollWidth - 8;
+  $('.shelf-nav').classList.toggle('off', shelf.scrollWidth <= shelf.clientWidth + 8);
 }
 shelf.addEventListener('scroll', arrows, { passive: true });
 addEventListener('resize', arrows);
@@ -1750,6 +1765,7 @@ sIn.addEventListener('keydown', e => {
 sList.addEventListener('click', e => { const li = e.target.closest('.si'); if (li) actSpot(sItems[+li.dataset.i]); });
 sList.addEventListener('mousemove', e => { const li = e.target.closest('.si'); if (li && +li.dataset.i !== sSel) selSpot(+li.dataset.i); });
 $('#searchBtn').addEventListener('click', openSpot);
+$('#shopSearch').addEventListener('click', openSpot);
 addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openEl && openEl.id === 'spot' ? closeLayer() : openSpot(); }
   else if (e.key === '/' && !openEl && !/input|textarea|select/i.test(document.activeElement.tagName)) { e.preventDefault(); openSpot(); }
