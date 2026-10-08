@@ -42,23 +42,23 @@ Varios hallazgos repiten el mismo problema visto desde distintos ángulos. En el
 - [x] V12: el verde saturado de WhatsApp es lo más fuerte de cada pantalla, incluso en el inicio. *(Parcial: el botón con texto ya es más sobrio, #157a3e; el botón flotante sigue en #25d366.)*
 
 ### B3 — Movimiento (guía v2)
-- [ ] Token `--ease: cubic-bezier(.16,1,.3,1)` y duraciones de 150/300/600 ms.
-- [ ] Un solo hover para todas las tarjetas: escala 1,015 + sombra nivel 2.
-- [ ] Quitar la animación decorativa sobrante: los puntos de "escribiendo" y el "pop" del widget.
-- [ ] Carrusel de marcas: **única excepción aprobada** a "sin bucles".
-- [ ] M5: el hover queda "pegado" después de tocar en pantallas táctiles. Encerrar los hover en `@media (hover:hover)`.
+- [x] Token `--ease: cubic-bezier(.16,1,.3,1)` y duraciones de 150/300/600 ms.
+- [x] Un solo hover para todas las tarjetas: escala 1,015 + sombra nivel 2.
+- [x] Quitar la animación decorativa sobrante: los puntos de "escribiendo" y el "pop" del widget.
+- [x] Carrusel de marcas: **única excepción aprobada** a "sin bucles".
+- [x] M5: el hover queda "pegado" después de tocar en pantallas táctiles. Encerrar los hover en `@media (hover:hover)`.
 
 ### B4 — Sistema visual
-- [ ] V2: títulos en peso 600 con tracking más neutro.
-- [ ] V4 / K10: los encabezados de sección no siguen un solo sistema, y el naranja tiene 4 significados. Queda solo para "Oferta / Últimas unidades".
-- [ ] K11: radios a la escala 12/18/24/32 y paddings unificados.
-- [ ] V5: las tarjetas de la tienda tienen espacio muerto, la ilustración es chica, compiten 4 colores y el "¡Quedan 3!" presiona de más.
-- [ ] V10 / K6 / M12: el precio del cotizador se ve partido en "$ / a / $". Pasa a una sola línea, y los dígitos no deben saltar.
-- [ ] V9 / K9: Contacto tiene dos títulos de 56 px y un hueco. Usar ese espacio para decir quién atiende.
-- [ ] V3 / V8 / A9: en modo claro, la barra de arriba queda gris sucio sobre la sección negra. En oscuro se pierde el ritmo entre secciones y el negro puro cansa.
-- [ ] V1: en la compu, el producto del inicio queda debajo del borde de la pantalla.
+- [x] V2: títulos en peso 600 con tracking más neutro.
+- [x] V4 / K10: los encabezados de sección no siguen un solo sistema, y el naranja tiene 4 significados. Queda solo para "Oferta / Últimas unidades".
+- [x] K11: radios a la escala 12/18/24/32 y paddings unificados.
+- [x] V5: las tarjetas de la tienda tienen espacio muerto, la ilustración es chica, compiten 4 colores y el "¡Quedan 3!" presiona de más.
+- [x] V10 / K6 / M12: el precio del cotizador se ve partido en "$ / a / $". Pasa a una sola línea, y los dígitos no deben saltar.
+- [x] V9 / K9: Contacto tiene dos títulos de 56 px y un hueco. Usar ese espacio para decir quién atiende.
+- [x] V3 / V8 / A9: en modo claro, la barra de arriba queda gris sucio sobre la sección negra. En oscuro se pierde el ritmo entre secciones y el negro puro cansa.
+- [x] V1: en la compu, el producto del inicio queda debajo del borde de la pantalla.
 - [ ] V7: el degradé del título del inicio repite el violeta del fondo de pantalla.
-- [ ] K4: las píldoras de pago de la bolsa dejan una sola en la última línea, y hay dos estilos distintos de "seleccionado".
+- [x] K4: las píldoras de pago de la bolsa dejan una sola en la última línea, y hay dos estilos distintos de "seleccionado".
 - [ ] K12: bordes sin terminar.
   - Línea suelta en la bolsa vacía.
   - Sombra cortada.
