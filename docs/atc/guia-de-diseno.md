@@ -55,7 +55,8 @@
 | `--tile` / `--tile-alt` | `#fff` / `#f5f5f7` | `#1c1c1e` / `#161617` | Tarjetas según el fondo |
 | `--text` | `#1d1d1f` | `#f5f5f7` | Texto principal |
 | `--text-2` | `#6e6e73` | `#a1a1a6` | Secundario y texto chico |
-| `--text-3` | `#86868b` | `#86868b` | Solo para 18 px o más, o decorativo |
+| `--text-3` | `#6e6e73` | `#86868b` | Terciario; en claro iguala al secundario para cumplir AA en texto chico |
+| `--field` | `#86868b` | `#6e6e73` | Borde de campos de formulario (3:1 o más) |
 | `--accent` | `#0071e3` (hover `#0062c4`) | `#0071e3` | Botones (texto blanco) |
 | `--link` | `#0066cc` | `#2997ff` | Links y textos azules |
 | `--wa` | `#157a3e` | `#157a3e` | Botón de WhatsApp con texto |

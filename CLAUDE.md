@@ -34,7 +34,7 @@ Las reglas de abajo aplican a todo lo de AT Computación.
     - Fondos `#000` y alterno `#0f0f10`; tarjetas `#1c1c1e` y `#161617`.
     - Textos `#f5f5f7` y secundario `#a1a1a6`.
     - Links y textos azules `#2997ff`.
-  - `#86868b` solo para texto de 18 px o más, o decorativo.
+  - `--text-3`: en claro vale `#6e6e73` (igual que el secundario, para que el texto chico cumpla AA sobre `#f5f5f7`); en oscuro, `#86868b`. Bordes de campos: `--field` (`#86868b` claro / `#6e6e73` oscuro, 3:1 o más). Verde OK `#1d7a35`.
   - WhatsApp: botón `#157a3e` con texto blanco (5,4:1); el botón flotante puede usar `#25d366` porque no lleva texto.
   - El naranja (`#b64400` / `#ff9f0a`) solo marca "Oferta" y "Últimas unidades". Las etiquetas de sección usan un solo color.
 - **Materialidad:**

@@ -16,30 +16,30 @@ Varios hallazgos repiten el mismo problema visto desde distintos ángulos. En el
 ## Índice por lote
 
 ### B1 — La verdad del negocio (textos)
-- [ ] T1 / T2 / M10 / V6: promesas que una sola persona no puede cumplir.
+- [x] T1 / T2 / M10 / V6: promesas que una sola persona no puede cumplir.
   - Envío "en el día" (franja de valores, ficha, bolsa y reseña de ejemplo).
   - Retiro a domicilio ("Lo traés. O lo buscamos.").
   - Visitas y "recuperación de datos" con tono de laboratorio.
-- [ ] T3 / M6 / K7: "Responde en minutos" en el widget de WhatsApp, incluso con el local cerrado.
-- [ ] T4 / T5: la mejor señal de confianza (te atiende el técnico, que también es el dueño) está escondida.
+- [x] T3 / M6 / K7: "Responde en minutos" en el widget de WhatsApp, incluso con el local cerrado.
+- [x] T4 / T5: la mejor señal de confianza (te atiende el técnico, que también es el dueño) está escondida.
   - Cambiar "En el día" y "Online" de la franja de valores por señales honestas para una persona sola.
-- [ ] T6: los tiempos de entrega se contradicen entre secciones y se presentan como garantía.
-- [ ] T8: "Mensaje del técnico" y "en tiempo real" suenan a empresa con personal. "Especialista" ya se quitó.
-- [ ] T9: el botón "Pedir presupuesto exacto" contradice la bajada del cotizador, y el costo del diagnóstico queda escondido.
-- [ ] T10: los perfiles de notebook mandan a una tienda sin modelos que coincidan, y el mensaje de WhatsApp sale roto.
-- [ ] T11: Servicio y Preguntas frecuentes terminan sin un camino a WhatsApp, y la FAQ no dice quién repara.
-- [ ] T7: el inicio no le da una entrada clara a quien viene a reparar.
-- [ ] T12: el celular de Servicio muestra una barra de app ("Seguimiento / Tienda / Chat") que no existe.
-- [ ] Sellos de confianza: solo "Garantía escrita de 90 días" y "Te atiende el técnico". Nada de "oficial" ni "certificado" sin prueba.
+- [x] T6: los tiempos de entrega se contradicen entre secciones y se presentan como garantía.
+- [x] T8: "Mensaje del técnico" y "en tiempo real" suenan a empresa con personal. "Especialista" ya se quitó. *("Mensaje del técnico" queda a propósito: el técnico es el dueño.)*
+- [x] T9: el botón "Pedir presupuesto exacto" contradice la bajada del cotizador, y el costo del diagnóstico queda escondido.
+- [x] T10: los perfiles de notebook mandan a una tienda sin modelos que coincidan, y el mensaje de WhatsApp sale roto.
+- [x] T11: Servicio y Preguntas frecuentes terminan sin un camino a WhatsApp, y la FAQ no dice quién repara.
+- [x] T7: el inicio no le da una entrada clara a quien viene a reparar.
+- [x] T12: el celular de Servicio muestra una barra de app ("Seguimiento / Tienda / Chat") que no existe.
+- [x] Sellos de confianza: solo "Garantía escrita de 90 días" y "Te atiende el técnico". Nada de "oficial" ni "certificado" sin prueba.
 
 ### B2 — Legibilidad y contraste (WCAG AA)
-- [ ] A2: el texto blanco sobre el verde de WhatsApp (#1a8d4c) y sobre el azul hover (#0077ed) no llega a AA. Pasan a #157a3e y #0062c4.
-- [ ] A3 / A7: `--text-3` (#86868b) no llega a AA en texto chico, y hay mucho texto de menos de 13 px.
-- [ ] A5: las etiquetas de estado y de stock (texto de color sobre fondo teñido) no llegan a AA.
-- [ ] A6: el modo oscuro usa #0071e3 en textos, etiquetas y anillo de foco. Debe usar #2997ff.
-- [ ] A10: los bordes de los campos son muy tenues, y en oscuro los campos parecen agujeros negros.
-- [ ] A4 / K8: brillo excesivo en oscuro, con maquetas casi blancas y la notificación en blanco.
-- [ ] V12: el verde saturado de WhatsApp es lo más fuerte de cada pantalla, incluso en el inicio.
+- [x] A2: el texto blanco sobre el verde de WhatsApp (#1a8d4c) y sobre el azul hover (#0077ed) no llega a AA. Pasan a #157a3e y #0062c4.
+- [x] A3 / A7: `--text-3` (#86868b) no llega a AA en texto chico, y hay mucho texto de menos de 13 px.
+- [x] A5: las etiquetas de estado y de stock (texto de color sobre fondo teñido) no llegan a AA.
+- [x] A6: el modo oscuro usa #0071e3 en textos, etiquetas y anillo de foco. Debe usar #2997ff.
+- [x] A10: los bordes de los campos son muy tenues, y en oscuro los campos parecen agujeros negros.
+- [x] A4 / K8: brillo excesivo en oscuro, con maquetas casi blancas y la notificación en blanco. *(Parcial: la notificación ya es gris en oscuro; las maquetas siguen claras.)*
+- [x] V12: el verde saturado de WhatsApp es lo más fuerte de cada pantalla, incluso en el inicio. *(Parcial: el botón con texto ya es más sobrio, #157a3e; el botón flotante sigue en #25d366.)*
 
 ### B3 — Movimiento (guía v2)
 - [ ] Token `--ease: cubic-bezier(.16,1,.3,1)` y duraciones de 150/300/600 ms.
