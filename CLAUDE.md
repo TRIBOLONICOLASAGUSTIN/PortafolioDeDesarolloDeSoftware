@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Este repo es el portfolio de Nicolás (`index.html`, `Estilos/`, etc.; se publica con GitHub Pages desde `main`).
-Adentro vive el prototipo de **AT Computación**: `preview/fase-0-inicio.html`, con su documentación en `docs/atc/`. El proyecto real arranca en `atc-app/` (Hito 1: base de datos y seguridad).
+Adentro vive **AT Computación**: el sitio en `atc-app/` (Next.js 16 + React 19 sobre Supabase), con su documentación en `docs/atc/`. El prototipo HTML se reemplazó por la versión React en el Hito 2 (queda en el historial de git, commit `d6e675d`).
 Las reglas de abajo aplican a todo lo de AT Computación.
 
 ## El negocio (la verdad manda sobre el diseño)
@@ -46,7 +46,7 @@ Las reglas de abajo aplican a todo lo de AT Computación.
     - e2 (hover) `0 2px 8px rgba(0,0,0,.05), 0 18px 50px rgba(0,0,0,.10)`
     - e3 (modales) `0 30px 90px rgba(0,0,0,.22)`
   - En modo oscuro, en vez de sombra se usa un borde fino `rgba(255,255,255,.08)`.
-- Las ilustraciones de producto son SVG propios (`<symbol id="r-*">`). Cuando haya fotos reales, van en fondo blanco liso, y cada producto apunta a una sola imagen.
+- Las ilustraciones de producto son SVG propios (`<symbol id="r-*">`, en `atc-app/components/sprites.tsx`). Cuando haya fotos reales, van en fondo blanco liso, y cada producto apunta a una sola imagen.
 
 ## Movimiento ("menos es más")
 - Easing único `--ease: cubic-bezier(.16,1,.3,1)`. Duraciones de 150 ms (color/hover), 300 ms (UI) y 600 ms (apariciones). Nada pasa de 900 ms.
@@ -76,28 +76,49 @@ Las reglas de abajo aplican a todo lo de AT Computación.
   - Bloqueos dentro de la base: por código intentado, 5 fallas en 15 min o 10 en 24 h; por IP, 30 en 1 h.
   - Misma respuesta para "no existe", "teléfono incorrecto" y "formato inválido". Los intentos se guardan solo como HMAC.
   - La app **no usa la service_role** (solo las migraciones). La contraseña de `atc_tracker` vive solo en las variables de entorno del servidor: nunca en el repo ni en el chat.
-- **Servidor** (Hito 2, Next.js):
-  - Antes de llamar a `track_order`: Zod, Turnstile y límite por IP con un contador compartido (Upstash/KV).
-  - CSP con nonce.
+- **Servidor** (Hito 2, hecho: `app/api/seguimiento/route.ts`, `lib/server/`, `proxy.ts`):
+  - Antes de `track_order`, en este orden:
+    - Mismo sitio.
+    - JSON de 1 KB como máximo, validado con Zod.
+    - IP del encabezado de la plataforma (`ATC_IP_HEADER`, **nunca** `X-Forwarded-For`).
+    - Límite por IP (Upstash en producción).
+    - Turnstile.
+  - En producción, si falta configuración, falla cerrado (503). El modo demo solo existe fuera de producción y sin base.
+  - CSP con nonce por pedido, sin `unsafe-inline` ni `unsafe-eval` en scripts. Nunca agregar scripts inline sin el nonce, ni `dangerouslySetInnerHTML` con datos que no sean propios.
 
 ## `atc-app/` (proyecto real)
-- Antes de cada commit que toque la base: `npm ci && npm run test:db && npm run check:docs`. Usa un Postgres 16 temporal que imita Supabase; `npm run db:stop` lo borra.
-- Cada cambio de base lleva:
+- **Estructura:**
+  - `app/`: la página, los estilos por sección en `app/styles/` y la ruta `api/seguimiento`.
+  - `components/`: un componente por pieza; `'use client'` solo donde hay interacción.
+  - `lib/data/`: datos de ejemplo.
+  - `lib/server/`: código que solo corre en el servidor.
+  - `supabase/`: migraciones.
+  - `tests/`: pruebas.
+- **Antes de cada commit:** `npm test`.
+  - Corre tipos, build, base (19), API (7), e2e (80) y `check:docs`.
+  - Usa un Postgres 16 temporal que imita Supabase; `npm run db:stop` lo borra.
+  - En la nube, el e2e necesita `PW="$(npm root -g)/playwright/index.mjs"`.
+- **Cada cambio de base lleva:**
   - Una migración nueva.
   - Una prueba con ID (`RLS|FN|TRK|GEN|RET-n`).
   - Su fila en `seguridad.md` §5 y §11.
+- **Cada cambio de la ruta o de los encabezados** lleva su prueba `API-n` documentada.
 - `check:docs` falla si los IDs de las pruebas y de `seguridad.md` no coinciden.
 - `supabase/seed.sql` es de ejemplo: no va a producción.
 
 ## Forma de trabajar (para no gastar tokens de más)
-- **Ediciones puntuales:** reemplazos con verificación de que el texto aparece exactamente una vez (`assert s.count(old)==1`). **Nunca reescribir el HTML completo.** Pesa ~145 KB, y cada lectura o escritura completa cuesta decenas de miles de tokens.
+- **Ediciones puntuales:**
+  - Se edita el componente o el archivo de estilos de la sección que cambia, con reemplazos verificados (`assert s.count(old)==1`).
+  - Los estilos conservan los nombres de clase del diseño (las pruebas los usan).
+  - No reescribir archivos enteros.
 - **Antes de editar,** ubicar con `grep -n` y leer solo las líneas necesarias.
-- **Verificar** con `node tests/atc/verificar.mjs` (sin errores, sin desborde, flujos funcionando, contraste AA, sin bucles no aprobados). Si no encuentra Playwright (instalado global en la nube): `PW="$(npm root -g)/playwright/index.mjs" node tests/atc/verificar.mjs`.
+- **Verificar** con `cd atc-app && npm test`, o por partes: `typecheck`, `build`, `test:db`, `test:api`, `test:e2e` y `check:docs`. El e2e cubre flujos, desborde, contraste AA, bucles, accesibilidad y errores de consola (incluidas las violaciones de CSP).
 - **Capturas** solo de la sección que se tocó.
 - **No usar multi-agente ni workflows** salvo que el usuario lo pida explícitamente.
 - **Un commit + push por lote,** con mensaje en castellano.
 - **Pendientes priorizados** en `docs/atc/pendientes.md`: marcarlos al terminarlos.
-- **Para ver el sitio en la Mac:**
+- **Para ver el sitio en la Mac** (Node 20.9 o más):
   ```bash
-  curl -L -o ~/Desktop/fase-0-inicio.html "https://raw.githubusercontent.com/TRIBOLONICOLASAGUSTIN/PortafolioDeDesarolloDeSoftware/<rama>/preview/fase-0-inicio.html" && open ~/Desktop/fase-0-inicio.html
+  git clone -b <rama> https://github.com/TRIBOLONICOLASAGUSTIN/PortafolioDeDesarolloDeSoftware.git atc && cd atc/atc-app
+  npm ci && npm run dev    # http://localhost:3000 — modo demo, sin base
   ```

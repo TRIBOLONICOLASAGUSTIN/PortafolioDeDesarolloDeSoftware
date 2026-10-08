@@ -197,6 +197,7 @@ Verificada por **RLS-2**, **FN-2** y **FN-3** contra `information_schema` y `pg_
    - `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN`.
    - `ATC_IP_HEADER` **(verificar según el hosting)**: Cloudflare `cf-connecting-ip`, Vercel `x-vercel-forwarded-for` y Netlify `x-nf-client-connection-ip`. Confirmarlo en la documentación del proveedor elegido.
    - `ATC_INDEXAR=1` recién con los datos reales. `ATC_DEMO` **nunca** en el sitio real.
+   - **(verificar)** que el hosting pase el `Host` original: la ruta compara `Origin` con `Host` y, si no coinciden, responde 403. Probar el seguimiento una vez publicado.
    - **La IP que se le pasa a `track_order` tiene que ser la que fija la plataforma de hosting**, nunca el primer valor de `X-Forwarded-For`: ese lo escribe el cliente, y cambiándolo se esquivaría el bloqueo por IP. Lo prueba API-5.
 9. **No mergear a `main`** mientras haya datos de ejemplo (GitHub Pages publica el repo).
 

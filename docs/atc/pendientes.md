@@ -1,4 +1,6 @@
-# Pendientes — AT Computación (prototipo `preview/fase-0-inicio.html`)
+# Pendientes — AT Computación
+
+> Los lotes B1–B7 se hicieron sobre el prototipo HTML. Desde el Hito 2 el sitio es la app de React en `atc-app/`, que conserva todo lo de B1–B7. Las líneas citadas abajo son del prototipo, que quedó en el historial de git (`d6e675d`).
 
 Origen: revisión de diseño con 5 revisores independientes (octubre 2026), cada uno con una mirada distinta. Hay 60 hallazgos en total, con este prefijo:
 - **V** — fidelidad visual a Apple
@@ -9,7 +11,7 @@ Origen: revisión de diseño con 5 revisores independientes (octubre 2026), cada
 
 El índice está en castellano. El detalle técnico (más abajo) queda en inglés, tal como lo escribieron los revisores.
 
-**Cómo usar este archivo:** trabajá por lote, marcá `[x]` al terminar y anotá el commit. Antes de dar algo por hecho, corré `node tests/atc/verificar.mjs`.
+**Cómo usar este archivo:** trabajá por lote, marcá `[x]` al terminar y anotá el commit. Antes de dar algo por hecho, corré `cd atc-app && npm test`.
 
 Varios hallazgos repiten el mismo problema visto desde distintos ángulos. En el índice van agrupados en una sola línea, separados con "/".
 
@@ -104,11 +106,8 @@ Varios hallazgos repiten el mismo problema visto desde distintos ángulos. En el
   - Antes: permitir `mcp.figma.com` en el acceso de red del entorno, autorizar el plugin y abrir una sesión nueva.
   - Las 6 diapositivas de la guía §5 en Figma Slides.
   - Los diagramas de fronteras y de `track_order` en FigJam.
-- [ ] **Hito 2 — Servidor (Next.js).**
-  - `/api/seguimiento` con Zod, Turnstile y límite por IP (Upstash), conectado como `atc_tracker`.
-  - **IP tomada de la plataforma, no de `X-Forwarded-For`** (`seguridad.md` §8 punto 8).
-  - Encabezados de seguridad y CSP con nonce.
-  - Modo demo.
+- [x] **Hito 2 — Sitio público en React (Next.js 16) y servidor seguro.** *(commit `d6e675d`: CSP con nonce, `/api/seguimiento` con atc_tracker, pruebas API-1…7 y las 80 verificaciones portadas.)*
+  - [ ] **Falta configurar** (necesita cuentas): Turnstile, Upstash, hosting (Vercel/Netlify/Cloudflare) y `ATC_IP_HEADER` según el hosting (`seguridad.md` §8 punto 8).
 - [ ] **Hito 3 — Panel del dueño.**
   - Link mágico solo para su mail.
   - ABM de productos y órdenes.

@@ -109,7 +109,9 @@ Un solo acento azul. El degradé queda reservado para una única palabra del tí
 
 ---
 
-## 4. Piezas del sitio (estado del prototipo)
+## 4. Piezas del sitio (componentes de `atc-app/components/`)
+
+Cada fila es un componente de React. El prototipo HTML original se reemplazó por esta versión en el Hito 2 y quedó en el historial de git (último commit que lo tiene: `d6e675d`).
 
 | Sección | Qué hace | Regla clave |
 |---|---|---|
@@ -173,6 +175,8 @@ Un solo acento azul. El degradé queda reservado para una única palabra del tí
 ---
 
 ## 7. Arquitectura del proyecto real (Fase 1)
+
+> **Estado:** base (Hito 1) y sitio público + seguimiento seguro (Hito 2) hechos en `atc-app/`. Falta el panel del dueño (Hito 3). Detalle de seguridad: [`seguridad.md`](seguridad.md).
 
 ```
 Navegador ──► Next.js (App Router, en Vercel/Netlify/Cloudflare)

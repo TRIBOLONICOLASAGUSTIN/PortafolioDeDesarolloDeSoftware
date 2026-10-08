@@ -1,73 +1,99 @@
-# atc-app — AT Computación, proyecto real
+# atc-app — AT Computación
 
-**Hito 1: base de datos y seguridad.** Por ahora contiene solo la base: esquema, permisos, seguimiento de órdenes y retención de datos, cada pieza con su prueba. La web en Next.js llega en el Hito 2.
+El sitio de AT Computación en **Next.js 16 + React 19**, sobre una base Postgres/Supabase con seguridad probada.
 
-- Diseño y decisiones de seguridad: [`docs/atc/seguridad.md`](../docs/atc/seguridad.md). Cada control cita su archivo, su línea y el ID de la prueba que lo demuestra.
+| Hito | Estado |
+|---|---|
+| 1 · Base de datos y seguridad | Hecho: 19 pruebas (`tests/db`) |
+| 2 · Sitio público en React y `/api/seguimiento` seguro | Hecho: 7 pruebas de la ruta (`tests/api`) y 80 verificaciones del sitio (`tests/e2e`). **Falta configurar** Turnstile, Upstash y el hosting |
+| 3 · Panel del dueño | Pendiente |
+
+- Seguridad, con cada control y la prueba que lo demuestra: [`docs/atc/seguridad.md`](../docs/atc/seguridad.md).
 - Reglas del proyecto: [`CLAUDE.md`](../CLAUDE.md).
 
-> **Datos de ejemplo.** `supabase/seed.sql` carga los productos y las órdenes de la demo (teléfonos `5493420000000…`). **No va a producción.**
+> **Datos de ejemplo.** El catálogo, los precios, los tiempos, las reseñas, el WhatsApp y la dirección son de prueba, y `supabase/seed.sql` también. Mientras sea así, la página lleva `noindex` y **no se mergea a `main`**.
 
-## Cómo correrlo en la Mac
+## Verlo en la Mac
 
 ```bash
-brew install postgresql@16        # Node 20 o más: comprobalo con  node -v
 cd atc-app
-npm ci                            # instala pg con la versión exacta del package-lock
-npm run test:db                   # Postgres temporal + migraciones + seed + 19 pruebas
-npm run check:docs                # seguridad.md y las pruebas citan los mismos IDs
-npm run db:stop                   # apaga y borra el Postgres temporal
+npm ci
+npm run dev          # http://localhost:3000
 ```
 
-- **No hace falta iniciar el Postgres de Homebrew** (`brew services`). El script arma su propio Postgres en `/tmp/atc-pgdata`, que escucha solo en `127.0.0.1:54329`, sin contraseña. Sirve solo para pruebas.
-- **Si dice "No encuentro Postgres":** indicale la carpeta con `PG_BIN="$(brew --prefix postgresql@16)/bin" npm run test:db`.
-- **El script solo apaga o borra carpetas que creó él** (deja una marca `.atc-cluster-de-pruebas`). Si `ATC_PGDATA` apunta a otra base por error, se niega a tocarla.
+Así corre en **modo demo**: el seguimiento responde con las 3 órdenes de ejemplo (`AT-7KQ2-9M` / 321, `AT-3FJ8-WX` / 548 y `AT-9TR4-6P` / 777), sin base.
 
-| Variable | Por defecto | Para qué |
+**Con la base real local** (necesita `brew install postgresql@16`):
+```bash
+npm run db:reset
+ATC_TRACKER_DATABASE_URL=postgres://atc_tracker@127.0.0.1:54329/atc_test ATC_DEMO=1 npm run dev
+npm run db:stop      # al terminar: apaga y borra la base temporal
+```
+
+## Pruebas
+
+```bash
+npm test             # todo: tipos, build, base, API, e2e y check:docs
+```
+
+| Comando | Qué prueba |
+|---|---|
+| `npm run typecheck` | Tipos de TypeScript |
+| `npm run build` | Que compile para producción |
+| `npm run test:db` | Base: RLS, permisos, `track_order`, bloqueos y retención (RLS/FN/TRK/GEN/RET) |
+| `npm run test:api` | Ruta y encabezados: respuesta mínima, uniforme, origen, límite, IP, falla cerrada y CSP (API-1…7) |
+| `npm run test:e2e` | El sitio en el navegador: flujos, responsive, contraste AA, movimiento, accesibilidad, notebook visible y sin errores de consola |
+| `npm run check:docs` | Que `seguridad.md` y las pruebas citen los mismos IDs |
+
+- **Base temporal:** las pruebas usan un Postgres 16 temporal (`scripts/db-local.sh`) que imita Supabase, incluidos sus permisos de fábrica. Escucha solo en `127.0.0.1:54329` y solo se toca a sí mismo.
+- **`atc_tracker` en las pruebas:** solo en ese cluster local puede iniciar sesión sin contraseña.
+- **Servidor en las pruebas:** `test:api` y `test:e2e` levantan `next start` con la app compilada, así que hace falta `npm run build` antes.
+- **Playwright:** el e2e usa Playwright. Si no está en el proyecto, se le indica la ruta con `PW=…/playwright/index.mjs`.
+
+## Variables de entorno (servidor; nunca en el repo ni en el chat)
+
+| Variable | Para qué | Producción |
 |---|---|---|
-| `PG_BIN` | Homebrew `postgresql@16`, `pg_config` o `/usr/lib/postgresql/16/bin` | Carpeta de `initdb`, `pg_ctl` y `psql` |
-| `ATC_PGDATA` | `/tmp/atc-pgdata` | Carpeta del Postgres temporal |
-| `ATC_PGPORT` | `54329` | Puerto |
-| `ATC_DB` | `atc_test` | Nombre de la base |
-| `ATC_DB_URL` | `postgres://postgres@127.0.0.1:54329/atc_test` | Conexión que usan las pruebas |
+| `ATC_TRACKER_DATABASE_URL` | Conexión como `atc_tracker`, que solo puede ejecutar `track_order` | Obligatoria |
+| `TURNSTILE_SECRET_KEY` / `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare Turnstile | Obligatoria |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Límite por IP compartido | Obligatoria |
+| `ATC_IP_HEADER` | Encabezado con la IP real que pone el hosting (p. ej. `cf-connecting-ip`). **Nunca** `x-forwarded-for` | Obligatoria |
+| `ATC_RL_MAX` | Pedidos por IP cada 10 minutos (por defecto, 20) | Opcional |
+| `ATC_INDEXAR=1` | Permite indexar en Google: solo con datos reales | Al publicar |
+| `ATC_DEMO=1` | Muestra los botones "Probá la demo" | **Nunca** |
+| `ATC_LOCAL=1` | Pruebas con la base en 127.0.0.1 (se ignora con una base remota) | **Nunca** |
+
+- **Si falta una obligatoria,** `/api/seguimiento` responde 503: falla cerrado y nunca cae en modo demo.
+- **Lo que hay que verificar al configurar** está en la checklist de [`seguridad.md` §8](../docs/atc/seguridad.md#8-checklist-de-producción-antes-de-publicar).
 
 ## Qué hay adentro
 
 ```
 atc-app/
-├─ supabase/migrations/
-│  ├─ 20261008000100_esquema.sql      tablas, formatos, límites de largo y triggers
-│  ├─ 20261008000200_seguridad.sql    RLS, revocación de permisos de fábrica, is_owner(), rol atc_tracker
-│  ├─ 20261008000300_seguimiento.sql  códigos aleatorios, track_order() con bloqueos, purga y anonimización
-│  └─ 20261008000400_tareas.sql       programa purga y anonimización con pg_cron (si existe)
-├─ supabase/seed.sql                  datos de ejemplo de la demo (no van a producción)
-├─ tests/db/
-│  ├─ shim-supabase.sql               imita Supabase: roles, auth.uid() y sus permisos de fábrica
-│  ├─ helpers.mjs                     conexión, cambio de rol, transacciones que siempre se deshacen
-│  └─ seguridad.test.mjs              19 pruebas: RLS-1…7, FN-1…3, TRK-1…7, GEN-1, RET-1
-└─ scripts/
-   ├─ db-local.sh                     start | stop | reset del Postgres temporal
-   └─ check-doc-ids.mjs               cruza los IDs de seguridad.md con los de las pruebas
+├─ proxy.ts                 CSP con nonce por pedido
+├─ next.config.ts           encabezados de seguridad
+├─ app/
+│  ├─ layout.tsx            <html>, metadatos, tema sin parpadeo (script con nonce), fuente Inter servida localmente
+│  ├─ page.tsx              la portada: compone las secciones
+│  ├─ styles/               CSS por sección (01-tokens … 12-responsive)
+│  └─ api/seguimiento/      la única puerta pública a una orden
+├─ components/              nav, hero, values, shop, tiers, service, tracker, estimator, info, layers, whatsapp-widget…
+├─ lib/
+│  ├─ data/                 datos de ejemplo tipados (catálogo, servicios, cotizador, órdenes demo, configuración)
+│  ├─ format.ts · hours.ts · whatsapp.ts
+│  └─ server/               config (modos), ratelimit, turnstile, tracking (pg como atc_tracker)
+├─ supabase/                migraciones (0100–0400) y seed de ejemplo
+├─ scripts/                 db-local.sh · check-doc-ids.mjs
+└─ tests/                   db/ · api/ · e2e/ · helpers/
 ```
 
-**Qué demuestran las pruebas:**
-- Corren contra un Postgres 16 real que imita Supabase, **incluidos sus permisos de fábrica**: Supabase les da todo sobre `public` a `anon` y `authenticated`, y Postgres les da EXECUTE a todos sobre cualquier función nueva.
-- Así queda demostrado que las migraciones cierran esos permisos.
+## Reglas para cambiar cosas
 
-**Qué no demuestran:**
-- El comportamiento del Supabase real (pooler, Auth, pg_cron). Eso se verifica con la checklist de [`seguridad.md` §8](../docs/atc/seguridad.md#8-checklist-de-producción-antes-de-publicar) antes de publicar.
-
-## Reglas para cambiar la base
-
-1. **Cada cambio va en una migración nueva.** Una migración ya aplicada en producción no se edita.
-2. **Toda tabla nueva:**
-   - Lleva RLS y sus GRANT mínimos.
-   - Suma una prueba con ID.
-   - Suma una fila en la tabla de amenazas de `seguridad.md` §5.
-   - Va al registro de cambios (§11).
-3. **Toda función** lleva `set search_path = pg_catalog, public, pg_temp`, y se le revoca EXECUTE a `public`, `anon` y `authenticated` antes de concederlo a quien corresponda.
-   - FN-1 y FN-3 comparan contra la lista exacta de funciones y de quién ejecuta cada una.
-   - Una función nueva hace fallar esas pruebas hasta que se la agregue a mano a la lista: es un control a propósito.
-4. **Antes de cada commit:** `npm run test:db && npm run check:docs`.
-5. **Claves fuera del repo:**
-   - La `service_role`, la contraseña de `atc_tracker` y el pepper nunca van al repo ni al chat.
+1. **Base:** cada cambio va en una migración nueva, con su prueba con ID y su fila en `seguridad.md` §5 y §11.
+2. **Funciones de la base:** `search_path` fijo; EXECUTE revocado a `public`, `anon` y `authenticated` antes de concederlo (FN-1 y FN-3 comparan contra la lista exacta).
+3. **Ruta y encabezados:** cada cambio lleva su prueba `API-n` documentada.
+4. **Scripts:** ningún script inline sin el nonce. `dangerouslySetInnerHTML` solo con contenido propio (los SVG).
+5. **Antes de cada commit:** `npm test`.
+6. **Claves:**
+   - La `service_role`, la contraseña de `atc_tracker`, el pepper y las claves de Turnstile y Upstash nunca van al repo ni al chat.
    - La app no usa la `service_role`.
