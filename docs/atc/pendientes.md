@@ -56,10 +56,10 @@ Varios hallazgos repiten el mismo problema visto desde distintos ángulos. En el
 - [x] V10 / K6 / M12: el precio del cotizador se ve partido en "$ / a / $". Pasa a una sola línea, y los dígitos no deben saltar.
 - [x] V9 / K9: Contacto tiene dos títulos de 56 px y un hueco. Usar ese espacio para decir quién atiende.
 - [x] V3 / V8 / A9: en modo claro, la barra de arriba queda gris sucio sobre la sección negra. En oscuro se pierde el ritmo entre secciones y el negro puro cansa.
-- [x] V1: en la compu, el producto del inicio queda debajo del borde de la pantalla.
-- [ ] V7: el degradé del título del inicio repite el violeta del fondo de pantalla.
+- [x] V1: en la compu, el producto del inicio queda debajo del borde de la pantalla. *(B7: estaba mal cerrado; a 1440×790 no se veía nada. Ahora se ven 286 px, y `verificar.mjs` lo mide a 1440×790, 1280×720 y 375×667.)*
+- [x] V7 *(B7: título en dos tonos, sin degradé)*: el degradé del título del inicio repite el violeta del fondo de pantalla.
 - [x] K4: las píldoras de pago de la bolsa dejan una sola en la última línea, y hay dos estilos distintos de "seleccionado".
-- [ ] K12: bordes sin terminar.
+- [x] K12: bordes sin terminar. *(B7: bolsa vacía sin pie, pie del celular sin divisores sueltos; la sombra cortada y la tecla "Esc" ya estaban resueltas.)*
   - Línea suelta en la bolsa vacía.
   - Sombra cortada.
   - Divisor sobrante al principio del pie.
@@ -74,11 +74,11 @@ Varios hallazgos repiten el mismo problema visto desde distintos ángulos. En el
   - En el celular, el texto de cada paso queda apretado en el tercio de abajo.
   - Los pasos inactivos casi no se ven.
 - [x] M7: en el celular, los perfiles de notebook parecen contenido desbordado.
-- [ ] M8: *(Parcial: la ficha ya usa `dvh`; falta unificar cómo abren la bolsa y la ficha.)* La bolsa abre como panel lateral y la ficha como hoja desde abajo. Unificar el comportamiento y usar `dvh`.
+- [x] M8: *(B7: en el celular, bolsa y ficha abren como hoja desde abajo, con `dvh` y los mismos radios.)* La bolsa abre como panel lateral y la ficha como hoja desde abajo. Unificar el comportamiento y usar `dvh`.
 - [x] M9: en el celular, el texto de la pantalla de la notebook del inicio queda en 5–7 px.
 - [x] M11: el buscador del celular muestra la tecla "Esc", no tiene botón "Cancelar" y su texto de ayuda queda cortado.
 - [x] K2: en el formulario de seguimiento, los estilos de las etiquetas se cuelan en los campos, los dígitos parecen texto de ayuda y el estado "cargando" se ve mal.
-- [ ] A11 / A12: lectores de pantalla. *(Parcial: el celular de Servicio ya está oculto para lectores, las estrellas tienen etiqueta y los servicios usan h3. Falta anunciar los resultados de búsqueda y los campos de la bolsa.)*
+- [x] A11 / A12: lectores de pantalla. *(B7: la búsqueda anuncia el resultado elegido, los campos de la bolsa tienen nombre, el pie usa h2, el saludo de WhatsApp ya no se anuncia solo y la cantidad se lee.)*
   - No se anuncian los resultados de búsqueda ni los campos de la bolsa.
   - Se lee en voz alta el texto de las maquetas.
   - Los títulos saltan de nivel.
@@ -88,6 +88,10 @@ Varios hallazgos repiten el mismo problema visto desde distintos ángulos. En el
 - [x] Códigos de seguimiento con formato aleatorio (Crockford base32, p. ej. `AT-7KQ2-9M`) en lugar de `ATC-1042` secuencial (riesgo IDOR).
 - [x] El seguimiento muestra solo nombre + inicial (minimizar datos personales, Ley 25.326).
 - [x] Texto de privacidad: "Tus datos están protegidos: se necesita el código y tu teléfono".
+
+### B7 — Terminaciones y verdad de los plazos
+- [x] Sin plazos fijos ("24–48 h hábiles", "2 a 5 días") hasta que el dueño los confirme. La tarjeta pasa a "Tu OK: antes de reparar, presupuesto y plazo por WhatsApp", y el cotizador aclara que el plazo es orientativo.
+- [x] V1, V7, K12, M8 y A11/A12 cerrados. `verificar.mjs` pasa de 74 a 80 chequeos.
 
 ## Proyecto real (`atc-app/`) — detalle en `docs/atc/seguridad.md`
 

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>AT Computación — Tienda y servicio técnico</title>
-<meta name="description" content="Notebooks, PCs, impresoras, insumos y accesorios. Servicio técnico con diagnóstico en 24–48 h y seguimiento online de tu reparación.">
+<meta name="description" content="Notebooks, PCs, impresoras, insumos y accesorios. Servicio técnico con presupuesto antes de reparar y seguimiento online de tu reparación.">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -31,7 +31,6 @@
   --shadow:0 1px 2px rgba(0,0,0,.04),0 8px 28px rgba(0,0,0,.06);
   --shadow-h:0 2px 6px rgba(0,0,0,.05),0 18px 50px rgba(0,0,0,.10);
   --e3:0 30px 90px rgba(0,0,0,.22); --hair:1px; --hair-c:rgba(0,0,0,.08);
-  --hl:linear-gradient(90deg,#0071e3 0%,#5e5ce6 55%,#a64fd8 100%);
   --map-land:#f1eee8; --map-road:#ffffff; --map-road-2:#e2ded6; --map-park:#cfe8c6; --map-water:#bcdcf5;
   --card:var(--tile-alt);
   --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI",system-ui,sans-serif;
@@ -48,7 +47,6 @@
   --shadow:0 0 0 1px rgba(255,255,255,.04);
   --shadow-h:0 0 0 1px rgba(255,255,255,.08),0 18px 50px rgba(0,0,0,.6);
   --e3:0 30px 90px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.08); --hair-c:rgba(255,255,255,.1);
-  --hl:linear-gradient(90deg,#2997ff 0%,#7d7aff 55%,#c77dff 100%);
   --map-land:#1f2023; --map-road:#3a3b40; --map-road-2:#2c2d31; --map-park:#1e3a26; --map-water:#16324a;
   color-scheme:dark;
 }
@@ -149,18 +147,18 @@ img{max-width:100%}
 /* =========================================================
    Hero
    ========================================================= */
-.hero{padding:clamp(48px,7vw,84px) 0 0;text-align:center;overflow:clip;background:var(--bg)}
+.hero{padding:clamp(28px,3.2vw,44px) 0 0;text-align:center;overflow:clip;background:var(--bg)}
 .status{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--text-2)}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
 .dot.off{background:var(--text-3)}
-.hero h1{font-size:clamp(44px,7.6vw,92px);line-height:1.03;letter-spacing:-.04em;margin-top:16px}
-.hl{background:var(--hl);-webkit-background-clip:text;background-clip:text;color:transparent;padding-bottom:.06em}
-.hero-sub{font-size:clamp(19px,2.3vw,24px);line-height:1.35;letter-spacing:-.02em;color:var(--text-2);max-width:680px;margin:22px auto 0;font-weight:500}
-.ctas{display:flex;gap:14px 26px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:32px}
+.hero h1{font-size:clamp(44px,5.4vw,76px);line-height:1.04;letter-spacing:-.035em;margin-top:12px;text-wrap:balance}
+.hl{color:var(--text-2)}
+.hero-sub{font-size:clamp(19px,1.8vw,22px);line-height:1.4;letter-spacing:-.015em;color:var(--text-2);max-width:640px;margin:18px auto 0;font-weight:400;text-wrap:balance}
+.ctas{display:flex;gap:14px 26px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:28px}
 .hero [data-in]{opacity:0;transform:translateY(16px);animation:in .7s var(--ease) forwards;animation-delay:var(--d,0s)}
 
-.stage{--p:0;position:relative;width:min(1040px,94vw);margin:clamp(40px,5vw,64px) auto 0;perspective:2400px}
-.laptop{transform-origin:50% 100%;transform:rotateX(calc((1 - var(--p)) * 26deg)) scale(calc(.86 + var(--p) * .14)) translateY(calc((1 - var(--p)) * 24px));will-change:transform}
+.stage{--p:0;position:relative;width:min(1040px,94vw);margin:clamp(28px,3vw,40px) auto 0;perspective:2400px}
+.laptop{transform-origin:50% 100%;transform:rotateX(calc((1 - var(--p)) * 10deg)) scale(calc(.94 + var(--p) * .06)) translateY(calc((1 - var(--p)) * 8px));will-change:transform}
 .lid{padding:.55%;border-radius:24px 22px 0 0;background:linear-gradient(180deg,#e4e5e9,#b9bbc1)}
 .bezel{position:relative;padding:2.1% 2.1% 2.8%;border-radius:18px 18px 0 0;background:#050506}
 .bezel::before{content:'';position:absolute;left:50%;top:.75%;width:.6%;aspect-ratio:1;border-radius:50%;translate:-50% 0;background:#1d1e22;box-shadow:0 0 0 1px #0d0d0f}
@@ -523,7 +521,7 @@ img{max-width:100%}
 footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1.5;padding:22px 0 32px}
 .f-note{padding-bottom:16px;border-bottom:1px solid var(--line);color:var(--text-3)}
 .f-cols{display:grid;grid-template-columns:1.3fr repeat(3,1fr);gap:28px;padding:28px 0 24px}
-.f-cols h5{font-size:12px;font-weight:600;color:var(--text);margin:0 0 10px}
+.f-cols h2{font-family:var(--font);font-size:12px;font-weight:600;letter-spacing:0;line-height:1.4;color:var(--text);margin:0 0 10px}
 .f-cols ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
 .f-cols a:hover{color:var(--text);text-decoration:underline}
 .f-cols .brand{font-size:15px;color:var(--text);margin-bottom:10px}
@@ -619,6 +617,7 @@ footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1
 .pays button[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--accent);color:var(--link)}
 .bag .inp{height:48px;margin-top:10px}
 .bag-f{padding:18px 24px max(22px,env(safe-area-inset-bottom));border-top:var(--hair) solid var(--hair-c);display:grid;gap:14px}
+.bag-f:empty{display:none}
 .tot{display:flex;justify-content:space-between;align-items:baseline}
 .tot span{color:var(--text-2)}
 .tot b{font-size:24px;letter-spacing:-.03em}
@@ -680,6 +679,12 @@ footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1
 /* =========================================================
    Responsive
    ========================================================= */
+@media (min-width:1069px) and (max-height:820px){
+  .hero{padding-top:24px}
+  .hero h1{font-size:64px}
+  .hero-sub{margin-top:14px}
+  .ctas{margin-top:22px}
+}
 @media (max-width:1068px){
   .links{gap:18px;margin-left:auto}
   .links a{font-size:13px}
@@ -727,8 +732,7 @@ footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1
   .duo .ib{width:34px;height:34px}
   .ib{width:38px;height:38px}
   .hero-sub{font-size:19px}
-  .ctas .btn{min-width:min(100%,280px)}
-  .stage{width:86vw;margin-top:44px}
+  .stage{width:86vw;margin-top:32px}
   .lid{border-radius:12px 14px 0 0}
   .bezel{border-radius:11px 11px 0 0}
   .values{gap:36px 20px}
@@ -762,14 +766,18 @@ footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1
   .faq details p{padding-right:0}
   .c-btns .btn{flex:1 1 100%}
   .c-tile{padding:22px}
-  .qv{left:0;right:0;top:auto;bottom:0;width:100%;max-height:92vh;grid-template-columns:1fr;border-radius:24px 26px 0 0;translate:0 0;transform:translateY(100%);opacity:1;overflow:auto}
+  .qv{left:0;right:0;top:auto;bottom:0;width:100%;max-height:calc(100vh - 40px);max-height:calc(100dvh - 40px);grid-template-columns:1fr;border-radius:24px 24px 0 0;translate:0 0;transform:translateY(100%);opacity:1;overflow:auto}
   .qv.open{transform:none}
   .qv-img{padding:36px 24px 20px}
   .qv-img .r{height:210px}
   .qv-info{padding:24px 22px max(26px,env(safe-area-inset-bottom));overflow:visible}
-  .bag{width:100vw}
+  .bag{top:auto;left:0;right:0;width:100%;max-height:calc(100vh - 40px);max-height:calc(100dvh - 40px);border-radius:24px 24px 0 0;transform:translateY(104%)}
+  .bag.open{transform:none;box-shadow:var(--e3)}
+  .bag-b{flex:1 1 auto;min-height:0}
   .spot{top:10px}
   .f-cols{gap:22px 18px}
+  .legal{flex-direction:column;align-items:flex-start;gap:8px}
+  .legal>*{padding:0;border-left:0}
   .f-bot{flex-direction:column;align-items:flex-start;padding-bottom:64px}
   .wa-fab{right:16px;width:54px;height:54px}
   .wa-panel{right:16px;bottom:84px}
@@ -1023,7 +1031,7 @@ footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1
   <div class="wrap">
     <p class="status" id="status" data-in style="--d:.05s"><span class="dot"></span><span class="txt">Abierto ahora</span></p>
     <h1 data-in style="--d:.12s">Tu tecnología.<br><span class="hl">En las mejores manos.</span></h1>
-    <p class="hero-sub" data-in style="--d:.22s">Notebooks, impresoras, insumos y accesorios. Reparación con trato directo, diagnóstico en 24–48 h hábiles y seguimiento online de tu equipo.</p>
+    <p class="hero-sub" data-in style="--d:.22s">Notebooks, impresoras, insumos y accesorios. Reparación con trato directo y seguimiento online de tu equipo.</p>
     <div class="ctas" data-in style="--d:.32s">
       <a class="btn" href="#tienda">Ver la tienda</a>
       <a class="lnk" href="#servicio">Reparar mi equipo</a>
@@ -1063,7 +1071,7 @@ footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1
   <div class="wrap">
     <div class="values">
       <div class="val rv"><svg class="i"><use href="#i-shield"/></svg><b>90 días</b><p>de garantía escrita en cada reparación.</p></div>
-      <div class="val rv" style="--d:.08s"><svg class="i"><use href="#i-clock"/></svg><b>24–48 h</b><p>hábiles para diagnosticar tu equipo.</p></div>
+      <div class="val rv" style="--d:.08s"><svg class="i"><use href="#i-check-c"/></svg><b>Tu OK</b><p>antes de reparar: presupuesto y plazo por WhatsApp.</p></div>
       <div class="val rv" style="--d:.16s"><svg class="i"><use href="#i-user"/></svg><b>1 a 1</b><p>te atiende el técnico, sin intermediarios.</p></div>
       <div class="val rv" style="--d:.24s"><svg class="i"><use href="#i-scan"/></svg><b>Online</b><p>seguís tu reparación paso a paso.</p></div>
     </div>
@@ -1204,7 +1212,7 @@ footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1
         <div class="time"><svg class="i sm"><use href="#i-clock"/></svg><span id="eTime">48 a 72 h hábiles</span></div>
         <hr>
         <a class="btn btn-wa btn-full" id="eWa" target="_blank" rel="noopener"><svg class="i"><use href="#i-wa"/></svg>Pedir turno para diagnóstico</a>
-        <p class="note">Rango orientativo en pesos argentinos. El precio final te lo confirma el técnico después del diagnóstico, que se bonifica si reparás.</p>
+        <p class="note">Rango y plazo orientativos, en pesos argentinos. El precio y el plazo finales te los confirma el técnico después del diagnóstico, que se bonifica si reparás.</p>
       </aside>
     </div>
   </div>
@@ -1235,7 +1243,7 @@ footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1
   <div class="wrap">
     <div class="head center rv"><h2 class="h2">Preguntas frecuentes.</h2></div>
     <div class="faq rv">
-      <details name="faq" open><summary>¿Cuánto tarda una reparación?<svg class="i"><use href="#i-plus"/></svg></summary><p>El diagnóstico demora entre 24 y 48 h hábiles. Una vez aprobado el presupuesto, la mayoría de las reparaciones están listas en 2 a 5 días. Si lo necesitás para una fecha puntual, avisanos al dejarlo y te decimos con sinceridad si llegamos.</p></details>
+      <details name="faq" open><summary>¿Cuánto tarda una reparación?<svg class="i"><use href="#i-plus"/></svg></summary><p>Depende del equipo, de la falla y de los repuestos. Al recibirlo te decimos un plazo estimado, y cada avance lo ves en el seguimiento online. Si lo necesitás para una fecha puntual, avisanos al dejarlo y te decimos con sinceridad si llegamos.</p></details>
       <details name="faq"><summary>¿El diagnóstico tiene costo?<svg class="i"><use href="#i-plus"/></svg></summary><p>Si aprobás la reparación, el diagnóstico no se cobra. Si decidís no reparar, tiene un costo mínimo que te informamos al ingresar el equipo.</p></details>
       <details name="faq"><summary>¿Cómo sigo el estado de mi equipo?<svg class="i"><use href="#i-plus"/></svg></summary><p>Con el código de tu comprobante (por ejemplo AT-7KQ2-9M) y los últimos 3 dígitos de tu teléfono, en la sección Seguimiento. También te avisamos por WhatsApp en cada cambio importante.</p></details>
       <details name="faq"><summary>¿Las reparaciones tienen garantía?<svg class="i"><use href="#i-plus"/></svg></summary><p>Sí, todas las reparaciones tienen garantía escrita de 90 días sobre el trabajo realizado y los repuestos colocados.</p></details>
@@ -1307,9 +1315,9 @@ footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1
         <a class="brand" href="#inicio"><span class="mark">AT</span>AT Computación</a>
         <p>Venta de tecnología y servicio técnico de computadoras, notebooks e impresoras en Santa Fe.</p>
       </div>
-      <div><h5>Tienda</h5><ul><li><a href="#tienda" data-go-cat="notebooks">Notebooks</a></li><li><a href="#tienda" data-go-cat="impresoras">Impresoras</a></li><li><a href="#tienda" data-go-cat="insumos">Insumos</a></li><li><a href="#tienda" data-go-cat="perifericos">Periféricos</a></li><li><a href="#tienda" data-go-cat="componentes">Componentes</a></li></ul></div>
-      <div><h5>Servicio</h5><ul><li><a href="#servicio">Servicio técnico</a></li><li><a href="#seguimiento">Seguir mi reparación</a></li><li><a href="#presupuesto">Calcular presupuesto</a></li><li><a href="#faq">Preguntas frecuentes</a></li></ul></div>
-      <div><h5>Visitanos</h5><ul><li>Av. Ejemplo 1234, Santa Fe</li><li>Lun a vie 9–13 · 16–20 h</li><li>Sábados 9–13 h</li><li><a href="mailto:hola@atcomputacion.com">hola@atcomputacion.com</a></li><li><a data-wa="¡Hola AT Computación!" target="_blank" rel="noopener">WhatsApp</a></li></ul></div>
+      <div><h2>Tienda</h2><ul><li><a href="#tienda" data-go-cat="notebooks">Notebooks</a></li><li><a href="#tienda" data-go-cat="impresoras">Impresoras</a></li><li><a href="#tienda" data-go-cat="insumos">Insumos</a></li><li><a href="#tienda" data-go-cat="perifericos">Periféricos</a></li><li><a href="#tienda" data-go-cat="componentes">Componentes</a></li></ul></div>
+      <div><h2>Servicio</h2><ul><li><a href="#servicio">Servicio técnico</a></li><li><a href="#seguimiento">Seguir mi reparación</a></li><li><a href="#presupuesto">Calcular presupuesto</a></li><li><a href="#faq">Preguntas frecuentes</a></li></ul></div>
+      <div><h2>Visitanos</h2><ul><li>Av. Ejemplo 1234, Santa Fe</li><li>Lun a vie 9–13 · 16–20 h</li><li>Sábados 9–13 h</li><li><a href="mailto:hola@atcomputacion.com">hola@atcomputacion.com</a></li><li><a data-wa="¡Hola AT Computación!" target="_blank" rel="noopener">WhatsApp</a></li></ul></div>
     </div>
     <div class="f-bot">
       <div class="legal">
@@ -1324,7 +1332,7 @@ footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1
 </footer>
 
 <!-- WhatsApp -->
-<div class="wa-greet" id="waGreet" role="status"><span>¿Te ayudamos? Escribinos 👋</span><button id="waGreetX" aria-label="Cerrar"><svg class="i sm"><use href="#i-x"/></svg></button></div>
+<div class="wa-greet" id="waGreet"><span>¿Te ayudamos? Escribinos 👋</span><button id="waGreetX" aria-label="Cerrar"><svg class="i sm"><use href="#i-x"/></svg></button></div>
 <div class="wa-panel" id="waPanel" role="dialog" aria-label="Chat de WhatsApp" inert>
   <div class="wa-head"><span class="mark">AT</span><div><b>AT Computación</b><small id="waSub">Te responde el técnico</small></div></div>
   <div class="wa-body" id="waBody"></div>
@@ -1350,8 +1358,8 @@ footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1
   <div class="bag-f" id="bagFoot"></div>
 </aside>
 <div class="spot" id="spot" role="dialog" aria-modal="true" aria-label="Buscar" inert>
-  <div class="spot-in"><svg class="i"><use href="#i-search"/></svg><input id="sIn" placeholder="Buscar productos, servicios o secciones" autocomplete="off" aria-controls="sList"><kbd>Esc</kbd><button class="spot-x" type="button" data-close>Cancelar</button></div>
-  <ul class="spot-list" id="sList" role="listbox"></ul>
+  <div class="spot-in"><svg class="i"><use href="#i-search"/></svg><input id="sIn" role="combobox" aria-expanded="true" aria-autocomplete="list" aria-label="Buscar productos y secciones" placeholder="Buscar productos, servicios o secciones" autocomplete="off" aria-controls="sList"><kbd>Esc</kbd><button class="spot-x" type="button" data-close>Cancelar</button></div>
+  <ul class="spot-list" id="sList" role="listbox" aria-label="Resultados"></ul>
 </div>
 </div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
@@ -1416,7 +1424,7 @@ const TIERS = [
 const STORY = [
   { n: 'Paso 1', h: 'Lo traés al local.', p: 'Te lo recibe el técnico y te da un comprobante con tu <b>código de orden</b>. Si no podés acercarte, escribinos y lo vemos.',
     scr: { t: 'Recibimos tu equipo', pill: ['Ingresado', '#8e8e93'], pg: 12, bub: 'Recibimos tu notebook con su cargador. Te avisamos con el diagnóstico.' } },
-  { n: 'Paso 2', h: 'Diagnóstico en 24–48 h hábiles.', p: 'Encontramos la falla y te la <b>explicamos en palabras simples</b>, con fotos si hace falta.',
+  { n: 'Paso 2', h: 'Diagnóstico claro.', p: 'Encontramos la falla y te la <b>explicamos en palabras simples</b>, con fotos si hace falta.',
     scr: { t: 'Diagnóstico', pill: ['En revisión', '#5e5ce6'], pg: 35, bub: 'El conector de carga está dañado y no hace contacto. Te enviamos el presupuesto.' } },
   { n: 'Paso 3', h: 'Vos decidís.', p: 'Te mandamos el presupuesto por WhatsApp. <b>No tocamos nada sin tu OK.</b>',
     scr: { t: 'Presupuesto', pill: ['Esperando tu OK', '#c75c00'], pg: 55, budget: true } },
@@ -1672,7 +1680,7 @@ function drawQV() {
     <p class="qv-price">${fmt(p.price)} <span class="stock ${st.c}" style="display:inline;margin-left:8px">${st.t}</span></p>
     <ul class="qv-specs">${p.specs.map(s => `<li>${ico('check')}${esc(s)}</li>`).join('')}</ul>
     ${p.stock > 0 ? `<div class="qv-buy">
-      <div class="qty" aria-label="Cantidad"><button data-qq="-1" aria-label="Menos" ${qvState.q <= 1 ? 'disabled' : ''}>${ico('minus', 'i sm')}</button><span>${qvState.q}</span><button data-qq="1" aria-label="Más" ${qvState.q >= max ? 'disabled' : ''}>${ico('plus', 'i sm')}</button></div>
+      <div class="qty" role="group" aria-label="Cantidad: ${qvState.q}"><button data-qq="-1" aria-label="Menos" ${qvState.q <= 1 ? 'disabled' : ''}>${ico('minus', 'i sm')}</button><span>${qvState.q}</span><button data-qq="1" aria-label="Más" ${qvState.q >= max ? 'disabled' : ''}>${ico('plus', 'i sm')}</button></div>
       <button class="btn" data-qv-add ${max <= 0 ? 'disabled' : ''}>${max <= 0 ? 'Ya está en tu bolsa' : 'Agregar a la bolsa'}</button>
     </div>` : ''}
     <a class="lnk qv-alt" style="font-size:15px" href="${waLink(p.stock > 0 ? `¡Hola! Me interesa ${p.brand} ${p.name} (${fmt(p.price)}). ¿Está disponible?` : `¡Hola! Quería saber cuándo vuelve a ingresar ${p.brand} ${p.name}.`)}" target="_blank" rel="noopener">${p.stock > 0 ? 'Consultar por WhatsApp' : 'Avisarme cuando ingrese'}</a>
@@ -1735,10 +1743,10 @@ function drawBag() {
       <button data-ent="retiro" aria-pressed="${bag.entrega === 'retiro'}">Retiro en el local<small>Sin costo</small></button>
       <button data-ent="envio" aria-pressed="${bag.entrega === 'envio'}">Envío a domicilio<small>A coordinar por WhatsApp</small></button>
     </div>
-    ${bag.entrega === 'envio' ? `<label class="inp"><svg class="i sm"><use href="#i-pin"/></svg><input id="bDir" placeholder="Dirección o barrio" value="${esc(bag.dir)}" autocomplete="street-address"></label>` : ''}
+    ${bag.entrega === 'envio' ? `<label class="inp"><svg class="i sm"><use href="#i-pin"/></svg><input id="bDir" aria-label="Dirección de entrega" placeholder="Dirección o barrio" value="${esc(bag.dir)}" autocomplete="street-address"></label>` : ''}
     <p class="bl">¿Cómo pagás?</p>
     <div class="pays" role="group" aria-label="Medio de pago">${PAYS.map(([k, t]) => `<button data-pay="${k}" aria-pressed="${bag.pago === k}">${t}</button>`).join('')}</div>
-    <p class="bl">Tu nombre <span class="muted" style="font-weight:400">(opcional)</span></p>
+    <label class="bl" for="bName" style="display:block">Tu nombre <span class="muted" style="font-weight:400">(opcional)</span></label>
     <label class="inp"><svg class="i sm"><use href="#i-user"/></svg><input id="bName" placeholder="Para identificar tu pedido" value="${esc(bag.nombre)}" autocomplete="given-name"></label>`;
   $('#bagFoot').innerHTML = `<div class="tot"><span>Subtotal</span><b>${fmt(subtotal())}</b></div>
     <a class="btn btn-wa btn-full" id="checkout" href="${waLink(bagMessage())}" target="_blank" rel="noopener">${ico('wa')}Finalizar pedido por WhatsApp</a>
@@ -1787,17 +1795,20 @@ function drawSpot() {
   if (!sItems.length) {
     const q = sIn.value.trim();
     sList.innerHTML = `<li class="s-empty">No encontramos “${esc(q)}” en la web.<br>Puede que lo tengamos en el local.<br><a class="btn btn-wa btn-sm" href="${waLink(`¡Hola! ¿Tienen ${q}?`)}" target="_blank" rel="noopener">${ico('wa', 'i sm')}Consultar por WhatsApp</a></li>`;
+    sIn.setAttribute('aria-activedescendant', '');
     return;
   }
   let i = 0, html = '';
-  if (prods.length) html += `<li class="sg" role="presentation">Productos</li>` + prods.map(p => `<li class="si" role="option" data-i="${i}" aria-selected="${i++ === sSel}"><span class="si-img">${render(p.r, p.wall)}</span><div><b>${esc(p.brand)} ${esc(p.name)}</b><small>${fmt(p.price)} · ${stockInfo(p.stock).t}</small></div></li>`).join('');
-  if (pages.length) html += `<li class="sg" role="presentation">Secciones</li>` + pages.map(p => `<li class="si" role="option" data-i="${i}" aria-selected="${i++ === sSel}"><span class="si-img">${ico(p.ic)}</span><div><b>${esc(p.t)}</b></div></li>`).join('');
+  if (prods.length) html += `<li class="sg" role="presentation">Productos</li>` + prods.map(p => `<li class="si" role="option" id="si-${i}" data-i="${i}" aria-selected="${i++ === sSel}"><span class="si-img">${render(p.r, p.wall)}</span><div><b>${esc(p.brand)} ${esc(p.name)}</b><small>${fmt(p.price)} · ${stockInfo(p.stock).t}</small></div></li>`).join('');
+  if (pages.length) html += `<li class="sg" role="presentation">Secciones</li>` + pages.map(p => `<li class="si" role="option" id="si-${i}" data-i="${i}" aria-selected="${i++ === sSel}"><span class="si-img">${ico(p.ic)}</span><div><b>${esc(p.t)}</b></div></li>`).join('');
   sList.innerHTML = html;
+  sIn.setAttribute('aria-activedescendant', 'si-' + sSel);
 }
 function selSpot(n) {
   if (!sItems.length) return;
   sSel = (n + sItems.length) % sItems.length;
   $$('.si', sList).forEach(li => li.setAttribute('aria-selected', +li.dataset.i === sSel));
+  sIn.setAttribute('aria-activedescendant', 'si-' + sSel);
   $(`.si[data-i="${sSel}"]`, sList)?.scrollIntoView({ block: 'nearest' });
 }
 function actSpot(it) {

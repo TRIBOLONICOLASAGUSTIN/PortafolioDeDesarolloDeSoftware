@@ -12,7 +12,8 @@ Las reglas de abajo aplican a todo lo de AT Computación.
   - Envíos y retiros: "a coordinar por WhatsApp".
 - Sellos de confianza permitidos: "Garantía escrita de 90 días" y "Te atiende el técnico, sin intermediarios". **Prohibido** "oficial" o "certificado" mientras no haya una prueba.
 - Sin cifras ni reseñas inventadas que parezcan reales. Las reseñas de ejemplo van marcadas en el código.
-- Datos de ejemplo hasta que el dueño pase los reales: WhatsApp `5493420000000`, dirección, mail, precios, stock y reseñas.
+- Sin plazos fijos de diagnóstico ni de reparación hasta que el dueño los confirme. Los tiempos del cotizador son de ejemplo y se muestran como orientativos.
+- Datos de ejemplo hasta que el dueño pase los reales: WhatsApp `5493420000000`, dirección, mail, precios, tiempos del cotizador, stock y reseñas.
 - **No mergear a `main`** mientras haya datos de ejemplo: GitHub Pages lo publicaría. Se trabaja en ramas.
 - La compra no cobra online: la bolsa arma un mensaje de WhatsApp (entrega, pago y nombre). Nada de datos de tarjeta.
 

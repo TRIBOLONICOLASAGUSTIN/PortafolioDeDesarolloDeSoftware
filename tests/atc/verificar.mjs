@@ -104,6 +104,36 @@ for (const v of VIEWPORTS) {
   await ctx.close();
 }
 
+// La notebook del inicio entra en la primera pantalla: laptop con la barra del navegador y iPhone SE (V1)
+for (const [w, h, min] of [[1440, 790, 230], [1280, 720, 160], [375, 667, 80]]) {
+  const p = await browser.newPage({ viewport: { width: w, height: h } });
+  await p.goto(HTML); await p.waitForTimeout(1200);
+  const vis = await p.evaluate(() => innerHeight - document.querySelector('.laptop').getBoundingClientRect().top);
+  check('inicio', `notebook visible en la primera pantalla a ${w}×${h}`, vis >= min, `${Math.round(vis)} px visibles`);
+  await p.close();
+}
+
+// Lectores de pantalla y bordes: búsqueda anunciada, campos de la bolsa con nombre, bolsa vacía sin pie (A11, K12)
+{
+  const p = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  await p.goto(HTML); await p.waitForTimeout(400);
+  await p.click('#bagBtn'); await p.waitForTimeout(500);
+  check('accesibilidad', 'bolsa vacía sin línea ni pie sueltos', await p.evaluate(() => getComputedStyle(document.querySelector('#bagFoot')).display === 'none'));
+  await p.keyboard.press('Escape'); await p.waitForTimeout(400);
+  await p.keyboard.press('Control+k'); await p.keyboard.type('a'); await p.waitForTimeout(200);
+  const a0 = await p.getAttribute('#sIn', 'aria-activedescendant');
+  await p.keyboard.press('ArrowDown');
+  const a1 = await p.getAttribute('#sIn', 'aria-activedescendant');
+  check('accesibilidad', 'la búsqueda anuncia el resultado elegido', a0 && a1 && a0 !== a1 && !!(await p.$(`#${a1}[aria-selected="true"]`)), `${a0} → ${a1}`);
+  await p.keyboard.press('Escape'); await p.waitForTimeout(400);
+  await p.locator('#tienda').scrollIntoViewIfNeeded();
+  await p.locator('#shelf [data-add]').first().click(); await p.waitForTimeout(300);
+  await p.click('#bagBtn'); await p.waitForTimeout(500); await p.click('[data-ent="envio"]');
+  const named = [await p.getByLabel('Tu nombre').count(), await p.getByLabel('Dirección de entrega').count()];
+  check('accesibilidad', 'campos de la bolsa con nombre accesible', named[0] === 1 && named[1] === 1, named.join('/'));
+  await p.close();
+}
+
 // Contraste AA de los tokens (claro y oscuro)
 {
   const p = await browser.newPage({ viewport: { width: 1440, height: 900 } });
