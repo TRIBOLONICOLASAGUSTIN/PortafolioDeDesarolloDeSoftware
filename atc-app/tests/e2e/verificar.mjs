@@ -172,6 +172,48 @@ for (const reduced of [false, true]) {
   await p.close();
 }
 
+// Ventanas cerradas (bolsa/ficha/búsqueda) no se pintan en tablet (bug de la bolsa asomada, 735–900 px)
+for (const w of [768, 820, 900]) {
+  const p = await browser.newPage({ viewport: { width: w, height: 1000 } });
+  await p.goto(HTML); await p.waitForTimeout(500);
+  const vis = await p.evaluate(() => ['.bag', '.qv', '.spot'].map(s => getComputedStyle(document.querySelector(s)).visibility));
+  check('ventanas', `cerradas ocultas a ${w}px`, vis.every(v => v === 'hidden'), vis.join(','));
+  await p.close();
+}
+
+// Encabezado de Contacto centrado + tipografía: nada de texto visible < 12px fuera del pie (maquetas aria-hidden excluidas)
+{
+  const p = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  await p.goto(HTML); await p.waitForTimeout(400);
+  const centered = await p.evaluate(() => {
+    const h = document.querySelector('#contacto .head');
+    return !!h && getComputedStyle(h).textAlign === 'center';
+  });
+  check('centrado', 'encabezado de Contacto centrado', centered);
+  const tiny = await p.evaluate(() => {
+    const bad = [];
+    for (const el of document.querySelectorAll('main *, header *, .ribbon *')) {
+      if (el.closest('[aria-hidden="true"]') || el.closest('footer')) continue;
+      if (![...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) continue;
+      const cs = getComputedStyle(el); if (cs.visibility === 'hidden' || cs.display === 'none') continue;
+      const r = el.getBoundingClientRect(); if (r.width < 2 || r.height < 2) continue;
+      const fs = parseFloat(cs.fontSize); if (fs < 12) bad.push(`${(el.className && el.className.toString().split(' ')[0]) || el.tagName}:${fs}`);
+    }
+    return [...new Set(bad)].slice(0, 10);
+  });
+  check('tipografia', 'sin texto visible < 12px fuera del pie', tiny.length === 0, tiny.join(' | '));
+  await p.close();
+}
+
+// La banda "Servicio técnico" queda oscura en ambos temas (decisión de diseño: banda oscura prolija)
+for (const scheme of ['light', 'dark']) {
+  const p = await browser.newPage({ viewport: { width: 1440, height: 900 }, colorScheme: scheme });
+  await p.goto(HTML); await p.waitForTimeout(300);
+  const bg = await p.evaluate(() => getComputedStyle(document.getElementById('servicio')).backgroundColor);
+  check('banda', `#servicio oscura en ${scheme}`, bg === 'rgb(0, 0, 0)', bg);
+  await p.close();
+}
+
 await browser.close();
 await server.stop();
 

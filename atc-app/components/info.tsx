@@ -63,7 +63,7 @@ export function Contact() {
   return (
     <section className="sec" id="contacto">
       <div className="wrap">
-        <div className="head rv"><h2 className="h2">Contacto. <span className="muted">Estamos cerca.</span></h2></div>
+        <div className="head center rv"><h2 className="h2">Contacto. <span className="muted">Estamos cerca.</span></h2></div>
         <div className="contact">
           <div className="c-main rv">
             <div>
