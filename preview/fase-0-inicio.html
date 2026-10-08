@@ -59,7 +59,7 @@
 *,*::before,*::after{box-sizing:border-box}
 html{overflow-x:clip;scroll-behavior:smooth;-webkit-text-size-adjust:100%;scroll-padding-top:60px}
 body{margin:0;font-family:var(--font);font-size:17px;line-height:1.47;letter-spacing:-.011em;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;transition:background-color .35s,color .35s}
-body.lock{overflow:hidden}
+html.lock{overflow:hidden}
 h1,h2,h3,h4{font-family:var(--font-d);margin:0;font-weight:600;letter-spacing:-.025em;line-height:1.08}
 p{margin:0}
 a{color:inherit;text-decoration:none}
@@ -216,20 +216,20 @@ img{max-width:100%}
 @container (max-width:560px){
   .menubar{height:5.2cqw;font-size:2.1cqw;gap:3.5cqw}
   .menubar span:nth-child(n+3):not(.r){display:none}
-  .win{left:5%;right:5%;top:12%;bottom:5%;grid-template-columns:1fr;font-size:2.15cqw;border-radius:2.2cqw}
+  .win{left:5%;right:5%;top:12%;bottom:5%;grid-template-columns:1fr;font-size:2.7cqw;border-radius:2.2cqw}
   .side{display:none}
-  .mainw{gap:2.6cqw;padding:3.6cqw 4cqw}
-  .mh b{font-size:4.4cqw}
-  .pill{font-size:1.9cqw;padding:.9cqw 1.8cqw}
-  .prog{font-size:1.7cqw}
+  .mainw{gap:3.4cqw;padding:4.4cqw 4.6cqw}
+  .mh b{font-size:5.2cqw}
+  .pill{font-size:2.4cqw;padding:.9cqw 1.8cqw}
+  .prog{font-size:0}
   .prog::before,.prog::after{top:1.6cqw;height:.4cqw}
   .prog span::before{width:3.6cqw;height:3.6cqw;border-width:.4cqw}
-  .msg{padding:2.4cqw;border-radius:2cqw;gap:2cqw}
+  .msg{display:none}
   .av{width:5cqw;height:5cqw;font-size:1.6cqw}
   .msg b{font-size:2cqw}
   .hist{display:none}
   .kv{gap:2cqw}.kv div{padding:2cqw;border-radius:1.8cqw}
-  .kv small{font-size:1.7cqw}.kv b{font-size:2.8cqw}
+  .kv small{font-size:2.2cqw}.kv b{font-size:3.6cqw}
 }
 
 /* =========================================================
@@ -342,6 +342,13 @@ img{max-width:100%}
 .done-ic{width:26cqw;height:26cqw;margin:8cqw auto 5cqw;border-radius:50%;display:grid;place-items:center;background:#30d158;color:#fff;box-shadow:0 4cqw 10cqw rgba(48,209,88,.35)}
 .done-ic svg{width:13cqw;height:13cqw;stroke-width:2.6}
 .ps.center{text-align:center}
+.ph-hist{margin-top:4.5cqw;padding:3.4cqw 4.6cqw 1.6cqw;border-radius:5cqw;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.06);text-align:left}
+.ph-hist>b{display:block;font-size:3.3cqw;font-weight:600;color:#86868b;margin-bottom:1cqw}
+.ph-hist div{display:flex;justify-content:space-between;align-items:center;gap:2cqw;padding:2cqw 0;border-top:.3cqw solid #f0f0f3;font-size:3.7cqw}
+.ph-hist div:first-of-type{border-top:0}
+.ph-hist i{display:inline-block;width:2.2cqw;height:2.2cqw;margin-right:2cqw;border-radius:50%;background:#0071e3}
+.ph-hist i.old{background:#c7c7cc}
+.ph-hist small{color:#86868b;font-size:3.3cqw}
 .tabbar{position:absolute;z-index:2;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(3,1fr);padding:3cqw 4cqw 9cqw;font-size:3.1cqw;font-weight:500;color:#8e8e93;background:rgba(249,249,251,.94);border-top:.3cqw solid #e5e5ea}
 .tabbar span{display:flex;flex-direction:column;align-items:center;gap:1cqw}
 .tabbar .i{width:6.6cqw;height:6.6cqw;stroke-width:1.8}
@@ -349,7 +356,7 @@ img{max-width:100%}
 .tabbar .url{grid-column:1/-1;flex-direction:row;justify-content:center;gap:1.4cqw;margin:0 auto;padding:2cqw 6cqw;border-radius:99px;background:#e6e6eb;color:#1d1d1f;font-size:3.5cqw}
 .tabbar .url .i{width:3.6cqw;height:3.6cqw;stroke-width:2.2}
 .tabbar::after{content:'';position:absolute;left:50%;bottom:2.4cqw;width:36cqw;height:1.4cqw;border-radius:9px;background:#1d1d1f;translate:-50% 0}
-.steps-txt .stx{min-height:78vh;display:flex;flex-direction:column;justify-content:center;opacity:.25;transition:opacity .6s var(--ease)}
+.steps-txt .stx{min-height:78vh;display:flex;flex-direction:column;justify-content:center;opacity:.35;transition:opacity .6s var(--ease)}
 .steps-txt .stx.on{opacity:1}
 .stx .n{font-size:17px;font-weight:600;color:#2997ff}
 .stx h3{font-size:clamp(30px,3.6vw,44px);letter-spacing:-.035em;margin:10px 0 16px;line-height:1.1}
@@ -360,7 +367,7 @@ img{max-width:100%}
 .svc{padding:26px 24px;border-radius:24px;background:#1c1c1e;transition:background-color .3s}
 .svc:hover{background:#232325}
 .svc .i{width:30px;height:30px;color:#2997ff;stroke-width:1.5}
-.svc h4{font-family:var(--font);font-size:17px;font-weight:600;letter-spacing:-.015em;margin-top:18px}
+.svc h3{font-family:var(--font);font-size:17px;font-weight:600;letter-spacing:-.015em;margin-top:18px}
 .svc p{font-size:14px;color:#a1a1a6;margin-top:4px;line-height:1.42}
 
 /* =========================================================
@@ -377,10 +384,11 @@ img{max-width:100%}
 .tform{display:grid;grid-template-columns:1.1fr 1fr;gap:12px;margin-top:24px}
 .tform .btn{grid-column:1/-1;min-height:52px}
 .field{display:flex;flex-direction:column;gap:6px}
-.field>span{font-size:13px;font-weight:500;color:var(--text-2)}
+.field>span:not(.inp){font-size:13px;font-weight:500;color:var(--text-2)}
 .inp{display:flex;align-items:center;gap:8px;height:54px;padding:0 16px;border-radius:12px;background:var(--bg);border:1px solid var(--field);transition:border-color .2s,box-shadow .2s}
 .sec.alt .inp,.card .inp{background:var(--bg)}
 .inp:focus-within{border-color:var(--accent);box-shadow:0 0 0 4px rgba(0,113,227,.16)}
+#tCode{text-transform:uppercase;letter-spacing:.06em}
 .inp .pre{font-weight:600;color:var(--text-2)}
 .inp .i{color:var(--text-3)}
 .inp input,.inp textarea{flex:1;min-width:0;width:100%;height:100%;border:0;outline:0;background:none;font-size:17px}
@@ -562,11 +570,12 @@ footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1
 .x-btn{position:absolute;top:16px;right:16px;z-index:3;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--fill);color:var(--text-2);transition:background-color .2s}
 .x-btn:hover{background:var(--line);color:var(--text)}
 .x-btn .i{width:17px;height:17px;stroke-width:2.2}
-.qv{position:absolute;z-index:81;left:50%;top:50%;width:min(940px,calc(100vw - 48px));max-height:min(680px,calc(100vh - 48px));display:grid;grid-template-columns:1.05fr 1fr;overflow:hidden;border-radius:32px;background:var(--bg);box-shadow:var(--e3);translate:-50% -50%;transform:scale(.96);opacity:0;pointer-events:none;transition:transform .4s var(--ease),opacity .3s}
+.qv{position:absolute;z-index:81;left:50%;top:50%;width:min(940px,calc(100vw - 48px));max-height:min(680px,calc(100dvh - 48px));display:grid;grid-template-columns:1.05fr 1fr;overflow:hidden;border-radius:32px;background:var(--bg);box-shadow:var(--e3);translate:-50% -50%;transform:scale(.96);opacity:0;pointer-events:none;transition:transform .4s var(--ease),opacity .3s}
 .qv.open{transform:none;opacity:1;pointer-events:auto}
 .qv-img{display:grid;place-items:center;padding:40px;background:var(--bg-alt)}
 .qv-img .r{width:100%;max-width:400px;height:300px}
-.qv-info{display:flex;flex-direction:column;padding:48px 40px 36px;overflow:auto}
+.qv{grid-template-rows:minmax(0,1fr)}
+.qv-info{display:flex;flex-direction:column;min-height:0;padding:48px 40px 36px;overflow:auto}
 .qv-info .p-tag{min-height:0}
 .qv-info h3{font-size:clamp(28px,3vw,36px);letter-spacing:-.035em;margin-top:6px}
 .qv-price{font-size:21px;font-weight:600;margin-top:12px}
@@ -623,6 +632,7 @@ footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1
 .spot-in{display:flex;align-items:center;gap:12px;height:64px;padding:0 20px;border-bottom:var(--hair) solid var(--hair-c)}
 .spot-in .i{width:22px;height:22px;color:var(--text-3)}
 .spot-in input{flex:1;min-width:0;height:100%;border:0;outline:0;background:none;font-size:21px;letter-spacing:-.02em}
+.spot-x{display:none;font-size:17px;color:var(--link);white-space:nowrap}
 .spot-in kbd{font-family:inherit;font-size:12px;color:var(--text-3);padding:3px 7px;border-radius:6px;background:var(--fill-2)}
 .spot-list{list-style:none;margin:0;padding:8px;max-height:min(440px,60vh);overflow:auto}
 .sg{padding:12px 12px 6px;font-size:12px;font-weight:600;color:var(--text-3)}
@@ -671,9 +681,9 @@ footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1
    Responsive
    ========================================================= */
 @media (max-width:1068px){
-  .links{display:none}
-  .menu-btn{display:grid}
-  .actions{margin-left:auto}
+  .links{gap:18px;margin-left:auto}
+  .links a{font-size:13px}
+  .brand-t{display:none}
   .values{grid-template-columns:repeat(2,1fr)}
   .svcs{grid-template-columns:repeat(2,1fr)}
   .f-cols{grid-template-columns:repeat(2,1fr)}
@@ -688,17 +698,30 @@ footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1
   .revs{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin-inline:-22px;padding:0 22px 8px;scroll-padding-inline:22px}
   .revs::-webkit-scrollbar{display:none}
   .rev{flex:0 0 min(340px,82vw);scroll-snap-align:start}
-  .tiers{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin-inline:-22px;padding:0 22px 8px;scroll-padding-inline:22px;gap:20px}
-  .tiers::-webkit-scrollbar{display:none}
-  .tier{flex:0 0 min(320px,78vw);scroll-snap-align:start}
-  .story-grid{grid-template-columns:1fr;gap:0;margin-top:24px}
-  .story-media{top:52px;z-index:2;height:auto;max-height:none;padding:16px 0 22px;background:linear-gradient(#000 82%,rgba(0,0,0,0))}
-  .phone{height:min(50vh,430px)}
-  .steps-txt .stx{min-height:62vh;justify-content:flex-start;padding-top:8vh}
-  .stx .n{font-size:15px}
+  .qv{grid-template-columns:1fr;grid-template-rows:none;overflow:auto}
+  .qv-img{padding:28px}
+  .qv-img .r{height:220px}
+  .qv-info{overflow:visible}
+}
+@media (max-width:833px){
+  .links{display:none}
+  .menu-btn{display:grid}
+  .actions{margin-left:auto}
 }
 @media (max-width:734px){
   body{font-size:16px}
+  .tiers{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin-inline:-22px;padding:0 22px 8px;scroll-padding-inline:22px;gap:14px}
+  .tiers::-webkit-scrollbar{display:none}
+  .tier{flex:0 0 min(320px,80vw);scroll-snap-align:start;background:var(--card);border-radius:24px;padding:28px 22px 26px}
+  .story-grid{grid-template-columns:1fr;gap:0;margin-top:24px}
+  .story-media{top:52px;z-index:2;height:auto;max-height:none;padding:14px 0 20px;background:linear-gradient(#000 84%,rgba(0,0,0,0))}
+  .phone{height:min(44vh,380px)}
+  .steps-txt .stx{min-height:70vh;justify-content:flex-start;padding-top:6vh}
+  .stx .n{font-size:15px}
+  .spot-x{display:none;font-size:17px;color:var(--link);white-space:nowrap}
+.spot-in kbd{display:none}
+  .spot-x{display:block}
+  .spot-in input{font-size:17px}
   .wrap{width:calc(100% - 40px)}
   .brand-t{display:none}
   .duo .ib{width:34px;height:34px}
@@ -727,7 +750,7 @@ footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1
   .svcs{grid-template-columns:1fr}
   .svc{display:grid;grid-template-columns:30px 1fr;gap:4px 16px;padding:22px}
   .svc .i{grid-row:span 2}
-  .svc h4{margin-top:0}
+  .svc h3{margin-top:0}
   .tform{grid-template-columns:1fr}
   .revs,.tiers{margin-inline:-20px;padding-inline:20px;scroll-padding-inline:20px}
   .ts{font-size:0;gap:6px}
@@ -980,7 +1003,7 @@ footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1
     </div>
   </div>
 </header>
-<nav class="mmenu" id="mmenu" aria-label="Menú">
+<nav class="mmenu" id="mmenu" aria-label="Menú" inert>
   <a class="m" href="#tienda" style="--d:.02s">Tienda</a>
   <a class="m" href="#notebooks" style="--d:.05s">Notebooks</a>
   <a class="m" href="#servicio" style="--d:.08s">Servicio técnico</a>
@@ -1014,12 +1037,12 @@ footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1
           <div class="side">
             <div class="lights"><i></i><i></i><i></i></div>
             <small>Órdenes</small>
-            <span class="o sel"><i></i>ATC-1042</span>
-            <span class="o"><i></i>ATC-1043</span>
-            <span class="o"><i></i>ATC-1044</span>
+            <span class="o sel"><i></i>AT-7KQ2-9M</span>
+            <span class="o"><i></i>AT-3FJ8-WX</span>
+            <span class="o"><i></i>AT-9TR4-6P</span>
           </div>
           <div class="mainw">
-            <div class="mh"><div><b>ATC-1042</b><span>Lenovo IdeaPad 3 · Conector de carga</span></div><span class="pill">● Listo para retirar</span></div>
+            <div class="mh"><div><b>AT-7KQ2-9M</b><span>Lenovo IdeaPad 3 · Conector de carga</span></div><span class="pill">● Listo para retirar</span></div>
             <div class="prog"><span style="--d:.2s">Ingreso</span><span style="--d:.6s">Diagnóstico</span><span style="--d:1s">Presupuesto</span><span style="--d:1.4s">Reparación</span><span style="--d:1.8s">Listo</span></div>
             <div class="msg"><span class="av">AT</span><div><b>Mensaje del técnico</b><p>¡Listo! Cambiamos el conector y lo probamos 24 h con carga. Ya podés retirarlo.</p></div></div>
             <ul class="hist"><li><i></i><b>Listo para retirar</b><span>06/10 · 18:10</span></li><li><i></i><b>En reparación</b><span>03/10 · 11:30</span></li><li><i></i><b>Presupuesto aprobado</b><span>03/10 · 09:05</span></li></ul>
@@ -1107,7 +1130,7 @@ footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1
       <h2 class="h2">Así cuidamos tu equipo. <span class="muted"><br>Sin sorpresas, de principio a fin.</span></h2>
     </div>
     <div class="story-grid">
-      <div class="story-media">
+      <div class="story-media" aria-hidden="true">
         <div class="phone"><div class="phone-scr" id="phoneScr">
           <span class="island"></span>
           <div class="tabbar" aria-hidden="true"><span class="url"><svg class="i"><use href="#i-lock"/></svg>atcomputacion.com.ar</span></div>
@@ -1137,21 +1160,21 @@ footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1
         <li><svg class="i"><use href="#i-check-c"/></svg><span><b>Siempre al día.</b> Cada vez que el técnico actualiza la orden, lo ves acá.</span></li>
         <li><svg class="i"><use href="#i-check-c"/></svg><span><b>Notas del técnico</b> en cada etapa, en palabras simples.</span></li>
         <li><svg class="i"><use href="#i-check-c"/></svg><span><b>Aviso por WhatsApp</b> cuando tu equipo está listo.</span></li>
-        <li><svg class="i"><use href="#i-lock"/></svg><span><b>Privado.</b> Se necesita el código y tu teléfono para verla.</span></li>
+        <li><svg class="i"><use href="#i-lock"/></svg><span><b>Privado.</b> Se necesita el código de tu comprobante y tu teléfono. Mostramos solo lo mínimo.</span></li>
       </ul>
     </div>
     <div class="card rv" style="--d:.1s">
       <h3>Buscar mi orden</h3>
       <p>El código está en el comprobante que te entregamos.</p>
       <form class="tform" id="tform" novalidate>
-        <label class="field"><span>Código de orden</span><span class="inp"><span class="pre">ATC-</span><input id="tCode" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="1042"></span></label>
+        <label class="field"><span>Código de orden</span><span class="inp"><span class="pre">AT-</span><input id="tCode" inputmode="text" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="7" placeholder="7KQ2-9M"></span></label>
         <label class="field"><span>Últimos 3 dígitos del teléfono</span><span class="inp"><svg class="i sm"><use href="#i-phone"/></svg><input id="tTel" inputmode="numeric" autocomplete="off" maxlength="3" placeholder="321"></span></label>
         <button class="btn" id="tBtn" type="submit"><span>Rastrear</span></button>
       </form>
       <div class="hint">Probá la demo:
-        <button type="button" data-demo="1042,321">ATC-1042 · 321</button>
-        <button type="button" data-demo="1043,548">ATC-1043 · 548</button>
-        <button type="button" data-demo="1044,777">ATC-1044 · 777</button>
+        <button type="button" data-demo="7KQ2-9M,321">AT-7KQ2-9M · 321</button>
+        <button type="button" data-demo="3FJ8-WX,548">AT-3FJ8-WX · 548</button>
+        <button type="button" data-demo="9TR4-6P,777">AT-9TR4-6P · 777</button>
       </div>
       <div id="tOut" aria-live="polite"></div>
     </div>
@@ -1214,7 +1237,7 @@ footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1
     <div class="faq rv">
       <details name="faq" open><summary>¿Cuánto tarda una reparación?<svg class="i"><use href="#i-plus"/></svg></summary><p>El diagnóstico demora entre 24 y 48 h hábiles. Una vez aprobado el presupuesto, la mayoría de las reparaciones están listas en 2 a 5 días. Si lo necesitás para una fecha puntual, avisanos al dejarlo y te decimos con sinceridad si llegamos.</p></details>
       <details name="faq"><summary>¿El diagnóstico tiene costo?<svg class="i"><use href="#i-plus"/></svg></summary><p>Si aprobás la reparación, el diagnóstico no se cobra. Si decidís no reparar, tiene un costo mínimo que te informamos al ingresar el equipo.</p></details>
-      <details name="faq"><summary>¿Cómo sigo el estado de mi equipo?<svg class="i"><use href="#i-plus"/></svg></summary><p>Con el código de tu comprobante (por ejemplo ATC-1042) y los últimos 3 dígitos de tu teléfono, en la sección Seguimiento. También te avisamos por WhatsApp en cada cambio importante.</p></details>
+      <details name="faq"><summary>¿Cómo sigo el estado de mi equipo?<svg class="i"><use href="#i-plus"/></svg></summary><p>Con el código de tu comprobante (por ejemplo AT-7KQ2-9M) y los últimos 3 dígitos de tu teléfono, en la sección Seguimiento. También te avisamos por WhatsApp en cada cambio importante.</p></details>
       <details name="faq"><summary>¿Las reparaciones tienen garantía?<svg class="i"><use href="#i-plus"/></svg></summary><p>Sí, todas las reparaciones tienen garantía escrita de 90 días sobre el trabajo realizado y los repuestos colocados.</p></details>
       <details name="faq"><summary>¿Cómo compro en la tienda?<svg class="i"><use href="#i-plus"/></svg></summary><p>Agregá los productos a tu bolsa, elegí si lo retirás o te lo enviamos y cómo vas a pagar. Se abre WhatsApp con el pedido armado y te confirmamos stock y total. No se cobra nada online.</p></details>
       <details name="faq"><summary>¿Quién repara mi equipo?<svg class="i"><use href="#i-plus"/></svg></summary><p>El dueño del local, que es el técnico: el mismo que te atiende y te explica el diagnóstico. Si algún trabajo necesita un laboratorio especializado (por ejemplo, un disco con daño físico), te lo decimos antes de hacer nada.</p></details>
@@ -1302,7 +1325,7 @@ footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1
 
 <!-- WhatsApp -->
 <div class="wa-greet" id="waGreet" role="status"><span>¿Te ayudamos? Escribinos 👋</span><button id="waGreetX" aria-label="Cerrar"><svg class="i sm"><use href="#i-x"/></svg></button></div>
-<div class="wa-panel" id="waPanel" role="dialog" aria-label="Chat de WhatsApp">
+<div class="wa-panel" id="waPanel" role="dialog" aria-label="Chat de WhatsApp" inert>
   <div class="wa-head"><span class="mark">AT</span><div><b>AT Computación</b><small id="waSub">Te responde el técnico</small></div></div>
   <div class="wa-body" id="waBody"></div>
   <div class="wa-foot">Se abre WhatsApp con tu mensaje listo para enviar</div>
@@ -1315,19 +1338,19 @@ footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1
 <!-- Layers -->
 <div class="layers">
 <div class="scrim" id="scrim"></div>
-<div class="qv" id="qv" role="dialog" aria-modal="true" aria-labelledby="qvName">
+<div class="qv" id="qv" role="dialog" aria-modal="true" aria-labelledby="qvName" inert>
   <button class="x-btn" data-close aria-label="Cerrar"><svg class="i"><use href="#i-x"/></svg></button>
   <div class="qv-img" id="qvImg"></div>
   <div class="qv-info" id="qvInfo"></div>
 </div>
-<aside class="bag" id="bag" role="dialog" aria-modal="true" aria-labelledby="bagTitle">
+<aside class="bag" id="bag" role="dialog" aria-modal="true" aria-labelledby="bagTitle" inert>
   <button class="x-btn" data-close aria-label="Cerrar"><svg class="i"><use href="#i-x"/></svg></button>
   <div class="bag-h"><h3 id="bagTitle">Tu bolsa</h3><p id="bagSub">Revisá tu pedido y lo enviamos por WhatsApp.</p></div>
   <div class="bag-b" id="bagBody"></div>
   <div class="bag-f" id="bagFoot"></div>
 </aside>
-<div class="spot" id="spot" role="dialog" aria-modal="true" aria-label="Buscar">
-  <div class="spot-in"><svg class="i"><use href="#i-search"/></svg><input id="sIn" placeholder="Buscar productos, servicios o secciones" autocomplete="off" aria-controls="sList"><kbd>Esc</kbd></div>
+<div class="spot" id="spot" role="dialog" aria-modal="true" aria-label="Buscar" inert>
+  <div class="spot-in"><svg class="i"><use href="#i-search"/></svg><input id="sIn" placeholder="Buscar productos, servicios o secciones" autocomplete="off" aria-controls="sList"><kbd>Esc</kbd><button class="spot-x" type="button" data-close>Cancelar</button></div>
   <ul class="spot-list" id="sList" role="listbox"></ul>
 </div>
 </div>
@@ -1475,7 +1498,7 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
    Nav, menu, status
    ========================================================= */
 const nav = $('#nav'), menuBtn = $('#menuBtn');
-function setMenu(open) { document.body.classList.toggle('menu-open', open); document.body.classList.toggle('lock', open || !!openEl); menuBtn.setAttribute('aria-expanded', open); }
+function setMenu(open) { document.body.classList.toggle('menu-open', open); root.classList.toggle('lock', open || !!openEl); $('#mmenu').inert = !open; menuBtn.setAttribute('aria-expanded', open); }
 menuBtn.addEventListener('click', () => setMenu(!document.body.classList.contains('menu-open')));
 $$('#mmenu a').forEach(a => a.addEventListener('click', () => setMenu(false)));
 
@@ -1604,18 +1627,18 @@ $$('#tiers [data-go-cat]').forEach(a => a.addEventListener('click', () => setCat
 const scrim = $('#scrim');
 let openEl = null, lastFocus = null;
 function openLayer(el, focusSel) {
-  if (openEl && openEl !== el) openEl.classList.remove('open');
+  if (openEl && openEl !== el) { openEl.classList.remove('open'); openEl.inert = true; }
   if (!openEl) lastFocus = document.activeElement;
   $$('.toast').forEach(t => t.remove());
-  openEl = el; el.classList.add('open'); scrim.classList.add('open'); document.body.classList.add('lock');
+  openEl = el; el.inert = false; el.classList.add('open'); scrim.classList.add('open'); root.classList.add('lock');
   setMenu(false); setWa(false);
   const f = focusSel ? $(focusSel, el) : el.querySelector('button,a,input');
   if (f) f.focus({ preventScroll: true });
 }
 function closeLayer() {
   if (!openEl) return;
-  openEl.classList.remove('open'); openEl = null;
-  scrim.classList.remove('open'); document.body.classList.remove('lock');
+  openEl.classList.remove('open'); openEl.inert = true; openEl = null;
+  scrim.classList.remove('open'); root.classList.remove('lock');
   if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
   lastFocus = null;
 }
@@ -1803,19 +1826,21 @@ addEventListener('keydown', e => {
    Service story (sticky phone)
    ========================================================= */
 const scr = $('#phoneScr');
+const HIST = [['Ingreso', '02/10 · 10:14'], ['Diagnóstico', '02/10 · 16:40'], ['Presupuesto', '03/10 · 09:05'], ['Reparación', '03/10 · 11:30'], ['Listo', '06/10 · 18:10']];
+const hist = i => `<div class="ph-hist"><b>Historial</b>${HIST.slice(0, i + 1).reverse().map(([t, d], k) => `<div><span><i${k ? ' class="old"' : ''}></i>${t}</span><small>${d}</small></div>`).join('')}</div>`;
 scr.insertAdjacentHTML('beforeend', STORY.map((s, i) => {
   const c = s.scr;
   let body = '';
-  if (c.done) body = `<div class="done-ic">${ico('check')}</div><h4>¡Listo para retirar!</h4><div class="pc" style="text-align:left"><div class="pc-row"><b>ATC-1042</b><span class="st-pill" style="--c:${c.pill[1]}">${c.pill[0]}</span></div><small>Garantía escrita hasta el 04/01/2027</small></div>`;
+  if (c.done) body = `<div class="done-ic">${ico('check')}</div><h4>¡Listo para retirar!</h4><div class="pc" style="text-align:left"><div class="pc-row"><b>AT-7KQ2-9M</b><span class="st-pill" style="--c:${c.pill[1]}">${c.pill[0]}</span></div><small>Garantía escrita hasta el 04/01/2027</small></div>`;
   else {
-    body = `<h4>${c.t}</h4><div class="pc"><div class="pc-row"><b>ATC-1042</b><span class="st-pill" style="--c:${c.pill[1]}">${c.pill[0]}</span></div><small>Lenovo IdeaPad 3 · Conector de carga</small><div class="pbar"><span style="width:${c.pg}%"></span></div>
+    body = `<h4>${c.t}</h4><div class="pc"><div class="pc-row"><b>AT-7KQ2-9M</b><span class="st-pill" style="--c:${c.pill[1]}">${c.pill[0]}</span></div><small>Lenovo IdeaPad 3 · Conector de carga</small><div class="pbar"><span style="width:${c.pg}%"></span></div>
       ${c.budget ? `<div class="pc-row" style="margin-top:1cqw"><small>Presupuesto</small><b>$ 45.000</b></div><div class="pbtns"><span>Aprobar</span><span>Consultar</span></div>` : ''}</div>
       ${c.bub ? `<div class="bub"><small>AT Computación</small>${c.bub}</div>` : ''}`;
   }
-  return `<div class="ps${c.done ? ' center' : ''}${i === 0 ? ' on' : ''}" data-ps="${i}" aria-hidden="${i !== 0}"><span class="app">Seguimiento</span>${body}</div>`;
+  return `<div class="ps${c.done ? ' center' : ''}${i === 0 ? ' on' : ''}" data-ps="${i}" aria-hidden="${i !== 0}"><span class="app">Seguimiento</span>${body}${hist(i)}</div>`;
 }).join(''));
 $('#stepsTxt').innerHTML = STORY.map((s, i) => `<div class="stx${i === 0 ? ' on' : ''}" data-st="${i}"><span class="n">${s.n}</span><h3>${s.h}</h3><p>${s.p}</p></div>`).join('');
-$('#svcs').innerHTML = SERVICES.map(([ic, t, d], i) => `<div class="svc rv" style="--d:${(i % 4) * .06}s">${ico(ic)}<h4>${t}</h4><p>${d}</p></div>`).join('');
+$('#svcs').innerHTML = SERVICES.map(([ic, t, d], i) => `<div class="svc rv" style="--d:${(i % 4) * .06}s">${ico(ic)}<h3>${t}</h3><p>${d}</p></div>`).join('');
 function setStory(i) {
   $$('.stx').forEach(el => el.classList.toggle('on', +el.dataset.st === i));
   $$('.ps', scr).forEach(el => { const on = +el.dataset.ps === i; el.classList.toggle('on', on); el.setAttribute('aria-hidden', !on); });
@@ -1823,13 +1848,13 @@ function setStory(i) {
 let storyIO;
 function bindStory() {
   if (storyIO) storyIO.disconnect();
-  const mobile = matchMedia('(max-width:900px)').matches;
+  const mobile = matchMedia('(max-width:734px)').matches;
   storyIO = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) setStory(+e.target.dataset.st); }),
     { rootMargin: mobile ? '-62% 0px -18% 0px' : '-45% 0px -45% 0px' });
   $$('.stx').forEach(el => storyIO.observe(el));
 }
 bindStory();
-matchMedia('(max-width:900px)').addEventListener('change', bindStory);
+matchMedia('(max-width:734px)').addEventListener('change', bindStory);
 
 /* =========================================================
    Repair tracker (demo data)
@@ -1843,23 +1868,27 @@ const STEPS = [
   { id: 'entregado', t: 'Entregado', ic: 'bag', c: 'var(--ok)' }
 ];
 const ORDERS = {
-  'ATC-1042': { tel: '321', cliente: 'Nicolás T.', equipo: 'Notebook Lenovo IdeaPad 3', estado: 'listo', presupuesto: 45000, extra: 'Garantía hasta el 04/01/2027', events: [
+  'AT-7KQ2-9M': { tel: '321', cliente: 'Nicolás T.', equipo: 'Notebook Lenovo IdeaPad 3', estado: 'listo', presupuesto: 45000, extra: 'Garantía hasta el 04/01/2027', events: [
     ['ingresado', '02/10 · 10:14', 'Recibimos el equipo con su cargador. Sin golpes visibles.'],
     ['diagnostico', '02/10 · 16:40', 'El conector de carga (DC jack) está dañado y no hace contacto.'],
     ['aprobacion', '03/10 · 09:05', 'Te enviamos el presupuesto por WhatsApp: $45.000.'],
     ['reparacion', '03/10 · 11:30', 'Presupuesto aprobado. Reemplazamos el conector y revisamos la placa.'],
     ['listo', '06/10 · 18:10', '¡Listo! Lo probamos 24 h con carga y batería. Podés retirarlo.'] ] },
-  'ATC-1043': { tel: '548', cliente: 'María G.', equipo: 'Impresora Epson L3250', estado: 'aprobacion', presupuesto: 38500, extra: 'Cambio de cabezal + limpieza', events: [
+  'AT-3FJ8-WX': { tel: '548', cliente: 'María G.', equipo: 'Impresora Epson L3250', estado: 'aprobacion', presupuesto: 38500, extra: 'Cambio de cabezal + limpieza', events: [
     ['ingresado', '05/10 · 11:02', 'Ingresó la impresora sin cables.'],
     ['diagnostico', '06/10 · 10:20', 'Cabezal obstruido en el color negro. Recomendamos reemplazarlo.'],
     ['aprobacion', '06/10 · 12:45', 'Presupuesto enviado: $38.500. Esperamos tu confirmación.'] ] },
-  'ATC-1044': { tel: '777', cliente: 'Diego R.', equipo: 'PC de escritorio', estado: 'diagnostico', extra: 'Diagnóstico estimado: hoy', events: [
+  'AT-9TR4-6P': { tel: '777', cliente: 'Diego R.', equipo: 'PC de escritorio', estado: 'diagnostico', extra: 'Diagnóstico estimado: hoy', events: [
     ['ingresado', '07/10 · 09:30', 'Ingresó la PC. El cliente indica que se apaga sola al jugar.'],
     ['diagnostico', '07/10 · 10:05', 'Estamos haciendo pruebas de temperatura y de la fuente.'] ] }
 };
 const tform = $('#tform'), tCode = $('#tCode'), tTel = $('#tTel'), tOut = $('#tOut'), tBtn = $('#tBtn');
-[tCode, tTel].forEach(inp => inp.addEventListener('input', () => { inp.value = inp.value.replace(/\D/g, '').slice(0, +inp.maxLength); }));
-tCode.addEventListener('input', () => { if (tCode.value.length === 4) tTel.focus(); });
+tTel.addEventListener('input', () => { tTel.value = tTel.value.replace(/\D/g, '').slice(0, 3); });
+tCode.addEventListener('input', () => {
+  const v = tCode.value.toUpperCase().replace(/[^0-9A-Z]/g, '').replace(/[IL]/g, '1').replace(/O/g, '0').slice(0, 6);
+  tCode.value = v.length > 4 ? v.slice(0, 4) + '-' + v.slice(4) : v;
+});
+tCode.addEventListener('input', () => { if (tCode.value.length === 7) tTel.focus(); });
 function tFail(msg) {
   tOut.innerHTML = `<div class="err">${ico('bell', 'i sm')}<span>${msg}</span></div>`;
   tform.classList.remove('shake'); void tform.offsetWidth; tform.classList.add('shake');
@@ -1881,15 +1910,15 @@ function drawOrder(code, o, isLive) {
 }
 tform.addEventListener('submit', e => {
   e.preventDefault(); clearTimeout(live);
-  if (tCode.value.length < 4 || tTel.value.length < 3) { tFail('Completá los 4 dígitos del código y los últimos 3 números de tu teléfono.'); return; }
-  const code = 'ATC-' + tCode.value, tel = tTel.value;
+  if (tCode.value.length < 7 || tTel.value.length < 3) { tFail('Completá el código de tu comprobante (por ejemplo 7KQ2-9M) y los últimos 3 números de tu teléfono.'); return; }
+  const code = 'AT-' + tCode.value, tel = tTel.value;
   tBtn.disabled = true; tBtn.innerHTML = '<span class="spin"></span><span>Buscando…</span>';
   setTimeout(() => {
     tBtn.disabled = false; tBtn.innerHTML = '<span>Rastrear</span>';
     const o = ORDERS[code];
     if (!o || o.tel !== tel) { tFail('No encontramos una orden con esos datos. Revisá el comprobante o escribinos por WhatsApp.'); return; }
     drawOrder(code, o);
-    if (code === 'ATC-1044' && o.estado === 'diagnostico') {
+    if (code === 'AT-9TR4-6P' && o.estado === 'diagnostico') {
       live = setTimeout(() => {
         o.estado = 'aprobacion'; o.presupuesto = 52000; o.extra = 'Reemplazo de fuente 650 W';
         o.events.push(['aprobacion', '07/10 · ' + new Date().toTimeString().slice(0, 5), 'La fuente está fallando bajo carga. Presupuesto: $52.000.']);
@@ -1964,7 +1993,7 @@ $$('.faq details').forEach(d => d.addEventListener('toggle', () => { if (d.open)
    ========================================================= */
 const WA_OPTS = [
   ['bag', 'Consultar por un producto', '¡Hola! Quiero consultar por un producto: '],
-  ['scan', 'Estado de mi reparación', '¡Hola! Quiero saber cómo va mi reparación. Mi código es ATC-'],
+  ['scan', 'Estado de mi reparación', '¡Hola! Quiero saber cómo va mi reparación. Mi código es AT-'],
   ['zap', 'Pedir un presupuesto', '¡Hola! Quiero pedir un presupuesto para '],
   ['msg', 'Otra consulta', '¡Hola AT Computación! Tengo una consulta: ']
 ];
@@ -1973,6 +2002,7 @@ const greet = $('#waGreet');
 function hideGreet() { greet.classList.remove('show'); try { sessionStorage.setItem('atc-greet', '1'); } catch {} }
 function setWa(open) {
   document.body.classList.toggle('wa-open', open);
+  $('#waPanel').inert = !open;
   $('#waFab').setAttribute('aria-expanded', open);
   if (open) {
     hideGreet();

@@ -65,29 +65,29 @@ Varios hallazgos repiten el mismo problema visto desde distintos ángulos. En el
   - Divisor sobrante al principio del pie.
 
 ### B5 — Errores de funcionamiento y responsive
-- [ ] A1: las ventanas cerradas (ficha, bolsa, búsqueda, WhatsApp) siguen recibiendo foco y los lectores de pantalla las anuncian. Usar `inert`.
-- [ ] K1: al abrir el menú del celular o una ventana, desaparece la barra superior con su botón de cerrar.
-- [ ] M2: en iPad mini y en iPad vertical, el botón "Agregar a la bolsa" de la ficha queda cortado.
-- [ ] M4: las tablets de 735–1068 px reciben el diseño de celular (celular chico, perfiles cortados y menú de hamburguesa).
-- [ ] M1 / K3 / V11 / A8: el celular fijo de Servicio técnico tiene problemas.
+- [x] A1: las ventanas cerradas (ficha, bolsa, búsqueda, WhatsApp) siguen recibiendo foco y los lectores de pantalla las anuncian. Usar `inert`.
+- [x] K1: al abrir el menú del celular o una ventana, desaparece la barra superior con su botón de cerrar.
+- [x] M2: en iPad mini y en iPad vertical, el botón "Agregar a la bolsa" de la ficha queda cortado.
+- [x] M4: las tablets de 735–1068 px reciben el diseño de celular (celular chico, perfiles cortados y menú de hamburguesa).
+- [x] M1 / K3 / V11 / A8: el celular fijo de Servicio técnico tiene problemas.
   - Su pantalla queda medio vacía.
   - En el celular, el texto de cada paso queda apretado en el tercio de abajo.
   - Los pasos inactivos casi no se ven.
-- [ ] M7: en el celular, los perfiles de notebook parecen contenido desbordado.
-- [ ] M8: la bolsa abre como panel lateral y la ficha como hoja desde abajo. Unificar el comportamiento y usar `dvh`.
-- [ ] M9: en el celular, el texto de la pantalla de la notebook del inicio queda en 5–7 px.
-- [ ] M11: el buscador del celular muestra la tecla "Esc", no tiene botón "Cancelar" y su texto de ayuda queda cortado.
-- [ ] K2: en el formulario de seguimiento, los estilos de las etiquetas se cuelan en los campos, los dígitos parecen texto de ayuda y el estado "cargando" se ve mal.
-- [ ] A11 / A12: lectores de pantalla.
+- [x] M7: en el celular, los perfiles de notebook parecen contenido desbordado.
+- [ ] M8: *(Parcial: la ficha ya usa `dvh`; falta unificar cómo abren la bolsa y la ficha.)* La bolsa abre como panel lateral y la ficha como hoja desde abajo. Unificar el comportamiento y usar `dvh`.
+- [x] M9: en el celular, el texto de la pantalla de la notebook del inicio queda en 5–7 px.
+- [x] M11: el buscador del celular muestra la tecla "Esc", no tiene botón "Cancelar" y su texto de ayuda queda cortado.
+- [x] K2: en el formulario de seguimiento, los estilos de las etiquetas se cuelan en los campos, los dígitos parecen texto de ayuda y el estado "cargando" se ve mal.
+- [ ] A11 / A12: lectores de pantalla. *(Parcial: el celular de Servicio ya está oculto para lectores, las estrellas tienen etiqueta y los servicios usan h3. Falta anunciar los resultados de búsqueda y los campos de la bolsa.)*
   - No se anuncian los resultados de búsqueda ni los campos de la bolsa.
   - Se lee en voz alta el texto de las maquetas.
   - Los títulos saltan de nivel.
   - Las estrellas no tienen etiqueta.
 
 ### B6 — Seguridad aplicada en la demo (ver `docs/atc/guia-de-diseno.md`, sección 6)
-- [ ] Códigos de seguimiento con formato aleatorio (Crockford base32, p. ej. `AT-7KQ2-9M`) en lugar de `ATC-1042` secuencial (riesgo IDOR).
-- [ ] El seguimiento muestra solo nombre + inicial (minimizar datos personales, Ley 25.326).
-- [ ] Texto de privacidad: "Tus datos están protegidos: se necesita el código y tu teléfono".
+- [x] Códigos de seguimiento con formato aleatorio (Crockford base32, p. ej. `AT-7KQ2-9M`) en lugar de `ATC-1042` secuencial (riesgo IDOR).
+- [x] El seguimiento muestra solo nombre + inicial (minimizar datos personales, Ley 25.326).
+- [x] Texto de privacidad: "Tus datos están protegidos: se necesita el código y tu teléfono".
 
 ---
 
