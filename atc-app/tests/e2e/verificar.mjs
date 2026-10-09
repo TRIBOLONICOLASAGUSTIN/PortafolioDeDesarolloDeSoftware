@@ -274,6 +274,8 @@ for (const [w, h] of [[2940, 1700], [1440, 900]]) {
 const despiece = async (p, f) => {
   await p.evaluate(f => { const td = document.getElementById('despiece'); const top = td.getBoundingClientRect().top + scrollY; const stage = td.querySelector('.td-stage').offsetHeight; scrollTo({ top: top - 52 + f * Math.max(0, td.offsetHeight - stage), behavior: 'instant' }); }, f);
   await p.waitForTimeout(1400);
+  // Con la máquina cargada (WebGL por software), la inercia puede tardar un poco más en llegar: se espera hasta 2 s más.
+  await p.waitForFunction(() => document.getElementById('despiece').dataset.raf !== '1', null, { timeout: 2000 }).catch(() => {});
   return p.evaluate(() => {
     const td = document.getElementById('despiece'), is3d = td.classList.contains('td-3d');
     const dotY = a => td.querySelector(`.td-tags li[data-a="${a}"] .dot`).getBoundingClientRect().top;
@@ -381,6 +383,55 @@ const panelPage = async (w, h, scheme, opts = {}) => {
   p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
   return { ctx, p, errs };
 };
+// "$ 1.154.800" / "−$ 12.000" → número
+const PARSE_ARS = s => { const t = String(s ?? '').replace(/\s/g, ''); const n = +t.replace(/[^\d]/g, ''); return /^[−-]/.test(t) ? -n : n; };
+const PANEL_RANGES = [['7d', 7, 'Últimos 7 días'], ['30d', 30, 'Últimos 30 días'], ['3m', 13, 'Últimos 3 meses'], ['12m', 12, 'Últimos 12 meses']];
+const PANEL_COLORS = { light: ['rgb(29, 122, 53)', 'rgb(215, 0, 21)'], dark: ['rgb(48, 209, 88)', 'rgb(255, 69, 58)'] };
+// Contraste de todo el texto visible del panel contra su fondo real (compone los fondos con transparencia)
+const panelContrast = () => {
+  const rgba = c => { const m = c.match(/[\d.]+/g)?.map(Number) ?? [0, 0, 0, 0]; return [m[0], m[1], m[2], m.length > 3 ? m[3] : 1]; };
+  const over = (top, under) => { const a = top[3]; return [0, 1, 2].map(i => top[i] * a + under[i] * (1 - a)).concat(1); };
+  const bgOf = el => {
+    const stack = [];
+    for (let e = el; e; e = e.parentElement) { const c = rgba(getComputedStyle(e).backgroundColor); if (c[3] > 0) { stack.push(c); if (c[3] >= 1) break; } }
+    let base = [255, 255, 255, 1];
+    if (stack.length && stack[stack.length - 1][3] >= 1) base = stack.pop();
+    else base = rgba(getComputedStyle(document.body).backgroundColor);
+    while (stack.length) base = over(stack.pop(), base);
+    return base;
+  };
+  const lum = c => { const [r, g, b] = c.slice(0, 3).map(x => { x /= 255; return x <= .03928 ? x / 12.92 : ((x + .055) / 1.055) ** 2.4; }); return .2126 * r + .7152 * g + .0722 * b; };
+  const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + .05) / (y + .05); };
+  const bad = [];
+  for (const el of document.querySelectorAll('.pn *')) {
+    if (el.closest('.sr') || !el.getClientRects().length) continue;
+    if (![...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) continue;
+    const cs = getComputedStyle(el); if (cs.visibility !== 'visible' || +cs.opacity === 0) continue;
+    const bg = bgOf(el), fg = over(rgba(cs.color), bg), fs = parseFloat(cs.fontSize), big = fs >= 24 || (fs >= 18.66 && +cs.fontWeight >= 700);
+    const r = ratio(fg, bg);
+    if (r < (big ? 3 : 4.5)) bad.push(`${(el.className && el.className.toString().split(' ')[0]) || el.tagName}:"${el.textContent.trim().slice(0, 16)}" ${r.toFixed(2)}`);
+  }
+  // Líneas del gráfico: 3:1 contra la tarjeta (elemento gráfico)
+  for (const l of document.querySelectorAll('.pn-l')) { const r = ratio(rgba(getComputedStyle(l).stroke), bgOf(l.closest('.pn-card'))); if (r < 3) bad.push(`${l.getAttribute('class')} ${r.toFixed(2)}`); }
+  return [...new Set(bad)];
+};
+// Letra mínima (13 px), áreas táctiles (44 px) y títulos sin saltos de nivel dentro del panel
+const panelA11y = () => {
+  const tiny = [], small = [];
+  for (const el of document.querySelectorAll('.pn *')) {
+    if (el.closest('.sr') || !el.getClientRects().length) continue;
+    if (![...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) continue;
+    const cs = getComputedStyle(el); if (cs.visibility !== 'visible') continue;
+    if (parseFloat(cs.fontSize) < 13) tiny.push(`${(el.className && el.className.toString().split(' ')[0]) || el.tagName}:${cs.fontSize}`);
+  }
+  for (const el of document.querySelectorAll('.pn a, .pn button, .pn summary, .pn label.pn-chip, .pn label.pn-seg, .pn [role="slider"]')) {
+    if (el.closest('p, .sr') && el.tagName === 'A' || !el.getClientRects().length || getComputedStyle(el).visibility !== 'visible') continue;
+    const r = el.getBoundingClientRect(); if (r.width < 43.5 || r.height < 43.5) small.push(`${(el.className && el.className.toString().split(' ')[0]) || el.tagName}:${Math.round(r.width)}×${Math.round(r.height)}`);
+  }
+  const hs = [...document.querySelectorAll('h1, h2, h3, h4')].filter(h => h.getClientRects().length || h.closest('.sr')).map(h => +h.tagName[1]);
+  const jump = hs.some((l, i) => i > 0 && l > hs[i - 1] + 1);
+  return { tiny: [...new Set(tiny)], small: [...new Set(small)], h1: hs.filter(l => l === 1).length, jump, hs: hs.join('') };
+};
 for (const [w, h, scheme] of PANEL_VPS) {
   const tag = `panel-${w}-${scheme === 'dark' ? 'oscuro' : 'claro'}`;
   const { ctx, p, errs } = await panelPage(w, h, scheme);
@@ -391,6 +442,55 @@ for (const [w, h, scheme] of PANEL_VPS) {
       return { h1: document.querySelector('h1')?.textContent, banner: vis('#pn-demo') && /datos de ejemplo/i.test(document.querySelector('#pn-demo').textContent), pill: vis('.pn-ej'), theme: document.documentElement.dataset.theme };
     });
     check(tag, 'carga la maqueta con el aviso "Datos de ejemplo" y la píldora "Ejemplo"', top.h1 === 'Resumen' && top.banner && top.pill && top.theme === scheme, JSON.stringify(top));
+
+    // El desglose suma la ganancia, y la ganancia es la misma arriba y abajo
+    const sum = await p.evaluate(() => ({ total: document.querySelector('#pn-total').textContent, des: document.querySelector('#pn-des-total').textContent, rows: [...document.querySelectorAll('.pn-des .pn-row .pn-amt')].map(e => e.textContent) }));
+    const rowsSum = sum.rows.map(PARSE_ARS).reduce((a, b) => a + b, 0);
+    check(tag, 'el desglose (ventas + servicio − gastos) suma la ganancia', sum.rows.length === 3 && rowsSum === PARSE_ARS(sum.total) && PARSE_ARS(sum.des) === PARSE_ARS(sum.total), JSON.stringify(sum));
+
+    // Los períodos cambian el gráfico (puntos, tabla para lectores, título) y el cambio se anuncia
+    const ranges = [];
+    for (const [id, n, label] of PANEL_RANGES) {
+      await p.click(`label.pn-chip:has(input[value="${id}"])`); await p.waitForTimeout(250);
+      ranges.push(await p.evaluate(([id, n, label]) => {
+        const hit = document.querySelector('.pn-hit');
+        const rows = [...document.querySelectorAll('.pn-des .pn-row .pn-amt')].map(e => e.textContent);
+        return { id, ok: document.querySelector(`input[value="${id}"]`).checked && +hit.getAttribute('aria-valuemax') + 1 === n && document.querySelectorAll('.pn-chart tbody tr').length === n && document.querySelector('.pn-chart').dataset.n === String(n) && document.querySelector('#pn-per').textContent.includes(label),
+          total: document.querySelector('#pn-total').textContent, rows };
+      }, [id, n, label]));
+    }
+    const sums = ranges.every(r => r.rows.map(PARSE_ARS).reduce((a, b) => a + b, 0) === PARSE_ARS(r.total));
+    const announced = await p.evaluate(() => document.querySelector('#pn-anuncio').textContent);
+    check(tag, 'los períodos cambian el gráfico (7/30/13/12 puntos) y el desglose sigue sumando', ranges.every(r => r.ok) && sums && new Set(ranges.map(r => r.total)).size > 1, JSON.stringify(ranges.map(r => [r.id, r.ok, r.total])));
+    check(tag, 'el cambio de período se anuncia a lectores de pantalla', /Últimos 12 meses: ganancia/.test(announced), announced);
+    await p.click('label.pn-chip:has(input[value="30d"])'); await p.waitForTimeout(250);
+
+    // Teclado: Inicio, Fin y flechas recorren los puntos; el valor se lee con el monto
+    await p.focus('.pn-hit');
+    const kv = [];
+    for (const k of ['Home', 'End', 'ArrowLeft']) { await p.keyboard.press(k); kv.push(await p.evaluate(() => [document.querySelector('.pn-hit').getAttribute('aria-valuenow'), document.querySelector('.pn-hit').getAttribute('aria-valuetext')])); }
+    const tipKb = await p.evaluate(() => !!document.querySelector('.pn-tip'));
+    check(tag, 'el gráfico se recorre con el teclado', kv[0][0] === '0' && kv[1][0] === '29' && kv[2][0] === '28' && /\$/.test(kv[2][1]) && tipKb, JSON.stringify(kv));
+    await p.evaluate(() => document.activeElement.blur());
+
+    // Verde arriba del $ 0 y rojo abajo, con los colores del tema; la línea del $ 0 queda dentro del dibujo
+    const col = await p.evaluate(() => ({ up: getComputedStyle(document.querySelector('.pn-l-up')).stroke, dn: getComputedStyle(document.querySelector('.pn-l-dn')).stroke, y0: +document.querySelector('.pn-zero').getAttribute('y1') }));
+    check(tag, 'gráfico: verde arriba del $ 0, rojo abajo, colores del tema', col.up === PANEL_COLORS[scheme][0] && col.dn === PANEL_COLORS[scheme][1] && col.y0 >= 0 && col.y0 <= 300, JSON.stringify(col));
+    if (w >= 1069) {
+      const hb = await p.locator('.pn-hit').boundingBox();
+      await p.mouse.move(hb.x + hb.width * .5, hb.y + hb.height * .5); await p.waitForTimeout(150);
+      const tip = await p.evaluate(() => document.querySelector('.pn-tip')?.textContent ?? '');
+      check(tag, 'al pasar el mouse aparece el detalle del día', /Acumulado/.test(tip), tip);
+      await p.mouse.move(2, 2); await p.waitForTimeout(100);
+    }
+
+    // Letra mínima 13 px, áreas táctiles de 44 px y títulos sin saltos
+    const a11y = await p.evaluate(panelA11y);
+    check(tag, 'sin texto visible menor a 13 px', a11y.tiny.length === 0, a11y.tiny.join(' | '));
+    check(tag, 'áreas táctiles de 44 px o más', a11y.small.length === 0, a11y.small.join(' | '));
+    check(tag, 'un solo h1 y títulos sin saltos de nivel', a11y.h1 === 1 && !a11y.jump, a11y.hs);
+    const grid = await p.evaluate(() => { const a = document.querySelector('.pn-gan').getBoundingClientRect(), b = document.querySelector('.pn-des').getBoundingClientRect(); return { same: Math.abs(a.top - b.top) < 1, below: b.top >= a.bottom }; });
+    check(tag, w >= 1069 ? 'grilla: ganancia y desglose lado a lado' : 'grilla: tarjetas apiladas', w >= 1069 ? grid.same : grid.below, JSON.stringify(grid));
     await p.evaluate(() => scrollTo(0, document.documentElement.scrollHeight)); await p.waitForTimeout(150);
     const pillStill = await p.evaluate(() => { const r = document.querySelector('.pn-ej').getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; });
     check(tag, 'la píldora "Ejemplo" queda a la vista al bajar', pillStill);
@@ -405,6 +505,24 @@ for (const [w, h, scheme] of PANEL_VPS) {
   } catch (e) {
     check(tag, 'flujo del panel sin excepciones', false, e.message.split('\n')[0]);
   }
+  await ctx.close();
+}
+
+// Panel: contraste AA en claro y oscuro (con el detalle del gráfico abierto) y sin animaciones infinitas
+for (const scheme of ['light', 'dark']) for (const w of [1440, 390]) {
+  const { ctx, p } = await panelPage(w, 900, scheme);
+  await p.goto(PANEL); await p.waitForTimeout(500);
+  await p.focus('.pn-hit'); await p.keyboard.press('Home');
+  const bad = await p.evaluate(panelContrast);
+  check(`panel-contraste-${scheme === 'dark' ? 'oscuro' : 'claro'}`, `texto AA y líneas del gráfico ≥ 3:1 a ${w}px`, bad.length === 0, bad.slice(0, 6).join(' | '));
+  await ctx.close();
+}
+for (const rm of ['no-preference', 'reduce']) {
+  const { ctx, p } = await panelPage(1440, 900, 'light', { reducedMotion: rm });
+  await p.goto(PANEL); await p.waitForTimeout(400);
+  await p.click('label.pn-chip:has(input[value="7d"])'); await p.waitForTimeout(100);
+  const loops = await p.evaluate(() => document.getAnimations().filter(a => a.effect?.getTiming().iterations === Infinity).length);
+  check('panel-movimiento', `sin animaciones infinitas${rm === 'reduce' ? ' (reducir movimiento)' : ''}`, loops === 0, String(loops));
   await ctx.close();
 }
 
