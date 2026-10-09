@@ -1,15 +1,15 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { panelMaqueta } from '@/lib/server/panel';
+import { panelAcceso } from '@/lib/server/panel';
 import { PanelHeader } from '@/components/panel/panel-header';
 import { DemoBanner } from '@/components/panel/demo-banner';
 import { Resumen } from '@/components/panel/resumen';
 
-export async function generateMetadata(): Promise<Metadata> { return (await panelMaqueta()) ? { title: 'Resumen' } : {}; }
+export async function generateMetadata(): Promise<Metadata> { return (await panelAcceso()) ? { title: 'Resumen' } : {}; }
 
 export default async function PanelResumen() {
   // El layout ya controla; se repite porque los layouts no se vuelven a evaluar al navegar dentro del panel.
-  if (!(await panelMaqueta())) notFound();
+  if (!(await panelAcceso())) notFound();
   return (
     <>
       <PanelHeader />

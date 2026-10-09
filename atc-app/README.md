@@ -6,7 +6,7 @@ El sitio de AT Computación en **Next.js 16 + React 19**, sobre una base Postgre
 |---|---|
 | 1 · Base de datos y seguridad | Hecho: 19 pruebas (`tests/db`) |
 | 2 · Sitio público en React y `/api/seguimiento` seguro | Hecho: 7 pruebas de la ruta (`tests/api`) y las verificaciones del sitio en el navegador (`tests/e2e`). **Falta configurar** Turnstile, Upstash y el hosting |
-| 3 · Panel del dueño | Etapa 1 en curso: maqueta con datos de ejemplo en `/panel` (solo con `ATC_DEMO=1`). Etapa 2 (login y base) pendiente |
+| 3 · Panel del dueño | Acceso hecho: un solo superadmin (contraseña + código del celular) entra por `/ingresar`; sin sesión, `/panel` da 404. Los montos son de ejemplo hasta conectar la base (pendiente) |
 
 - Seguridad, con cada control y la prueba que lo demuestra: [`docs/atc/seguridad.md`](../docs/atc/seguridad.md).
 - Reglas del proyecto: [`CLAUDE.md`](../CLAUDE.md).
@@ -22,6 +22,13 @@ npm run dev          # http://localhost:3000
 ```
 
 Así corre en **modo demo**: el seguimiento responde con las 3 órdenes de ejemplo (`AT-7KQ2-9M` / 321, `AT-3FJ8-WX` / 548 y `AT-9TR4-6P` / 777), sin base.
+En **Windows PowerShell**, usar `npm.cmd` en lugar de `npm` (por ejemplo `npm.cmd run dev`).
+
+**Panel del dueño** (solo el superadmin):
+```bash
+npm run admin:setup  # una vez: usuario, contraseña y clave para la app del celular → escribe .env.local (no se sube)
+npm run dev          # entrar por http://localhost:3000/ingresar
+```
 
 **Con la base real local** (necesita `brew install postgresql@16`):
 ```bash
@@ -41,7 +48,7 @@ npm test             # todo: tipos, build, base, API, e2e y check:docs
 | `npm run typecheck` | Tipos de TypeScript |
 | `npm run build` | Que compile para producción |
 | `npm run test:db` | Base: RLS, permisos, `track_order`, bloqueos y retención (RLS/FN/TRK/GEN/RET) |
-| `npm run test:api` | Ruta y encabezados: respuesta mínima, uniforme, origen, límite, IP, falla cerrada y CSP (API-1…7); panel cerrado sin `ATC_DEMO` y siempre `noindex` (API-8, API-9) |
+| `npm run test:api` | Ruta y encabezados: respuesta mínima, uniforme, origen, límite, IP, falla cerrada y CSP (API-1…7); panel solo con sesión del superadmin, ingreso con contraseña + código de un solo uso, límite, mismo sitio y falla cerrada (API-8…14) |
 | `npm run test:e2e` | El sitio en el navegador: flujos, responsive, contraste AA, movimiento, accesibilidad, notebook visible y sin errores de consola |
 | `npm run check:docs` | Que `seguridad.md` y las pruebas citen los mismos IDs |
 
@@ -60,7 +67,8 @@ npm test             # todo: tipos, build, base, API, e2e y check:docs
 | `ATC_IP_HEADER` | Encabezado con la IP real que pone el hosting (p. ej. `cf-connecting-ip`). **Nunca** `x-forwarded-for` | Obligatoria |
 | `ATC_RL_MAX` | Pedidos por IP cada 10 minutos (por defecto, 20) | Opcional |
 | `ATC_INDEXAR=1` | Permite indexar en Google: solo con datos reales | Al publicar |
-| `ATC_DEMO=1` | Muestra los botones "Probá la demo" y la maqueta del panel en `/panel` | **Nunca** |
+| `ATC_ADMIN_USER` / `ATC_ADMIN_PASS_HASH` / `ATC_ADMIN_TOTP_SECRET` / `ATC_SESSION_SECRET` | Superadmin del panel (usuario, **hash** de la contraseña, clave del código del celular y secreto de las sesiones). Se generan con `npm run admin:setup` | Obligatorias para el panel (sin ellas, el ingreso responde 503 y `/panel` no existe) |
+| `ATC_DEMO=1` | Muestra los botones "Probá la demo" del seguimiento | **Nunca** |
 | `ATC_LOCAL=1` | Pruebas con la base en 127.0.0.1 (se ignora con una base remota) | **Nunca** |
 
 - **Si falta una obligatoria,** `/api/seguimiento` responde 503: falla cerrado y nunca cae en modo demo.
@@ -76,7 +84,9 @@ atc-app/
 │  ├─ layout.tsx            <html>, metadatos, tema sin parpadeo (script con nonce), fuente Inter servida localmente
 │  ├─ page.tsx              la portada: compone las secciones
 │  ├─ styles/               CSS por sección (01-tokens … 14-panel)
-│  ├─ panel/                panel del dueño (etapa 1: maqueta con datos de ejemplo, solo con ATC_DEMO=1)
+│  ├─ panel/                panel del dueño (solo el superadmin con sesión; montos de ejemplo por ahora)
+│  ├─ ingresar/             ingreso del superadmin (sin enlaces, noindex)
+│  ├─ api/ingresar · api/salir   sesión del superadmin
 │  ├─ not-found.tsx         404 en castellano
 │  └─ api/seguimiento/      la única puerta pública a una orden
 ├─ components/              nav, hero, values, shop, tiers, service, tracker, estimator, info, layers, whatsapp-widget…
@@ -85,7 +95,7 @@ atc-app/
 │  ├─ data/                 datos de ejemplo tipados (catálogo, servicios, cotizador, órdenes demo, configuración)
 │  ├─ panel/                cálculos del panel (períodos, totales, gráfico, CSV, validación)
 │  ├─ format.ts · hours.ts · whatsapp.ts
-│  └─ server/               config (modos), ratelimit, turnstile, tracking (pg como atc_tracker)
+│  └─ server/               config (modos), ratelimit, turnstile, tracking (pg como atc_tracker), admin y totp (superadmin)
 ├─ supabase/                migraciones (0100–0400) y seed de ejemplo
 ├─ scripts/                 db-local.sh · check-doc-ids.mjs
 └─ tests/                   db/ · api/ · e2e/ · helpers/

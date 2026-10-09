@@ -1,13 +1,13 @@
 import 'server-only';
 import { connection } from 'next/server';
+import { esSuperadmin } from './admin';
 
 /**
- * Panel del dueño, etapa 1 (maqueta con datos de ejemplo, sin base ni login).
- * Solo existe en desarrollo o con ATC_DEMO=1, que nunca se usa en el sitio real (docs/atc/seguridad.md §8).
- * En cualquier otro caso /panel da 404: falla cerrado. Se evalúa en cada pedido, no al compilar.
- * En la etapa 2 (login del dueño) esto pasa a panelMode(): 'real' | 'maqueta' | 'cerrado'.
+ * El panel del dueño solo existe para el superadmin con una sesión válida (lib/server/admin.ts).
+ * Para cualquier otro, en cualquier entorno, /panel responde 404: no revela que existe.
+ * Se evalúa en cada pedido, en el layout y en cada página (los layouts no se vuelven a evaluar al navegar).
  */
-export async function panelMaqueta() {
+export async function panelAcceso() {
   await connection();
-  return process.env.NODE_ENV === 'development' || process.env.ATC_DEMO === '1';
+  return esSuperadmin();
 }

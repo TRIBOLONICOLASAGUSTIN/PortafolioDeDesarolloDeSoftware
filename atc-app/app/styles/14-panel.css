@@ -18,6 +18,10 @@ body:has(.pn){background:var(--bg-alt)}
 .pn-h-in{display:flex;align-items:center;gap:8px;height:100%}
 .pn-brand{display:flex;align-items:center;gap:10px;min-height:44px;margin-right:auto;font-family:var(--font-d);font-size:17px;font-weight:600;letter-spacing:-.02em}
 .pn .mark{font-size:13px}
+/* En celulares angostos la marca queda solo con el "AT" (el enlace mantiene su nombre accesible) */
+.pn-h-in>.ib,.pn-salir,.pn-ej{flex:none;white-space:nowrap}
+@media (max-width:420px){.pn-brand>span:not(.mark){display:none}.pn-brand{min-width:44px}.pn-h-in{gap:4px}.pn-salir{padding:0 4px 0 8px}}
+.pn-salir{min-height:44px;padding:0 6px 0 10px;font-size:15px;font-weight:500;color:var(--link)}
 .pn-ej{padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600;color:var(--text);background:var(--fill)}
 
 /* Título grande y vuelta */

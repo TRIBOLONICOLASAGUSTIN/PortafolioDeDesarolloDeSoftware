@@ -86,17 +86,20 @@ Las reglas de abajo aplican a todo lo de AT Computación.
     - Turnstile.
   - En producción, si falta configuración, falla cerrado (503). El modo demo solo existe fuera de producción y sin base.
   - CSP con nonce por pedido, sin `unsafe-inline` ni `unsafe-eval` en scripts. Nunca agregar scripts inline sin el nonce, ni `dangerouslySetInnerHTML` con datos que no sean propios.
+- **Panel del dueño:** un solo superadmin (contraseña con hash scrypt + código TOTP de un solo uso + cookie firmada `HttpOnly`/`SameSite=Strict`).
+  - La sesión se verifica en el servidor en cada página y acción del panel; sin sesión, 404 (nunca revelar que existe).
+  - Sus claves van en el entorno (`.env.local` / hosting), nunca en el repo, en el chat ni con prefijo `NEXT_PUBLIC_`.
 
 ## `atc-app/` (proyecto real)
 - **Estructura:**
-  - `app/`: la página, los estilos por sección en `app/styles/`, la ruta `api/seguimiento` y el panel del dueño en `app/panel/` (etapa 1: maqueta con datos de ejemplo que solo existe con `ATC_DEMO=1`).
+  - `app/`: la página, los estilos por sección en `app/styles/`, la ruta `api/seguimiento` y el panel del dueño en `app/panel/` (solo el superadmin con sesión: contraseña + código del celular, `lib/server/admin.ts`; sin sesión da 404; montos de ejemplo hasta conectar la base) y su ingreso en `app/ingresar/`.
   - `components/`: un componente por pieza; `'use client'` solo donde hay interacción.
   - `lib/data/`: datos de ejemplo.
   - `lib/server/`: código que solo corre en el servidor.
   - `supabase/`: migraciones.
   - `tests/`: pruebas.
 - **Antes de cada commit:** `npm test`.
-  - Corre tipos, build, base (19), API (9), e2e (271) y `check:docs`.
+  - Corre tipos, build, base (19), API (14), e2e (278) y `check:docs`.
   - Usa un Postgres 16 temporal que imita Supabase; `npm run db:stop` lo borra.
   - En la nube, el e2e necesita `PW="$(npm root -g)/playwright/index.mjs"`.
 - **Cada cambio de base lleva:**
@@ -123,3 +126,5 @@ Las reglas de abajo aplican a todo lo de AT Computación.
   git clone -b <rama> https://github.com/TRIBOLONICOLASAGUSTIN/PortafolioDeDesarolloDeSoftware.git atc && cd atc/atc-app
   npm ci && npm run dev    # http://localhost:3000 — modo demo, sin base
   ```
+  - En Windows PowerShell: `npm.cmd` en lugar de `npm`.
+  - Panel: una vez `npm run admin:setup` (escribe `.env.local`, que nunca se sube) y después entrar por `/ingresar`. Las claves del superadmin nunca van al repo ni al chat.

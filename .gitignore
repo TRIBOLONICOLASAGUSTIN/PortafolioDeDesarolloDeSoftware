@@ -5,3 +5,7 @@ atc-app/.next/
 atc-app/next-env.d.ts
 atc-app/*.tsbuildinfo
 atc-app/.env*.local
+# Claves del superadmin y demás secretos: nunca en el repo (solo el ejemplo sin valores)
+atc-app/.env
+atc-app/.env.*
+!atc-app/.env.example

@@ -1,0 +1,21 @@
+/* =========================================================
+   Ingreso del superadmin (/ingresar): una tarjeta centrada, calma.
+   ========================================================= */
+body:has(.in){background:var(--bg-alt)}
+:root[data-theme="dark"] body:has(.in){background:var(--bg)}
+.in{min-height:100svh;display:grid;place-items:center;padding:48px 20px}
+.in-card{width:min(400px,100%);padding:clamp(28px,5vw,40px);border-radius:32px;background:var(--tile);box-shadow:var(--shadow);animation:in .6s var(--ease)}
+:root[data-theme="dark"] .in-card{box-shadow:inset 0 0 0 .5px rgba(255,255,255,.08)}
+.in-card .mark{width:44px;height:44px;border-radius:12px;font-size:15px;margin-bottom:20px}
+.in h1{font-size:32px;letter-spacing:-.03em;line-height:1.1}
+.in-sub{margin-top:6px;font-size:15px;color:var(--text-2)}
+.in-form{display:grid;gap:16px;margin-top:28px}
+.in-fld{display:grid;gap:6px}
+.in-fld label{font-size:15px;font-weight:600}
+.in-in{width:100%;min-height:48px;padding:0 14px;border:0;border-radius:12px;font-size:17px;color:var(--text);background:var(--bg);box-shadow:inset 0 0 0 1px var(--field)}
+.in-in:focus{outline:2px solid var(--accent);outline-offset:1px}
+.in-code{font-variant-numeric:tabular-nums;letter-spacing:.3em}
+.in-hint{font-size:14px;color:var(--text-2)}
+.in-err{min-height:1.4em;font-size:15px;font-weight:500;color:var(--danger)}
+.in-err:empty{min-height:0}
+.in-back{display:inline-flex;align-items:center;min-height:44px;margin-top:12px;font-size:15px;color:var(--link)}

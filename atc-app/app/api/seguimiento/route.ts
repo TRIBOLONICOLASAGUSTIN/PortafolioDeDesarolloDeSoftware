@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { clientIp, trackingConfig } from '@/lib/server/config';
 import { limit } from '@/lib/server/ratelimit';
 import { verifyTurnstile } from '@/lib/server/turnstile';
+import { readLimited, sameSite } from '@/lib/server/http';
 import { demoTrack, trackOrder } from '@/lib/server/tracking';
 
 // POST /api/seguimiento — la única puerta pública a una orden (docs/atc/seguridad.md §3).
@@ -21,30 +22,6 @@ const json = (body: unknown, status = 200, extra: Record<string, string> = {}) =
 // Las fallas usan siempre { ok:false, motivo } (ver TrackResult): el cliente las mapea a un mensaje.
 const invalid = () => json({ ok: false, motivo: 'solicitud_invalida' }, 400);
 const unavailable = () => json({ ok: false, motivo: 'no_disponible' }, 503);
-
-function sameSite(req: Request) {
-  const site = req.headers.get('sec-fetch-site');
-  if (site && site !== 'same-origin') return false;
-  const origin = req.headers.get('origin');
-  if (!origin) return true;
-  try { return new URL(origin).host === req.headers.get('host'); } catch { return false; }
-}
-
-async function readLimited(req: Request, max: number): Promise<string | null> {
-  if (Number(req.headers.get('content-length') ?? 0) > max) return null;
-  const reader = req.body?.getReader();
-  if (!reader) return null;
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    size += value.byteLength;
-    if (size > max) { await reader.cancel(); return null; }
-    chunks.push(value);
-  }
-  return new TextDecoder().decode(Buffer.concat(chunks));
-}
 
 let warned = false;
 

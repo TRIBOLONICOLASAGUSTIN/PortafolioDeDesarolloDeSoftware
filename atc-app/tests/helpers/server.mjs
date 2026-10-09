@@ -14,8 +14,11 @@ export const LOCAL_ENV = {
 
 export async function startServer({ port, env = {} }) {
   const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^(ATC_|TURNSTILE_|UPSTASH_|NEXT_PUBLIC_TURNSTILE)/.test(k)));
+  // Vacías a propósito: Next no pisa variables ya definidas, así un .env.local local (por ejemplo, el superadmin real
+  // del dueño) nunca se mezcla con las pruebas. Cada prueba pasa lo que necesita en `env`.
+  const blank = Object.fromEntries(['ATC_ADMIN_USER', 'ATC_ADMIN_PASS_HASH', 'ATC_ADMIN_TOTP_SECRET', 'ATC_SESSION_SECRET', 'ATC_TRACKER_DATABASE_URL', 'TURNSTILE_SECRET_KEY', 'UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN'].map(k => [k, '']));
   const child = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '-p', String(port), '-H', '127.0.0.1'], {
-    cwd: APP, env: { ...clean, NODE_ENV: 'production', NEXT_TELEMETRY_DISABLED: '1', ...env }, stdio: ['ignore', 'pipe', 'pipe'],
+    cwd: APP, env: { ...clean, ...blank, NODE_ENV: 'production', NEXT_TELEMETRY_DISABLED: '1', ...env }, stdio: ['ignore', 'pipe', 'pipe'],
   });
   let log = '';
   child.stdout.on('data', d => { log += d; });

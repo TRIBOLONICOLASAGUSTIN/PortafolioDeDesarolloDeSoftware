@@ -1,7 +1,7 @@
 # AT Computación — Seguridad (Hito 1: base de datos · Hito 2: servidor)
 
-> Estado: **Hito 1 implementado y probado** (19/19 pruebas en verde contra Postgres 16). **Hito 2 (servidor) implementado y probado**: `/api/seguimiento`, CSP con nonce y encabezados (9/9 pruebas `API-n` contra la app compilada y la base local). **Panel del dueño, etapa 1:** maqueta con datos de ejemplo en `/panel`, que solo existe con `ATC_DEMO=1` (API-8, API-9).
-> Servidor: `atc-app/app/api/seguimiento/route.ts`, `atc-app/lib/server/`, `atc-app/proxy.ts` (CSP), `atc-app/next.config.ts` (encabezados), `atc-app/app/panel/` (maqueta del panel) · Pruebas: `atc-app/tests/api/seguimiento.test.mjs` y `atc-app/tests/api/panel.test.mjs`.
+> Estado: **Hito 1 implementado y probado** (19/19 pruebas en verde contra Postgres 16). **Hito 2 (servidor) implementado y probado**: `/api/seguimiento`, CSP con nonce y encabezados (14/14 pruebas `API-n` contra la app compilada y la base local). **Panel del dueño:** solo para el superadmin único, con contraseña + código del celular (TOTP) y sesión firmada por el servidor; sin sesión, `/panel` da 404 (API-8 a API-14). Los montos del panel siguen siendo de ejemplo hasta conectar la base.
+> Servidor: `atc-app/app/api/seguimiento/route.ts`, `atc-app/lib/server/`, `atc-app/proxy.ts` (CSP), `atc-app/next.config.ts` (encabezados), `atc-app/app/panel/` (panel), `atc-app/app/ingresar/` y `atc-app/app/api/{ingresar,salir}/` (superadmin), `atc-app/lib/server/{admin,totp}.ts` · Pruebas: `atc-app/tests/api/seguimiento.test.mjs` y `atc-app/tests/api/panel.test.mjs`.
 > Código: `atc-app/supabase/migrations/` · Pruebas: `atc-app/tests/db/seguridad.test.mjs` · Cómo correrlas: `atc-app/README.md`.
 > Cada control cita la prueba que lo demuestra (IDs `RLS-n`, `FN-n`, `TRK-n`, `GEN-n`, `RET-n` de la base y `API-n` del servidor). `npm run check:docs` falla si un ID de este documento no tiene prueba o al revés.
 > Las rutas `0100`, `0200`, `0300` y `0400` son las migraciones `atc-app/supabase/migrations/20261008000NNN_*.sql`; el número después de `:` es la línea.
@@ -44,10 +44,17 @@
                      │  Zod (formato) → Turnstile (bots) → límite por IP (Upstash)
                      └──► Postgres como atc_tracker ──► SOLO public.track_order(...)
  Cualquiera ─anon key─► Supabase API (PostgREST) ──► SOLO SELECT de productos activos (RLS)
- Dueño ──link mágico──► Supabase Auth ──► JWT "authenticated" ──► RLS: is_owner() ──► CRUD
+ Superadmin ──/ingresar──► Next.js: usuario + contraseña (scrypt) + código TOTP ──► cookie firmada (HMAC, 8 h)
+                     └──► /panel (sin cookie válida: 404). Datos reales del panel: rol propio del servidor (pendiente)
                  └──────────────────────────────────────────────────────────┘
  Administración (panel/CLI de Supabase, rol postgres/service_role): migraciones y emergencias. La app NO la usa.
 ```
+
+**Decisión: el panel usa un superadmin propio, no Supabase Auth.** Lo pidió el dueño: una sola cuenta, con las claves en el entorno del servidor.
+- En el entorno van **solo** el usuario, el **hash** scrypt de la contraseña (N=2^17, r=8, p=1), la clave TOTP y el secreto de las sesiones (`ATC_ADMIN_USER`, `ATC_ADMIN_PASS_HASH`, `ATC_ADMIN_TOTP_SECRET`, `ATC_SESSION_SECRET`). Se generan con `npm run admin:setup`, que escribe `.env.local` (git lo ignora).
+- La sesión es una cookie `HttpOnly`, `SameSite=Strict` (y `Secure` + prefijo `__Host-` con https) firmada con HMAC. La firma incluye una huella de la contraseña y de la clave TOTP: cambiarlas cierra todas las sesiones.
+- El control está en el servidor, en cada página del panel (`lib/server/panel.ts`), no en el navegador ni solo en el `proxy`.
+- `is_owner()` y las políticas RLS del dueño (Hito 1) quedan como respaldo de la base. Cuando el panel lea datos reales, lo hará con un rol propio del servidor (como `atc_tracker`), nunca con la `service_role`.
 
 **Decisión clave: `track_order` NO es ejecutable por `anon`.**
 - **El problema:** la anon key está en el navegador por diseño, así que cualquiera puede llamar a la API de Supabase directamente. Si `anon` pudiera ejecutar `track_order`, un atacante se saltearía Turnstile y el límite por IP del servidor.
@@ -117,7 +124,9 @@ Verificada por **RLS-2**, **FN-2** y **FN-3** contra `information_schema` y `pg_
 | 14 | **Abuso de la ruta de seguimiento** (desde otro sitio, cuerpos enormes, formato roto) | Mismo sitio, máximo 1 KB, Zod estricto, respuestas sin detalles. | `route.ts` | API-3 |
 | 15 | **IP falsificada para esquivar el límite** | La IP sale del encabezado de la plataforma, nunca de `X-Forwarded-For`; límite del servidor + bloqueos de la base. | `lib/server/config.ts`, `lib/server/ratelimit.ts` | API-4, API-5 |
 | 16 | **Despliegue con configuración incompleta** | La ruta falla cerrada (503) y nunca cae en modo demo. | `lib/server/config.ts` | API-6 |
-| 17 | **Panel del dueño visible antes de tener login** (etapa 1, maqueta) | <ul><li>`/panel` solo existe con `ATC_DEMO=1` o en desarrollo; si no, 404 (se evalúa en cada pedido).</li><li>Siempre `noindex` (meta + `X-Robots-Tag`), `Cache-Control: private, no-store`, sin enlaces desde la tienda.</li><li>Solo datos de ejemplo marcados; nada se guarda ni se manda a ningún lado.</li><li>`?tipo=` acepta solo valores conocidos.</li></ul>El panel real (etapa 2) lleva login del dueño con segundo factor. | `lib/server/panel.ts`, `app/panel/layout.tsx`, `next.config.ts` | API-8, API-9 |
+| 17 | **Acceso al panel de un comprador o de cualquiera que no sea el dueño** | <ul><li>Un solo superadmin. Sin sesión válida, `/panel` responde 404 en cualquier entorno, sin revelar que existe (también con una cookie inventada, alterada, vencida o firmada con otro secreto).</li><li>Con sesión: siempre `noindex` (meta + `X-Robots-Tag`), `Cache-Control: private, no-store`, CSP con nonce; la tienda no enlaza al panel ni al ingreso.</li><li>Los montos son de ejemplo hasta conectar la base; nada se guarda.</li><li>`?tipo=` acepta solo valores conocidos.</li></ul> | `lib/server/admin.ts`, `lib/server/panel.ts`, `app/panel/layout.tsx`, `next.config.ts` | API-8, API-9 |
+| 18 | **Robo o adivinación de la contraseña del dueño** | <ul><li>Contraseña + código del celular (TOTP, ±30 s); cada código sirve **una sola vez**.</li><li>En el entorno va el hash scrypt, nunca la contraseña.</li><li>Misma respuesta para usuario, contraseña o código incorrectos; el scrypt se calcula siempre (tiempo parejo).</li><li>5 intentos por IP cada 15 min (Upstash en producción) y Turnstile en producción.</li></ul> | `app/api/ingresar/route.ts`, `lib/server/admin.ts`, `lib/server/totp.ts`, `lib/server/ratelimit.ts` | API-10, API-11, API-12 |
+| 19 | **Robo de la sesión o ingreso forzado desde otro sitio** | Cookie `HttpOnly` (JavaScript no la lee), `SameSite=Strict`, `Secure` + `__Host-` con https, 8 h. Ingreso y salida solo desde el mismo sitio. Sin configuración completa, el ingreso falla cerrado (503). | `app/api/ingresar/route.ts`, `app/api/salir/route.ts`, `lib/server/admin.ts` | API-12, API-13, API-14 |
 | 12 | **Pagos** | **Fuera de alcance:** no se cobra online; el sitio nunca toca datos de tarjeta. | — | — |
 | 13 | **Pérdida de datos** | Backups y prueba de restauración (§8, §9). | — | — |
 
@@ -164,7 +173,7 @@ Verificada por **RLS-2**, **FN-2** y **FN-3** contra `information_schema` y `pg_
    - **Nunca** aplicar `seed.sql` en producción.
 2. **Auth:**
    - Desactivar los registros públicos ("Allow new users to sign up") **(verificar el nombre exacto)**.
-   - Dejar solo Email con link mágico y crear el usuario del dueño desde Auth → Users.
+   - Hoy el panel no usa Supabase Auth (tiene su propio superadmin, §3): dejar Auth sin proveedores habilitados.
 3. **Fijar al dueño**, en el SQL Editor:
    ```sql
    update public.settings set owner_user_id = '<UUID del usuario del dueño>' where id = 1;
@@ -197,7 +206,9 @@ Verificada por **RLS-2**, **FN-2** y **FN-3** contra `information_schema` y `pg_
    - `TURNSTILE_SECRET_KEY` y `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, de Cloudflare.
    - `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN`.
    - `ATC_IP_HEADER` **(verificar según el hosting)**: Cloudflare `cf-connecting-ip`, Vercel `x-vercel-forwarded-for` y Netlify `x-nf-client-connection-ip`. Confirmarlo en la documentación del proveedor elegido.
-   - `ATC_INDEXAR=1` recién con los datos reales. `ATC_DEMO` **nunca** en el sitio real (además de los botones de demo, mostraría la maqueta del panel en `/panel`).
+   - `ATC_INDEXAR=1` recién con los datos reales. `ATC_DEMO` y `ATC_LOCAL` **nunca** en el sitio real.
+   - **Superadmin:** correr `npm run admin:setup` en una compu de confianza y copiar las 4 variables (`ATC_ADMIN_USER`, `ATC_ADMIN_PASS_HASH`, `ATC_ADMIN_TOTP_SECRET`, `ATC_SESSION_SECRET`) en el entorno del hosting. Sin ellas, el ingreso responde 503 y `/panel` no existe. Nunca con el prefijo `NEXT_PUBLIC_`.
+   - **(verificar)** que el sitio se sirva solo por https: la cookie del panel lleva `Secure` y el prefijo `__Host-`.
    - **(verificar)** que el hosting pase el `Host` original: la ruta compara `Origin` con `Host` y, si no coinciden, responde 403. Probar el seguimiento una vez publicado.
    - **La IP que se le pasa a `track_order` tiene que ser la que fija la plataforma de hosting**, nunca el primer valor de `X-Forwarded-For`: ese lo escribe el cliente, y cambiándolo se esquivaría el bloqueo por IP. Lo prueba API-5.
 9. **No mergear a `main`** mientras haya datos de ejemplo (GitHub Pages publica el repo).
@@ -219,9 +230,12 @@ update public.orders set public_code = public.gen_public_code()
  where public_code = 'AT-XXXX-XX' returning public_code;
 ```
 
-**Robaron el celular o la compu del dueño:**
-- Cerrar todas sus sesiones en Supabase (Auth → Users → el usuario) **(verificar la opción exacta)**.
-- Cambiar la contraseña del mail del dueño, que es lo que recibe el link mágico.
+**Robaron o perdieron el celular del dueño, o se sospecha de la contraseña:**
+- Correr `npm run admin:setup` otra vez: genera una contraseña nueva (la elige el dueño), una clave del celular nueva y un secreto de sesión nuevo.
+- Copiar las 4 variables nuevas en el hosting y volver a desplegar. Todas las sesiones abiertas dejan de valer (la firma depende de esas claves).
+- Agregar la clave nueva en la app del celular nuevo y borrar la vieja.
+
+**Robaron la compu con la sesión abierta:** igual que arriba (cambiar `ATC_SESSION_SECRET` alcanza para cerrar las sesiones; cambiar también la contraseña si estaba guardada en el navegador).
 
 **Se expuso la contraseña de `atc_tracker`:** generar una nueva y cargarla desde `psql` con `\password atc_tracker`, igual que en §8 punto 4. Después, actualizar `TRACKER_DATABASE_URL` en el servidor y volver a desplegar. Ese rol solo puede ejecutar `track_order`, así que el daño posible es acotado.
 
@@ -256,7 +270,9 @@ select date_trunc('hour', created_at) h, outcome, count(*) from private.track_at
 | `style-src-attr 'unsafe-inline'` | Las animaciones usan variables CSS en atributos `style` | Solo afecta atributos de estilo, no scripts. El riesgo es inyección de CSS, acotado porque React escapa el texto |
 | La página se arma en cada pedido (por el nonce) | Es el precio de la CSP estricta | Una sola página, liviana: costo bajo |
 | Comportamientos propios de Supabase probados con un **shim**, no contra Supabase real | Sin cuenta durante el desarrollo | Auditoría rápida en producción (§8 punto 7) |
-| Con `ATC_DEMO=1`, quien conozca `/panel` ve la maqueta | Es para que el dueño apruebe el diseño en una rama | Solo datos de ejemplo, `noindex`, sin enlaces; `ATC_DEMO` nunca en el sitio real (API-8, API-9) |
+| "Salir" borra la cookie del navegador, pero una cookie copiada antes sigue valiendo hasta que vence (8 h) | La sesión no se guarda en la base (no hay estado que revocar de a una) | `HttpOnly` y `SameSite=Strict` dificultan copiarla; para cortar todo, cambiar `ATC_SESSION_SECRET` (§9) |
+| El código de las pantallas del panel es público (como en cualquier sitio web) | Es JavaScript que descarga el navegador | Ahí no hay datos: hoy son de ejemplo y, cuando sean reales, los entrega solo el servidor después de verificar la sesión |
+| Con `ATC_LOCAL=1`, el ingreso no exige Upstash ni Turnstile | Es para las pruebas locales | `ATC_LOCAL` nunca en el sitio real (§8 punto 8) |
 
 ---
 
@@ -264,6 +280,7 @@ select date_trunc('hour', created_at) h, outcome, count(*) from private.track_at
 
 | Fecha | Cambio |
 |---|---|
+| 2026-10-09 | **Superadmin del panel:** un solo usuario con contraseña (hash scrypt en el entorno) + código del celular (TOTP de un solo uso) + sesión firmada (HMAC, `HttpOnly`, `SameSite=Strict`, 8 h). `/panel` deja de abrirse con `ATC_DEMO`: sin sesión válida da 404 en cualquier entorno. Ingreso en `/ingresar` (sin enlaces, `noindex`), con límite de 5 intentos por IP cada 15 min y Turnstile en producción; falla cerrado sin configuración. `npm run admin:setup` genera las claves en `.env.local`; `.gitignore` ahora también ignora `.env` y `.env.*`. Pruebas API-8 y API-9 reescritas y 5 nuevas (API-10 a API-14). |
 | 2026-10-09 | **Panel del dueño, etapa 1 (maqueta):** `/panel` y `/panel/movimientos` con datos de ejemplo, sin base ni login. Solo existen con `ATC_DEMO=1` o en desarrollo (404 si no), siempre `noindex` y sin caché, sin enlaces desde la tienda. Página 404 en castellano. 2 pruebas nuevas (API-8, API-9). |
 | 2026-10-08 | **Hito 2 (servidor):** sitio en Next.js 16 con `/api/seguimiento` (mismo sitio, Zod, límite por IP con Upstash, IP de la plataforma, Turnstile y `atc_tracker`), modos demo/local/prod con falla cerrada, CSP con nonce y encabezados. 7 pruebas nuevas (API-1…7). La bolsa limita el largo de la dirección y el nombre. |
 | 2026-10-08 | **Hito 1:** esquema, RLS, revocación de los permisos de fábrica, `is_owner`, rol `atc_tracker`, `track_order` con bloqueos, HMAC con pepper, retención y 19 pruebas. Se corrige la documentación previa: el código tiene 30 bits (no 40), y ~40 bits sumando el teléfono. `track_order` deja de estar pensada para `anon`. Queda documentado que el bloqueo por IP depende de que el servidor pase la IP real. La contraseña de `atc_tracker` se carga con `\password` (nunca en claro en el SQL Editor). |

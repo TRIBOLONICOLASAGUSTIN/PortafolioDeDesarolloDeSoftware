@@ -14,6 +14,7 @@
     "test:api": "bash scripts/db-local.sh reset && node --test --test-concurrency=1 tests/api/*.test.mjs",
     "test:e2e": "bash scripts/db-local.sh reset && node tests/e2e/verificar.mjs",
     "check:docs": "node scripts/check-doc-ids.mjs",
+    "admin:setup": "node scripts/admin-setup.mjs",
     "test": "npm run typecheck && npm run build && npm run test:db && npm run test:api && npm run test:e2e && npm run check:docs"
   },
   "devDependencies": {

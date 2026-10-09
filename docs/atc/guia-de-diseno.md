@@ -167,7 +167,7 @@ Cada fila es un componente de React. El prototipo HTML original se reemplazó po
 | 3 | **Tablas expuestas en Supabase** | La anon key es pública por diseño: una tabla sin RLS queda abierta a cualquiera. | RLS en **todas** las tablas, y se revocan los permisos de fábrica de Supabase y Postgres. `anon` solo lee productos activos. Las órdenes se consultan solo con `track_order` (SECURITY DEFINER, campos mínimos), que ejecuta únicamente el rol del servidor `atc_tracker`, **nunca `anon`**. |
 | 4 | **Filtración de la service_role key** | Acceso total a la base. | **La app no la usa:** sirve solo para migraciones (CLI o panel de Supabase). El servidor se conecta como `atc_tracker`, que solo puede ejecutar `track_order`. Revisar el bundle antes de cada deploy. |
 | 5 | **Inyección y XSS** | Contenido del panel (nombres, notas) que se muestra en el sitio. | El cliente de Supabase ya parametriza las consultas. Validación con Zod en el cliente y en el servidor. Escapar todo lo que se renderiza (el prototipo ya usa `esc()`). CSP con nonce. |
-| 6 | **Acceso al panel** | Alguien entra a cambiar precios u órdenes. | Supabase Auth con link mágico o passkey solo para el mail del dueño. Un único rol `owner` (no hace falta Admin/Técnico/Cliente: es una persona y los clientes no tienen cuenta). Políticas RLS por `auth.uid()`. |
+| 6 | **Acceso al panel** | Alguien entra a ver las ganancias o a cambiar precios u órdenes. | Un solo superadmin: contraseña (solo su hash en el entorno) + código del celular de un solo uso + sesión firmada por el servidor. Sin sesión, `/panel` no existe (404). Detalle en `seguridad.md` §3 y §5 (filas 17 a 19). |
 | 7 | **Archivos subidos** | Imágenes con malware o metadatos (ubicación en el EXIF). | Bucket privado, validación de tipo y tamaño, borrado del EXIF y URLs firmadas. |
 | 8 | **Datos personales** (Ley 25.326) | Nombre y teléfono de los clientes. | Recolectar el mínimo. En el seguimiento, mostrar nombre + inicial. Política de privacidad en el pie. **Hecho en la base:** los intentos de seguimiento se borran a los 30 días y las órdenes entregadas se anonimizan a los 24 meses. |
 | 9 | **Cabeceras HTTP** | XSS, clickjacking. | HTTPS forzado (HSTS), CSP con nonce, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` mínima. |
@@ -189,7 +189,7 @@ Navegador ──► Next.js (App Router, en Vercel/Netlify/Cloudflare)
 Supabase ◄────────────────────────────────────┘
   ├─ Postgres: products · orders · order_events · settings  (RLS en todas) + schema private (intentos, clave)
   ├─ Storage: fotos de productos (bucket privado + URLs firmadas)
-  └─ Auth: link mágico / passkey del dueño
+  └─ Superadmin: contraseña + código del celular (sesión propia del servidor)
 WhatsApp: enlaces wa.me con el mensaje prellenado (gratis; sin la API de pago de Meta)
 ```
 

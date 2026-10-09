@@ -7,12 +7,14 @@
 import { fileURLToPath } from 'node:url';
 import { mkdirSync } from 'node:fs';
 import { startServer, LOCAL_ENV } from '../helpers/server.mjs';
+import { ADMIN, adminEnv, stableNow, totpCode } from '../helpers/admin.mjs';
 
 let pw;
 try { pw = await import('playwright'); } catch { pw = await import(process.env.PW || 'playwright'); }
 const { chromium } = pw;
 
-const server = await startServer({ port: 3110, env: { ...LOCAL_ENV, ATC_DEMO: '1' } });
+// ATC_DEMO=1: botones de demo del seguimiento. El superadmin de prueba es para entrar al panel (tests/helpers/admin.mjs).
+const server = await startServer({ port: 3110, env: { ...LOCAL_ENV, ATC_DEMO: '1', ...adminEnv() } });
 const HTML = server.base + '/';
 const SHOTS = fileURLToPath(new URL('./capturas/', import.meta.url));
 const WANT_SHOTS = process.argv.includes('--capturas');
@@ -372,11 +374,13 @@ for (const rm of ['no-preference', 'reduce']) {
   await p.close();
 }
 
-// Panel del dueño (etapa 1, maqueta con datos de ejemplo): solo existe con ATC_DEMO=1 (este servidor lo tiene).
+// Panel del dueño: solo existe para el superadmin con sesión. Primero se entra por /ingresar y la sesión se reusa.
 const PANEL = server.base + '/panel';
 const PANEL_VPS = [[320, 568, 'light'], [390, 844, 'light'], [820, 1180, 'dark'], [1440, 900, 'light']];
-const panelPage = async (w, h, scheme, opts = {}) => {
+let PANEL_COOKIES = [];
+const panelPage = async (w, h, scheme, { anon, ...opts } = {}) => {
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, colorScheme: scheme, hasTouch: w < 900, acceptDownloads: true, ...opts });
+  if (!anon) await ctx.addCookies(PANEL_COOKIES);
   const p = await ctx.newPage();
   const errs = [];
   p.on('pageerror', e => errs.push(e.message));
@@ -432,6 +436,39 @@ const panelA11y = (root = '.pn') => {
   const jump = hs.some((l, i) => i > 0 && l > hs[i - 1] + 1);
   return { tiny: [...new Set(tiny)], small: [...new Set(small)], h1: hs.filter(l => l === 1).length, jump, hs: hs.join('') };
 };
+// Ingreso del superadmin: sin sesión /panel no existe; con datos incorrectos avisa sin decir cuál; con los correctos entra.
+{
+  const { ctx, p, errs } = await panelPage(390, 844, 'light', { anon: true });
+  const nf = await p.goto(PANEL);
+  const nfText = await p.evaluate(() => document.body.textContent);
+  check('ingreso', 'sin sesión /panel responde "página no encontrada"', nf.status() === 404 && /No encontramos esta página/.test(nfText) && !/datos de ejemplo|ganancia/i.test(nfText), String(nf.status()));
+  await p.goto(server.base + '/ingresar'); await p.waitForTimeout(400);
+  const form = await p.evaluate(() => ({ h1: document.querySelector('h1')?.textContent, noindex: /noindex/.test(document.querySelector('meta[name="robots"]')?.content ?? ''), labels: ['in-user', 'in-pass', 'in-code'].every(id => document.querySelector(`label[for="${id}"]`)), pass: document.querySelector('#in-pass').type }));
+  check('ingreso', '/ingresar: formulario con etiquetas, contraseña oculta y noindex', form.h1 === 'Ingresar' && form.noindex && form.labels && form.pass === 'password', JSON.stringify(form));
+  await p.fill('#in-user', ADMIN.user); await p.fill('#in-pass', ADMIN.pass); await p.fill('#in-code', '000000');
+  await p.click('.in-form button[type="submit"]'); await p.waitForTimeout(600);
+  const bad = await p.evaluate(() => ({ alert: document.querySelector('.in-err').textContent, focus: document.activeElement?.id, code: document.querySelector('#in-code').value, url: location.pathname }));
+  check('ingreso', 'datos incorrectos: aviso sin decir cuál, código borrado y foco en el código', bad.alert === 'Los datos no son correctos.' && bad.focus === 'in-code' && bad.code === '' && bad.url === '/ingresar', JSON.stringify(bad));
+  await p.fill('#in-code', totpCode(0, await stableNow()));
+  await Promise.all([p.waitForURL('**/panel', { timeout: 15000 }), p.click('.in-form button[type="submit"]')]);
+  await p.waitForTimeout(400);
+  const inside = await p.evaluate(() => document.querySelector('h1')?.textContent);
+  PANEL_COOKIES = await ctx.cookies();
+  const sc = PANEL_COOKIES.find(c => c.name === 'atc_s');
+  check('ingreso', 'con los datos correctos entra al panel con cookie HttpOnly y SameSite=Strict', inside === 'Resumen' && sc?.httpOnly && sc?.sameSite === 'Strict', JSON.stringify({ inside, sc: sc && { httpOnly: sc.httpOnly, sameSite: sc.sameSite } }));
+  // El 404 de /panel y el 401 del intento con datos incorrectos son esperados (el navegador los anota como error de carga).
+  check('ingreso', 'sin errores de consola (salvo el 404 y el 401 esperados)', errs.filter(e => !/status of (401|404)/.test(e)).length === 0, errs.slice(0, 3).join(' | '));
+  await ctx.close();
+  for (const scheme of ['light', 'dark']) {
+    const v = await panelPage(390, 844, scheme, { anon: true });
+    await v.p.goto(server.base + '/ingresar'); await v.p.waitForTimeout(700);
+    const c = await v.p.evaluate(panelContrast, '.in *');
+    const a = await v.p.evaluate(panelA11y, '.in');
+    check('ingreso', `/ingresar en ${scheme === 'dark' ? 'oscuro' : 'claro'}: contraste AA, letra ≥ 13 px y 44 px`, c.length === 0 && a.tiny.length === 0 && a.small.length === 0 && a.h1 === 1, [...c, ...a.tiny, ...a.small].slice(0, 5).join(' | '));
+    await v.ctx.close();
+  }
+}
+
 for (const [w, h, scheme] of PANEL_VPS) {
   const tag = `panel-${w}-${scheme === 'dark' ? 'oscuro' : 'claro'}`;
   const { ctx, p, errs } = await panelPage(w, h, scheme);

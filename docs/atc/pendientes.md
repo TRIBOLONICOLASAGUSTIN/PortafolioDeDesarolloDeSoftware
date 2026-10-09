@@ -109,13 +109,15 @@ Varios hallazgos repiten el mismo problema visto desde distintos ángulos. En el
 - [x] **Hito 2 — Sitio público en React (Next.js 16) y servidor seguro.** *(commit `d6e675d`: CSP con nonce, `/api/seguimiento` con atc_tracker, pruebas API-1…7 y las 80 verificaciones portadas.)*
   - [ ] **Falta configurar** (necesita cuentas): Turnstile, Upstash, hosting (Vercel/Netlify/Cloudflare) y `ATC_IP_HEADER` según el hosting (`seguridad.md` §8 punto 8).
 - [ ] **Hito 3 — Panel del dueño.**
-  - [x] **Etapa 1 — Maqueta** en `/panel` (solo existe con `ATC_DEMO=1`; si no, 404), con datos de ejemplo marcados:
+  - [x] **Etapa 1 — Maqueta** en `/panel`, con datos de ejemplo marcados:
     - Resumen: ganancia del período con gráfico de ganancia acumulada, desglose, categorías, más vendidos, últimos movimientos y aviso de la orden lista.
     - Movimientos con filtros y días, detalle de cada uno, formularios de venta, gasto y cobro que validan pero **no guardan**, y planilla CSV.
-    - Pruebas API-8 y API-9, y el bloque del panel en el e2e.
+    - Pruebas del panel en el e2e.
+  - [x] **Acceso:** un solo superadmin (contraseña con hash scrypt + código del celular de un solo uso + sesión firmada). Sin sesión, `/panel` da 404. `npm run admin:setup` genera las claves. Pruebas API-8 a API-14.
+  - [ ] **Configurar el superadmin real** con `npm run admin:setup` y cargar sus 4 variables en el hosting (`seguridad.md` §8).
   - [ ] **Aprobación del dueño** del diseño (capturas del panel en la rama).
   - [ ] **Etapa 2 — Panel real:**
-    - Link mágico solo para su mail + segundo factor (TOTP); RLS con `is_owner()` exigiendo `aal2`.
+    - Rol propio del servidor para las tablas del panel (como `atc_tracker`), usado solo después de verificar la sesión del superadmin.
     - Migración nueva: ventas, ítems (precio y costo al vender), gastos, cobros de reparaciones y costos de productos (solo el dueño: `products` es pública).
     - Registrar de verdad (descuenta stock), ABM de productos y órdenes, novedades y mensaje de WhatsApp armado.
     - Pruebas RLS-n, FN-n y API-n nuevas.
