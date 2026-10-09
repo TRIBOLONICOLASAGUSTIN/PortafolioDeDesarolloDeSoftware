@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 // CSP con nonce por pedido (guía de Next 16: node_modules/next/dist/docs/01-app/02-guides/content-security-policy.md).
 // - Scripts: solo los que llevan el nonce de este pedido ('strict-dynamic' deja que esos carguen los suyos).
 // - Estilos: hojas propias o con nonce; los atributos style="--d:.1s" necesitan 'unsafe-inline' SOLO en style-src-attr.
+//   En desarrollo (solo ahí) se permiten estilos en línea: los inyecta Next (avisos de error), como indica la guía.
 // - Turnstile: se habilita su iframe solo si hay clave configurada.
 export function proxy(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
@@ -12,7 +13,7 @@ export function proxy(request: NextRequest) {
   const csp = [
     `default-src 'self'`,
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? ` 'unsafe-eval'` : ''}`,
-    `style-src 'self' 'nonce-${nonce}'`,
+    `style-src 'self' ${dev ? `'unsafe-inline'` : `'nonce-${nonce}'`}`,
     `style-src-attr 'unsafe-inline'`,
     `img-src 'self' data: blob:`,
     `font-src 'self'`,

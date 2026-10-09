@@ -16,6 +16,10 @@ const nextConfig: NextConfig = {
   // pg queda fuera del bundle: se usa solo en el servidor (lib/server/tracking.ts).
   serverExternalPackages: ['pg'],
   reactStrictMode: true,
+  // Solo en desarrollo: sin el botón flotante de Next (la vista previa se ve como el sitio real; los errores igual se muestran)
+  // y con acceso desde la red local, para probar en el celular por Wi-Fi (http://192.168.x.x:3000).
+  devIndicators: false,
+  allowedDevOrigins: ['192.168.*.*'],
   async headers() {
     return [
       { source: '/:path*', headers: securityHeaders },
