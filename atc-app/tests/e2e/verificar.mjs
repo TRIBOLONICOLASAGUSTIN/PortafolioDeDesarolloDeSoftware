@@ -469,11 +469,18 @@ const panelA11y = (root = '.pn') => {
   }
 }
 
+// Espera a que el panel quede quieto: animaciones y transiciones de CSS terminadas y el monto grande ya contado.
+const quieto = p => p.evaluate(async () => {
+  await Promise.race([Promise.all(document.getAnimations().map(a => a.finished.catch(() => {}))), new Promise(r => setTimeout(r, 2500))]);
+  const e = document.querySelector('#pn-total');
+  for (let i = 0; e && i < 60 && +e.textContent.replace(/[^\d]/g, '') * (/[−-]/.test(e.textContent) ? -1 : 1) !== +e.dataset.v; i++) await new Promise(r => setTimeout(r, 50));
+});
+
 for (const [w, h, scheme] of PANEL_VPS) {
   const tag = `panel-${w}-${scheme === 'dark' ? 'oscuro' : 'claro'}`;
   const { ctx, p, errs } = await panelPage(w, h, scheme);
   try {
-    await p.goto(PANEL); await p.waitForTimeout(500);
+    await p.goto(PANEL); await quieto(p);
     const top = await p.evaluate(() => {
       const vis = s => { const e = document.querySelector(s); if (!e) return false; const r = e.getBoundingClientRect(), cs = getComputedStyle(e); return r.width > 0 && r.height > 0 && cs.visibility === 'visible' && +cs.opacity > 0; };
       return { h1: document.querySelector('h1')?.textContent, banner: vis('#pn-demo') && /datos de ejemplo/i.test(document.querySelector('#pn-demo').textContent), pill: vis('.pn-ej'), theme: document.documentElement.dataset.theme };
@@ -488,7 +495,7 @@ for (const [w, h, scheme] of PANEL_VPS) {
     // Los períodos cambian el gráfico (puntos, tabla para lectores, título) y el cambio se anuncia
     const ranges = [];
     for (const [id, n, label] of PANEL_RANGES) {
-      await p.click(`label.pn-chip:has(input[value="${id}"])`); await p.waitForTimeout(250);
+      await p.click(`label.pn-chip:has(input[value="${id}"])`); await quieto(p);
       ranges.push(await p.evaluate(([id, n, label]) => {
         const hit = document.querySelector('.pn-hit');
         const rows = [...document.querySelectorAll('.pn-des .pn-row .pn-amt')].map(e => e.textContent);
@@ -500,7 +507,7 @@ for (const [w, h, scheme] of PANEL_VPS) {
     const announced = await p.evaluate(() => document.querySelector('#pn-anuncio').textContent);
     check(tag, 'los períodos cambian el gráfico (7/30/13/12 puntos) y el desglose sigue sumando', ranges.every(r => r.ok) && sums && new Set(ranges.map(r => r.total)).size > 1, JSON.stringify(ranges.map(r => [r.id, r.ok, r.total])));
     check(tag, 'el cambio de período se anuncia a lectores de pantalla', /Últimos 12 meses: ganancia/.test(announced), announced);
-    await p.click('label.pn-chip:has(input[value="30d"])'); await p.waitForTimeout(250);
+    await p.click('label.pn-chip:has(input[value="30d"])'); await quieto(p);
 
     // Teclado: Inicio, Fin y flechas recorren los puntos; el valor se lee con el monto
     await p.focus('.pn-hit');
@@ -543,12 +550,45 @@ for (const [w, h, scheme] of PANEL_VPS) {
     // Categorías: ordenadas por ganancia y suman lo de ventas + servicio técnico
     const cats = await p.evaluate(() => ({ v: [...document.querySelectorAll('.pn-cat .pn-row')].map(r => +r.dataset.v), rows: [...document.querySelectorAll('.pn-des .pn-row .pn-amt')].map(e => e.textContent) }));
     const catSum = cats.v.reduce((a, b) => a + b, 0), vs = PARSE_ARS(cats.rows[0]) + PARSE_ARS(cats.rows[1]);
+    // Cada tarjeta con gráfico lleva su monto junto al título (en la misma línea desde 390 px), y el monto cuadra con su lista
+    const heads = await p.evaluate(() => [['.pn-des', 'De dónde sale'], ['.pn-cat', 'Por categoría'], ['.pn-top', 'Más vendidos']].map(([s, title]) => {
+      const h = document.querySelector(`${s} .pn-ch h2`), v = document.querySelector(`${s} .pn-ch-v b`);
+      if (!h || !v) return { s, ok: false };
+      const a = h.getBoundingClientRect(), b = v.getBoundingClientRect();
+      return { s, ok: h.textContent === title && /\$|u\./.test(v.textContent), line: b.top < a.bottom && a.top < b.bottom, apart: b.left >= a.right, v: v.textContent };
+    }));
+    check(tag, 'monto junto al título de cada tarjeta con gráfico', heads.every(x => x.ok && (x.line ? x.apart : w < 390)), JSON.stringify(heads));
+    const cuadra = await p.evaluate(() => ({
+      cat: [...document.querySelectorAll('.pn-cat .pn-row')].reduce((a, r) => a + +r.dataset.v, 0),
+      top5: [...document.querySelectorAll('.pn-rank li')].reduce((a, l) => a + +l.dataset.v, 0),
+      metric: document.querySelector('input[name="pn-metrica"]:checked')?.value,
+    }));
+    check(tag, 'el monto de categorías es su suma y el de más vendidos cubre el top 5', PARSE_ARS(heads[1].v) === cuadra.cat && cuadra.metric === 'unidades' && parseInt(heads[2].v, 10) >= cuadra.top5, JSON.stringify({ ...cuadra, heads: heads.map(x => x.v) }));
+
+    // Barra de reparto: un tramo por categoría con ganancia, en el mismo orden y color que su fila, de ancho proporcional
+    const share = await p.evaluate(() => {
+      const bar = document.querySelector('.pn-share'), segs = [...bar.children], rows = [...document.querySelectorAll('.pn-cat .pn-row')].filter(r => +r.dataset.v > 0);
+      const sum = rows.reduce((a, r) => a + +r.dataset.v, 0), free = bar.clientWidth - 2 * (segs.length - 1);
+      const off = segs.map((s, i) => Math.abs(s.offsetWidth - free * +rows[i]?.dataset.v / sum));
+      const col = segs.map(s => getComputedStyle(s).backgroundColor);
+      return { n: segs.length, rows: rows.length, order: segs.every((s, i) => s.dataset.cat === rows[i]?.dataset.cat), off: Math.max(...off),
+        dots: rows.every((r, i) => getComputedStyle(r.querySelector('.pn-cdot')).backgroundColor === col[i]), distinct: new Set(col).size === col.length };
+    });
+    check(tag, 'barra de reparto: un tramo por categoría, orden, color y ancho proporcionales', share.n === share.rows && share.n > 2 && share.order && share.off <= 3.5 && share.dots && share.distinct, JSON.stringify(share));
+
+    // Tendencias del desglose: una por fila con un punto por tramo del gráfico; a 420 px o menos se ocultan
+    const spk = await p.evaluate(() => {
+      const n = +document.querySelector('.pn-chart').dataset.n, s = [...document.querySelectorAll('.pn-des .pn-row .pn-spark')];
+      return { n, len: s.length, pts: s.map(e => e.querySelector('polyline').getAttribute('points').split(' ').length), vis: s.map(e => e.getBoundingClientRect().width > 0) };
+    });
+    check(tag, w > 420 ? 'tendencia en cada fila del desglose' : 'tendencias ocultas en pantallas chicas', spk.len === 3 && spk.pts.every(x => x === spk.n) && spk.vis.every(x => x === w > 420), JSON.stringify(spk));
+
     check(tag, 'categorías ordenadas por ganancia y suman ventas + servicio', cats.v.length > 2 && cats.v.every((x, i) => i === 0 || x <= cats.v[i - 1]) && catSum === vs, JSON.stringify({ catSum, vs }));
 
     // Más vendidos: ordenado de mayor a menor en cada métrica y con barras proporcionales
     const tops = [];
     for (const m of ['ventas', 'ganancia', 'unidades']) {
-      await p.click(`label.pn-seg:has(input[value="${m}"])`); await p.waitForTimeout(450);
+      await p.click(`label.pn-seg:has(input[value="${m}"])`); await quieto(p);
       tops.push(await p.evaluate(m => {
         const li = [...document.querySelectorAll('.pn-rank li')], v = li.map(l => +l.dataset.v), max = Math.max(...v);
         const sc = li.map(l => new DOMMatrix(getComputedStyle(l.querySelector('.pn-bar')).transform).a);
@@ -724,6 +764,12 @@ for (const rm of ['no-preference', 'reduce']) {
   await p.click('label.pn-chip:has(input[value="7d"])'); await p.waitForTimeout(100);
   const loops = await p.evaluate(() => document.getAnimations().filter(a => a.effect?.getTiming().iterations === Infinity).length);
   check('panel-movimiento', `sin animaciones infinitas${rm === 'reduce' ? ' (reducir movimiento)' : ''}`, loops === 0, String(loops));
+  if (rm === 'reduce') {
+    const still = await p.evaluate(() => ({ running: document.getAnimations().filter(a => a.playState === 'running').length,
+      cards: [...document.querySelectorAll('.pn-grid>*')].every(c => getComputedStyle(c).opacity === '1'),
+      veil: getComputedStyle(document.querySelector('.pn-plot'), '::after').transform }));
+    check('panel-movimiento', 'reducir movimiento: tarjetas y gráfico a la vista de una, sin esperas', still.running === 0 && still.cards && /^matrix\(0, 0, 0, 1/.test(still.veil), JSON.stringify(still));
+  }
   await ctx.close();
 }
 

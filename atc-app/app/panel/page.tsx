@@ -4,6 +4,8 @@ import { panelAcceso } from '@/lib/server/panel';
 import { PanelHeader } from '@/components/panel/panel-header';
 import { DemoBanner } from '@/components/panel/demo-banner';
 import { Resumen } from '@/components/panel/resumen';
+import { storeStamp } from '@/lib/hours';
+import { diaLargo } from '@/lib/panel/dates';
 
 export async function generateMetadata(): Promise<Metadata> { return (await panelAcceso()) ? { title: 'Resumen' } : {}; }
 
@@ -14,6 +16,7 @@ export default async function PanelResumen() {
     <>
       <PanelHeader />
       <main className="wrap pn-main" id="pn-main">
+        <p className="pn-eyebrow">{diaLargo(storeStamp().ymd)}</p>
         <h1 className="pn-t" tabIndex={-1}>Resumen</h1>
         <DemoBanner />
         <Resumen />

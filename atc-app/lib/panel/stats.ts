@@ -73,12 +73,12 @@ export function totales(idx: Index, from: string, to: string): Totales {
 /** Diferencia con el período anterior. El porcentaje solo tiene sentido si antes hubo ganancia. */
 export const delta = (cur: number, prev: number) => ({ abs: cur - prev, pct: prev > 0 ? (cur - prev) / prev : null });
 
-/** Ganancia de cada tramo y acumulada desde el principio del período. */
-export function serie(idx: Index, p: Periodo): Bucket[] {
+/** Ganancia de cada tramo y acumulada desde el principio del período (o lo que sume `f`, por ejemplo solo las ventas). */
+export function serie(idx: Index, p: Periodo, f: (m: Movement) => number = resultado): Bucket[] {
   let acc = 0;
   return p.buckets.map(b => {
     let valor = 0;
-    for (const m of entre(idx, b.from, b.to)) valor += resultado(m);
+    for (const m of entre(idx, b.from, b.to)) valor += f(m);
     acc += valor;
     return { ...b, valor, acumulado: acc };
   });

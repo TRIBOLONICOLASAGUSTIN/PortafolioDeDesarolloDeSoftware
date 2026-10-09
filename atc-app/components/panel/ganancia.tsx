@@ -1,6 +1,8 @@
 'use client';
 
 import { Icon } from '../ui';
+import { useReducedMotion } from '../hooks';
+import { useCountUp } from './count-up';
 import { Chips } from './chips';
 import { ProfitChart } from './profit-chart';
 import { RANGES, RANGE_IDS, delta, extremos, type Bucket, type RangeId } from '@/lib/panel/stats';
@@ -15,10 +17,11 @@ export function Ganancia({ range, onRange, total, prev, serie }: { range: RangeI
   const up = d.abs > 0, igual = d.abs === 0;
   // El último tramo termina hoy y está incompleto (el día o el mes en curso): no compite por mejor o peor.
   const { mejor, peor } = extremos(serie.length > 1 ? serie.slice(0, -1) : serie);
+  const shown = useCountUp(total, range, useReducedMotion());
   return (
     <section className="pn-card pn-gan" aria-labelledby="pn-gan-h">
       <h2 className="pn-lbl" id="pn-gan-h">Ganancia <span className="pn-per" id="pn-per">· {R.label}</span></h2>
-      <p className="pn-big pn-num" id="pn-total">{fmtMonto(total)}</p>
+      <p className="pn-big pn-num" id="pn-total" data-v={total}>{fmtMonto(shown)}</p>
       <p className="pn-delta">
         {igual ? <span className="pn-trend eq">Sin cambios</span> : (
           <span className={`pn-trend ${up ? 'up' : 'dn'}`}>

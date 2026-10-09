@@ -114,6 +114,7 @@ Varios hallazgos repiten el mismo problema visto desde distintos ángulos. En el
     - Movimientos con filtros y días, detalle de cada uno, formularios de venta, gasto y cobro que validan pero **no guardan**, y planilla CSV.
     - Pruebas del panel en el e2e.
   - [x] **Acceso:** un solo superadmin (contraseña con hash scrypt + código del celular de un solo uso + sesión firmada). Sin sesión, `/panel` da 404. `npm run admin:setup` genera las claves. Pruebas API-8 a API-14.
+  - [x] **Diseño estilo Apple:** cada tarjeta con gráfico lleva su monto junto al título; barra de reparto por categoría con un color fijo por categoría; tendencias en el desglose; período como control segmentado; fecha del día sobre el título. Animaciones de una sola vez (aparición escalonada, el gráfico se descubre, las barras crecen, el monto cuenta hasta el valor nuevo al cambiar de período), quietas con "reducir movimiento".
   - [ ] **Configurar el superadmin real** con `npm run admin:setup` y cargar sus 4 variables en el hosting (`seguridad.md` §8).
   - [ ] **Aprobación del dueño** del diseño (capturas del panel en la rama).
   - [ ] **Etapa 2 — Panel real:**

@@ -5,11 +5,12 @@
    ========================================================= */
 /* Verde y rojo solo para variaciones y el gráfico (el naranja sigue reservado a "Oferta" y "Últimas unidades").
    Hex opacos: todos los pares de texto cumplen AA (lo verifica el e2e). */
-.pn,.pn-layer{--card:var(--tile);--pn-tint:#eaf2fd;--pn-sel:#e8f1fc;--pn-seg:#ffffff;--pn-up:#1d7a35;--pn-down:#d70015;--pn-up-t:#1d7a35;--pn-down-t:#d70015;--pn-up-bg:#e8f3eb;--pn-down-bg:#fdecee}
+.pn,.pn-layer{--cat-servicio:#0071e3;--cat-insumos:#248a3d;--cat-perifericos:#5e5ce6;--cat-redes:#0e7c86;--cat-componentes:#a43ccf;--cat-impresoras:#d6204e;--cat-notebooks:#8a6d48;--cat-pc:#636366;
+  --card:var(--tile);--pn-tint:#eaf2fd;--pn-sel:#e8f1fc;--pn-seg:#ffffff;--pn-up:#1d7a35;--pn-down:#d70015;--pn-up-t:#1d7a35;--pn-down-t:#d70015;--pn-up-bg:#e8f3eb;--pn-down-bg:#fdecee}
 .pn{min-height:100svh;background:var(--bg-alt);padding-bottom:max(64px,env(safe-area-inset-bottom))}
 body:has(.pn){background:var(--bg-alt)}
 :root[data-theme="dark"] body:has(.pn){background:var(--bg)}
-:root[data-theme="dark"] :is(.pn,.pn-layer){--pn-tint:#10233a;--pn-sel:#0f2a47;--pn-seg:#3a3a3c;--pn-up:#30d158;--pn-down:#ff453a;--pn-up-t:#30d158;--pn-down-t:#ff6961;--pn-up-bg:#16301d;--pn-down-bg:#3b1715}
+:root[data-theme="dark"] :is(.pn,.pn-layer){--cat-servicio:#0a84ff;--cat-insumos:#30d158;--cat-perifericos:#7d7aff;--cat-redes:#40c8e0;--cat-componentes:#bf5af2;--cat-impresoras:#ff375f;--cat-notebooks:#ac8e68;--cat-pc:#98989d;--pn-tint:#10233a;--pn-sel:#0f2a47;--pn-seg:#3a3a3c;--pn-up:#30d158;--pn-down:#ff453a;--pn-up-t:#30d158;--pn-down-t:#ff6961;--pn-up-bg:#16301d;--pn-down-bg:#3b1715}
 :root[data-theme="dark"] .pn{background:var(--bg)}
 .pn .ib,.pn-layer .ib{width:44px;height:44px}
 
@@ -26,6 +27,8 @@ body:has(.pn){background:var(--bg-alt)}
 
 /* Título grande y vuelta */
 .pn-main{padding-top:8px}
+.pn-eyebrow{margin-top:28px;font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text-2)}
+.pn-eyebrow+.pn-t{margin-top:2px}
 .pn-t{font-size:clamp(34px,5vw,48px);letter-spacing:-.03em;margin:24px 0 16px;outline:none}
 .pn-back{display:inline-flex;align-items:center;gap:4px;min-height:44px;margin-top:8px;font-size:17px;color:var(--link)}
 
@@ -60,8 +63,8 @@ body:has(.pn){background:var(--bg-alt)}
 
 /* Gráfico: SVG estirado + textos y guía en HTML encima */
 .pn-chart{position:relative;margin-top:28px}
-.pn-plot{position:relative;height:clamp(170px,24vw,230px);animation:pn-in .3s var(--ease)}
-@keyframes pn-in{from{opacity:0}}
+.pn-plot{position:relative;height:clamp(170px,24vw,230px)}
+.pn-plot::after{content:'';position:absolute;inset:-6px -2px -2px;z-index:1;background:var(--card);transform-origin:right;animation:pn-wipe .6s var(--ease) .1s both;pointer-events:none}
 .pn-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 .pn-l{fill:none;stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
 .pn-l-up{stroke:var(--pn-up)}
@@ -108,8 +111,6 @@ body:has(.pn){background:var(--bg-alt)}
 .pn-rt b{font-size:17px;font-weight:600;letter-spacing:-.015em;overflow-wrap:break-word;hyphens:auto}
 .pn-rt small{font-size:14px;line-height:1.4;color:var(--text-2)}
 .pn-amt{font-size:17px;font-weight:600;text-align:right;white-space:nowrap}
-.pn-tot{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding-top:14px;font-size:17px;font-weight:600}
-.pn-tot b{font-size:21px;letter-spacing:-.02em}
 .pn-how{margin-top:8px}
 .pn-how summary{display:flex;align-items:center;min-height:44px;font-size:15px;color:var(--link);cursor:pointer;list-style:none}
 .pn-how summary::-webkit-details-marker{display:none}
@@ -256,3 +257,41 @@ select.pn-in{padding-right:8px}
 
 /* Avisos del panel: abajo al centro (sin botón flotante de WhatsApp en el panel) */
 .pn-toasts{bottom:max(24px,env(safe-area-inset-bottom))}
+
+/* Encabezado de cada tarjeta con gráfico: título y, en la misma línea, el monto que representa */
+.pn-ch{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px}
+.pn-ch-v{display:flex;flex-direction:column;align-items:flex-end;text-align:right;margin-left:auto}
+.pn-ch-v b{font-family:var(--font-d);font-size:21px;font-weight:600;letter-spacing:-.02em;line-height:1.2}
+.pn-ch-v small{font-size:13px;color:var(--text-2)}
+
+/* Filas del desglose con mini gráfico de tendencia */
+.pn-row-s{grid-template-columns:44px minmax(0,1fr) auto auto}
+.pn-spark{width:72px;height:28px;overflow:visible}
+.pn-spark polyline{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.pn-spark.link polyline{stroke:var(--link)}
+.pn-spark.neutral polyline{stroke:var(--text-3)}
+@media (max-width:420px){.pn-row-s{grid-template-columns:44px minmax(0,1fr) auto}.pn-spark{display:none}}
+
+/* Reparto por categoría (barra segmentada) y su punto de color en cada fila */
+.pn-share{display:flex;gap:2px;height:10px;margin:18px 0 6px;border-radius:999px;overflow:hidden;transform-origin:left;animation:pn-grow-x .6s var(--ease) .2s backwards}
+.pn-share i{flex-basis:0;min-width:3px}
+.pn-cdot{display:inline-block;width:8px;height:8px;margin:0 8px 2px 0;border-radius:50%;vertical-align:middle}
+
+/* Período como control segmentado (como en Bolsa); las clases de los radios no cambian */
+.pn-gan .pn-chips{flex-wrap:nowrap;gap:0;padding:3px;border-radius:999px;background:var(--fill-2)}
+.pn-gan .pn-chip{flex:1 1 0;min-width:0}
+.pn-gan .pn-chip span{height:38px;padding:0 4px;background:none}
+.pn-gan .pn-chip input:checked+span{color:var(--text);background:var(--pn-seg);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+@media (max-width:420px){.pn-gan .pn-chip span{font-size:14px}}
+
+/* Movimiento: cada cosa aparece una vez y por una razón (orientar), solo con transform y opacity.
+   Con "reducir movimiento" la regla global deja todo quieto. */
+@keyframes pn-up{from{opacity:0;transform:translateY(16px)}}
+@keyframes pn-wipe{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+@keyframes pn-grow-x{from{transform:scaleX(0)}}
+.pn-grid>*,.pn-movl>.pn-group{animation:pn-up .6s var(--ease) backwards;animation-delay:calc(var(--i,0) * 70ms)}
+.pn-grid>:nth-child(2){--i:1}.pn-grid>:nth-child(3){--i:2}.pn-grid>:nth-child(4){--i:3}.pn-grid>:nth-child(5){--i:4}.pn-grid>:nth-child(6){--i:5}.pn-grid>:nth-child(7){--i:6}
+.pn-movl>.pn-group:nth-of-type(2){--i:1}.pn-movl>.pn-group:nth-of-type(3){--i:2}
+.pn-bar{animation:pn-grow-x .6s var(--ease) backwards;animation-delay:calc(var(--i,0) * 60ms + .2s)}
+/* Con "reducir movimiento" tampoco hay esperas escalonadas: todo aparece de una */
+@media (prefers-reduced-motion:reduce){.pn *,.pn *::after{animation-delay:0s!important}}

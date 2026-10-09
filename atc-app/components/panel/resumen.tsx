@@ -11,6 +11,7 @@ import { MasVendidos } from './mas-vendidos';
 import { Ultimos } from './ultimos';
 import { RANGES, delta, periodo, porCategoria, serie, totales, type RangeId } from '@/lib/panel/stats';
 import { fmtMonto, fmtPct } from '@/lib/format';
+import { resultado } from '@/lib/panel/types';
 
 // Resumen del panel: el período elegido manda en todas las tarjetas.
 export function Resumen() {
@@ -22,6 +23,11 @@ export function Resumen() {
   const prev = useMemo(() => totales(idx, per.prevFrom, per.prevTo), [idx, per]);
   const s = useMemo(() => serie(idx, per), [idx, per]);
   const cats = useMemo(() => porCategoria(idx, per), [idx, per]);
+  const sparks = useMemo(() => ({
+    ventas: serie(idx, per, m => (m.kind === 'venta' ? resultado(m) : 0)).map(b => b.valor),
+    servicio: serie(idx, per, m => (m.kind === 'reparacion' ? resultado(m) : 0)).map(b => b.valor),
+    gastos: serie(idx, per, m => (m.kind === 'gasto' ? m.amount : 0)).map(b => b.valor),
+  }), [idx, per]);
 
   // El cambio de período se anuncia (no al cargar la página).
   const lastRange = useRef(range);
@@ -37,10 +43,10 @@ export function Resumen() {
       <div className="pn-grid">
         <Aviso />
         <Ganancia range={range} onRange={setRange} total={t.ganancia} prev={prev.ganancia} serie={s} />
-        <Desglose t={t} />
+        <Desglose t={t} sparks={sparks} />
         <Acciones />
         <Categorias cats={cats} />
-        <MasVendidos per={per} />
+        <MasVendidos per={per} t={t} />
         <Ultimos />
       </div>
       <p className="sr" role="status" id="pn-anuncio">{msg}</p>
