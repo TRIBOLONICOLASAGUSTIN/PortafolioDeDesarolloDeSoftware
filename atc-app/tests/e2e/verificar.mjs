@@ -219,7 +219,7 @@ for (const scheme of ['light', 'dark']) {
 // como lista. En celular se lee solo la pieza actual, debajo del dibujo. Sin WebGL queda el despiece en CSS.
 const despiece = async (p, f) => {
   await p.evaluate(f => { const td = document.getElementById('despiece'); const top = td.getBoundingClientRect().top + scrollY; const stage = td.querySelector('.td-stage').offsetHeight; scrollTo({ top: top - 52 + f * Math.max(0, td.offsetHeight - stage), behavior: 'instant' }); }, f);
-  await p.waitForTimeout(500);
+  await p.waitForTimeout(1400);
   return p.evaluate(() => {
     const td = document.getElementById('despiece'), is3d = td.classList.contains('td-3d');
     const dotY = a => td.querySelector(`.td-tags li[data-a="${a}"] .dot`).getBoundingClientRect().top;
@@ -227,7 +227,10 @@ const despiece = async (p, f) => {
     const draw = td.querySelector(is3d ? '.td-canvas' : '.td-rig').getBoundingClientRect();
     return { is3d, tris: +(td.querySelector('.td-canvas').dataset.tris || 0), spread: Math.round(dotY('ssd') - dotY('screen')),
       o: [...td.querySelectorAll('.td-tags li')].map(l => +(+getComputedStyle(l).opacity).toFixed(2)), h: +(td.offsetHeight / innerHeight).toFixed(2),
-      under: vis.every(l => l.getBoundingClientRect().top >= draw.bottom - 2), drawH: Math.round(draw.height) };
+      under: vis.every(l => l.getBoundingClientRect().top >= draw.bottom - 2), drawH: Math.round(draw.height),
+      fase: td.dataset.fase, pd: +(td.dataset.p || 0), raf: td.dataset.raf || '0', vis: vis.map(l => l.dataset.a).sort().join(','),
+      fill: (getComputedStyle(td.querySelector('.td-prog-fill')).transform.match(/matrix\(([^)]+)\)/)?.[1].split(',').map(Number)[3]) ?? 0,
+      glass: getComputedStyle(td.querySelector('.td-tags .tx')).backdropFilter, td_on: document.documentElement.classList.contains('td-on') };
   });
 };
 for (const [w, h, rm] of [[1440, 900, 'no-preference'], [1440, 900, 'reduce'], [390, 844, 'no-preference']]) {
@@ -241,7 +244,14 @@ for (const [w, h, rm] of [[1440, 900, 'no-preference'], [1440, 900, 'reduce'], [
   check('despiece', `modelo 3D dibujado (${tag})`, b.is3d && b.tris > 1000 && b.drawH > 200, JSON.stringify({ is3d: b.is3d, tris: b.tris, drawH: b.drawH }));
   if (rm === 'reduce') check('despiece', `quieto y desarmado con etiquetas (${tag})`, b.h < 1.5 && Math.abs(a.spread - b.spread) < 2 && b.spread > 150 && b.o.every(o => o === 1), JSON.stringify({ a, b }));
   else if (w < 1069) check('despiece', `la pieza actual se lee debajo del dibujo (${tag})`, a.o.every(o => o === 0) && b.o.filter(o => o > .5).length === 1 && b.under, JSON.stringify({ a, b }));
-  else check('despiece', `con el scroll se abre, se desarma y aparecen las etiquetas (${tag})`, b.spread - a.spread > 150 && a.o.every(o => o === 0) && b.o.every(o => o === 1) && b.h > 2, JSON.stringify({ a, b }));
+  else {
+    check('despiece', `con el scroll se abre, se desarma y aparecen las etiquetas (${tag})`, b.spread - a.spread > 150 && a.o.every(o => o === 0) && b.o.every(o => o === 1) && b.h > 2, JSON.stringify({ a, b }));
+    // Tres fases: F1 cerrada sin etiquetas · F2 se ve la placa (conector de carga y disco) · F3 las cinco
+    const f1 = await despiece(p, .1), f2 = await despiece(p, .42);
+    check('despiece', `fases: F1 sin etiquetas, F2 placa y disco, F3 las cinco (${tag})`, f1.fase === '1' && f1.vis === '' && f2.fase === '2' && f2.vis === 'port,ssd' && b.fase === '3' && b.vis === 'fan,keys,port,screen,ssd', JSON.stringify({ f1: [f1.fase, f1.vis], f2: [f2.fase, f2.vis], f3: [b.fase, b.vis] }));
+    check('despiece', `barra de progreso e inercia que se detiene al llegar (${tag})`, a.fill < .01 && b.fill > .99 && Math.abs(b.pd - 1) < .002 && b.raf === '0' && f2.raf === '0' && Math.abs(f2.pd - .42) < .005, JSON.stringify({ a: [a.fill, a.pd], f2: [f2.pd, f2.raf], b: [b.fill, b.pd, b.raf] }));
+    check('despiece', `etiquetas de vidrio y saludo de WhatsApp oculto durante el despiece (${tag})`, /blur/.test(b.glass) && b.td_on, JSON.stringify({ glass: b.glass, td_on: b.td_on }));
+  }
   check('despiece', `escena decorativa y piezas como lista (${tag})`, s.hidden && s.items === 5, JSON.stringify(s));
   await ctx.close();
 }

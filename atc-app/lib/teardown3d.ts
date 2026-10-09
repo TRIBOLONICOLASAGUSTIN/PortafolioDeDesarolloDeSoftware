@@ -24,8 +24,9 @@ export type Teardown3D = {
 const W = 30.4, D = 21.2;
 const clamp = (v: number) => Math.min(1, Math.max(0, v));
 const smooth = (t: number) => t * t * (3 - 2 * t);
-/** Fases del recorrido: se abre la tapa y después se separan las piezas */
-export const phases = (p: number) => ({ open: smooth(clamp((p - .04) / .28)), apart: smooth(clamp((p - .36) / .42)) });
+/** Fases del recorrido: F1 cerrada (giro lento) · F2 se abre la tapa y se despega la cubierta inferior · F3 despiece completo */
+export const phases = (p: number) => ({ turn: smooth(clamp(p / .18)), f2: smooth(clamp((p - .18) / .3)), f3: smooth(clamp((p - .48) / .37)) });
+export const faseOf = (p: number) => (p < .18 ? 1 : p < .48 ? 2 : 3);
 
 function roundedRect(w: number, d: number, r: number) {
   const s = new Shape(), x = -w / 2, y = -d / 2;
@@ -145,29 +146,38 @@ export function mount(canvas: HTMLCanvasElement): Teardown3D {
   add(board, geo(new RoundedBoxGeometry(26.6, .14, 8.6, 2, .1)), pcb, 0, .48, -5.4);
   add(board, geo(new BoxGeometry(3.2, .2, 3.2)), silver, 1.6, .65, -5.4);
   const ramG = geo(new BoxGeometry(6.4, .1, 2.4)), chipG = geo(new BoxGeometry(1.1, .1, .8));
-  [-7.2, -4.2].forEach(z => { add(board, ramG, ram, 8.4, .6, z); [6.3, 7.7, 9.1, 10.5].forEach(x => add(board, chipG, keyMat, x, .68, z)); });
-  [[-4.6, -3.2], [-3, -8.2], [5, -2.6], [12.2, -3]].forEach(([x, z]) => add(board, geo(new BoxGeometry(1.4, .12, 1)), keyMat, x, .6, z));
+  [-3.6, 4.4].forEach(x => { add(board, ramG, ram, x, .6, -2.6); [-2.4, -.8, .8, 2.4].forEach(dx => add(board, chipG, keyMat, x + dx, .68, -2.6)); });
+  [[-1.6, -8.6], [5.6, -8.6], [11.8, -2.6], [-11.8, -2.6]].forEach(([x, z]) => add(board, geo(new BoxGeometry(1.4, .12, 1)), keyMat, x, .6, z));
+  const choke = geo(new BoxGeometry(.72, .46, .72)), capG = geo(new CylinderGeometry(.24, .24, .42, 16));
+  [4.3, 5.2, 6.1].forEach(x => add(board, choke, fanMat, x, .73, -5));
+  [4.3, 5.2, 6.1].forEach(x => add(board, capG, silver, x, .71, -6.3));
+  [-.6, .3].forEach(x => add(board, capG, silver, x, .71, -7.6));
   const port = add(board, geo(new BoxGeometry(.6, .38, 1.1)), silver, 13.3, .66, -6.6);
 
   // Refrigeración: ventilador, caño de calor de cobre y aletas
   const cool = new Group(); model.add(cool);
-  const fanC = new Vector3(-9, .78, -5.8);
-  add(cool, geo(new CylinderGeometry(2.6, 2.6, .5, 48, 1, true)), fanMat, fanC.x, fanC.y, fanC.z);
-  add(cool, geo(new CylinderGeometry(2.62, 2.62, .04, 48)), fanMat, fanC.x, fanC.y - .24, fanC.z);
-  add(cool, geo(new CylinderGeometry(.75, .75, .52, 24)), silver, fanC.x, fanC.y, fanC.z);
-  const blades = new InstancedMesh(geo(new BoxGeometry(1.75, .04, .55)), fanMat, 11); cool.add(blades);
-  const m4 = new Matrix4(), q = new Quaternion(), up = new Vector3(0, 1, 0);
-  for (let i = 0; i < 11; i++) {
-    const a = i / 11 * Math.PI * 2;
-    q.setFromAxisAngle(up, a).multiply(new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), .35));
-    m4.compose(new Vector3(fanC.x + Math.cos(a) * 1.65, fanC.y, fanC.z - Math.sin(a) * 1.65), q, new Vector3(1, 1, 1));
-    blades.setMatrixAt(i, m4);
-  }
-  const pipe = new CatmullRomCurve3([new Vector3(1.6, .82, -5.4), new Vector3(-2.5, .86, -7.4), new Vector3(-6.4, .86, -9.2), new Vector3(-9.2, .86, -9.6)]);
-  add(cool, geo(new TubeGeometry(pipe, 48, .2, 12)), copper, 0, 0, 0);
+  const fanC = new Vector3(-9, .78, -5.8), fanR = new Vector3(9.5, .78, -5.8);
+  const shell = geo(new CylinderGeometry(2.6, 2.6, .5, 48, 1, true)), floorG = geo(new CylinderGeometry(2.62, 2.62, .04, 48)), hubG = geo(new CylinderGeometry(.75, .75, .52, 24));
+  const bladeG = geo(new BoxGeometry(1.75, .04, .55));
+  const m4 = new Matrix4(), q = new Quaternion(), up = new Vector3(0, 1, 0), tilt = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), .35);
+  const fan = (c: Vector3) => {
+    add(cool, shell, fanMat, c.x, c.y, c.z); add(cool, floorG, fanMat, c.x, c.y - .24, c.z); add(cool, hubG, silver, c.x, c.y, c.z);
+    const blades = new InstancedMesh(bladeG, fanMat, 11); cool.add(blades);
+    for (let i = 0; i < 11; i++) {
+      const a = i / 11 * Math.PI * 2;
+      q.setFromAxisAngle(up, a).multiply(tilt);
+      m4.compose(new Vector3(c.x + Math.cos(a) * 1.65, c.y, c.z - Math.sin(a) * 1.65), q, new Vector3(1, 1, 1));
+      blades.setMatrixAt(i, m4);
+    }
+  };
+  fan(fanC); fan(fanR);
+  const pipeL = new CatmullRomCurve3([new Vector3(1.6, .82, -5.4), new Vector3(-2.5, .86, -7.4), new Vector3(-6.4, .86, -9.2), new Vector3(-9.2, .86, -9.6)]);
+  const pipeR = new CatmullRomCurve3([new Vector3(1.6, .82, -5.4), new Vector3(4.8, .86, -7.9), new Vector3(7.6, .86, -9.3), new Vector3(9.8, .86, -9.6)]);
+  add(cool, geo(new TubeGeometry(pipeL, 48, .2, 12)), copper, 0, 0, 0);
+  add(cool, geo(new TubeGeometry(pipeR, 48, .2, 12)), copper, 0, 0, 0);
   add(cool, geo(new BoxGeometry(3.4, .08, 3.4)), copper, 1.6, .79, -5.4);
   const finG = geo(new BoxGeometry(.06, .55, 1.5));
-  for (let i = 0; i < 18; i++) add(cool, finG, silver, -11.4 + i * .3, .72, -9.7);
+  for (let i = 0; i < 18; i++) { add(cool, finG, silver, -11.4 + i * .3, .72, -9.7); add(cool, finG, silver, 7.2 + i * .3, .72, -9.7); }
 
   // Tapa superior: aluminio, teclado (teclas instanciadas) y trackpad. La bisagra va en el borde de atrás
   const deck = new Group(); model.add(deck);
@@ -183,7 +193,8 @@ export function mount(canvas: HTMLCanvasElement): Teardown3D {
   // La fila de arriba (teclas de función) es más baja
   slots.forEach(([x, z, sx], i) => { const fn = z < -7; m4.compose(new Vector3(x, .38, fn ? z + .25 : z), new Quaternion(), new Vector3(sx, 1, fn ? .62 : 1)); keys.setMatrixAt(i, m4); });
   add(deck, geo(new RoundedBoxGeometry(12.4, .04, 7.4, 2, .02)), pad, 0, .31, 6.2);
-  const hinge = add(deck, geo(new CylinderGeometry(.34, .34, 21, 24)), dark, 0, .05, -10.3); hinge.rotation.z = Math.PI / 2;
+  const hingeG = geo(new CylinderGeometry(.34, .34, 3.4, 24));
+  [-8.6, 8.6].forEach(x => { const hg = add(deck, hingeG, silver, x, .05, -10.3); hg.rotation.z = Math.PI / 2; });
 
   // Pantalla (tapa): dorso de aluminio sin logo y, del lado de adentro, el vidrio con la pantalla encendida
   const lidPivot = new Group(); model.add(lidPivot);
@@ -192,6 +203,8 @@ export function mount(canvas: HTMLCanvasElement): Teardown3D {
   add(lid, geo(new BoxGeometry(W - .5, .02, D - .8)), glass, 0, -.01, 10.4);
   const scr = add(lid, geo(new PlaneGeometry(W - 1.7, D - 2.6)), screen, 0, -.025, 10.6); scr.rotation.x = Math.PI / 2;
   (scr.material as Material).side = DoubleSide;
+  const hingeBlock = geo(new RoundedBoxGeometry(3.4, .4, 1.1, 2, .12));
+  [-8.6, 8.6].forEach(x => add(lid, hingeBlock, silver, x, .05, .55));
 
   // Tornillos que se sueltan
   const screwG = geo(new CylinderGeometry(.22, .22, .5, 12));
@@ -205,29 +218,30 @@ export function mount(canvas: HTMLCanvasElement): Teardown3D {
 
   let p = 0, w = 1, h = 1;
   const fit = () => {
-    const { open, apart } = phases(p);
-    const hgt = 6 + 16 * open + 21 * apart, wid = 38;
+    const { f2, f3 } = phases(p);
+    const hgt = 6 + 31 * f2 + 6 * f3, wid = 38;
     const t = Math.tan((camera.fov * Math.PI / 180) / 2);
     const dist = Math.max(hgt / 2 / t, wid / 2 / (t * camera.aspect)) * 1.12 + 12;
     const dir = new Vector3(0, .5, 1).normalize();
     camera.position.copy(dir.multiplyScalar(dist)); camera.lookAt(0, 0, 0);
   };
   const layout = () => {
-    const { open, apart } = phases(p);
-    // Separación calculada para que, desde la cámara (arriba y adelante), ninguna pieza tape a la de abajo:
-    // la placa y la refrigeración avanzan 5 cm y el teclado sube lo suficiente para dejarlas a la vista.
-    model.rotation.y = -.5 + .2 * open + .15 * apart;
-    model.position.y = -1.2 - 6 * open - 10.5 * apart;
-    base.position.y = 0;
-    batt.position.set(0, 1.4 * apart, 0);
-    ssd.position.copy(ssdHome).add(new Vector3(2.4 * apart, 2.2 * apart, .6 * apart));
-    board.position.set(0, 4.2 * apart, 5 * apart);
-    cool.position.set(0, 7.8 * apart, 7.5 * apart);
-    deck.position.set(0, .95 + 14.4 * apart, 0);
-    lidPivot.position.set(0, 1.27 + 17.8 * apart, -10.3 - 1.4 * apart);
-    lidPivot.rotation.x = -1.95 * open + .28 * apart;
-    screws.forEach(({ s, x, z }, i) => s.position.set(x * (1 + .1 * apart), .7 + (2.6 + (i % 3) * .9) * apart, z * (1 + .12 * apart)));
-    shadowMat.opacity = .9 - .3 * apart;
+    const { turn, f2, f3 } = phases(p);
+    // F2: la tapa se abre a 65°, el conjunto superior sube y la cubierta inferior baja: quedan a la vista placa y batería.
+    // F3: despiece completo. Las trayectorias están calculadas para que, desde la cámara (arriba y adelante), ninguna
+    // pieza tape a la de abajo: la placa y la refrigeración avanzan y el teclado sube lo suficiente para dejarlas a la vista.
+    model.rotation.y = -.62 + .14 * turn + .18 * f2 + .15 * f3;
+    model.position.y = -1.2 - 10 * f2 - 6.5 * f3;
+    base.position.y = -2.8 * f2 - .4 * f3;
+    batt.position.set(0, .3 * f2 + 1.1 * f3, 0);
+    ssd.position.copy(ssdHome).add(new Vector3(2.4 * f3, .3 * f2 + 1.9 * f3, .6 * f3));
+    board.position.set(0, 1.2 * f2 + 3 * f3, 4.5 * f2 + .5 * f3);
+    cool.position.set(0, 1.2 * f2 + 6.6 * f3, 4.5 * f2 + 3 * f3);
+    deck.position.set(0, .95 + 12 * f2 + 2.4 * f3, 0);
+    lidPivot.position.set(0, 1.27 + 12 * f2 + 5.8 * f3, -10.3 - 1.4 * f3);
+    lidPivot.rotation.x = -1.13 * f2 - .55 * f3;
+    screws.forEach(({ s, x, z }, i) => s.position.set(x * (1 + .1 * f3), .7 - 2.8 * f2 + (5.4 + (i % 3) * .9) * f3, z * (1 + .12 * f3)));
+    shadowMat.opacity = .9 - .3 * f3;
   };
   // data-tris: triángulos dibujados en el último cuadro (las pruebas verifican que WebGL dibujó)
   const render = () => { layout(); fit(); renderer.render(scene, camera); canvas.dataset.tris = String(renderer.info.render.triangles); };

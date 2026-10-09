@@ -22,7 +22,9 @@
 .td-3d .td-scene{padding-top:calc(var(--s)*1.8)}
 .td-3d .td-canvas{display:block}
 .td-3d .td-rig{display:none}
-.td-3d .td-scene::before{content:'';position:absolute;left:50%;top:0;width:min(980px,100%);height:calc(var(--s)*1.8);transform:translateX(-50%);background:radial-gradient(46% 52% at 50% 56%,rgba(150,160,185,.2),rgba(150,160,185,.05) 55%,transparent 75%);pointer-events:none}
+/* Luz de estudio: destellos azul y violeta muy tenues sobre el negro, y un halo neutro detrás del modelo */
+.td-3d .td-scene::before{content:'';position:absolute;left:50%;top:0;width:min(1040px,100%);height:calc(var(--s)*1.8);transform:translateX(-50%);pointer-events:none;
+  background:radial-gradient(36% 40% at 40% 58%,rgba(41,151,255,.13),transparent 70%),radial-gradient(34% 40% at 62% 46%,rgba(94,92,230,.14),transparent 72%),radial-gradient(48% 54% at 50% 56%,rgba(150,160,185,.1),transparent 76%)}
 .l0{--z:0;--dz:0;--t:.026}
 .l1{--z:.006;--dz:.22}
 .l2{--z:.014;--dz:.5}
@@ -67,13 +69,28 @@
   .td-live .td-tags .dot{display:block;width:10px;height:10px;border-radius:50%;background:#f5f5f7;box-shadow:0 0 0 4px rgba(245,245,247,.18)}
   .td-live .td-tags .ln{display:block;width:100px;height:1px;transform-origin:0 0;background:rgba(245,245,247,.38)}
   .td-live .td-tags .lv{display:block;width:1px;height:100px;transform-origin:0 0;background:rgba(245,245,247,.38)}
-  .td-live .td-tags .tx{width:236px}
+  .td-live .td-tags .tx{width:250px}
   .td-live .td-tags .l .tx{text-align:right}
 }
+/* Etiquetas de vidrio esmerilado (en la escena con JS) */
+.td-live .td-tags .tx{padding:12px 14px;border-radius:18px;background:rgba(255,255,255,.05);-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.12)}
+
+/* Mientras el despiece está en pantalla, el saludo de WhatsApp no tapa las etiquetas (vuelve al salir) */
+.td-on .wa-greet.show{opacity:0;transform:translateY(8px);pointer-events:none}
+
+/* Barra de progreso vertical (decorativa): relleno por scaleY y una marca por fase (cerrada, abierta, desarmada) */
+.td-prog{display:none}
+.td-scroll .td-prog{display:block;position:absolute;right:0;top:50%;width:2px;height:min(180px,24svh);transform:translateY(-50%);border-radius:2px;background:rgba(245,245,247,.14)}
+.td-prog-fill{position:absolute;inset:0;border-radius:inherit;background:#f5f5f7;transform:scaleY(0);transform-origin:top}
+.td-prog-m{position:absolute;left:50%;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:#000;box-shadow:inset 0 0 0 1.5px rgba(245,245,247,.4);transition:box-shadow .15s}
+.td-prog-m.on{box-shadow:inset 0 0 0 4px #f5f5f7}
+.m1{top:0}.m2{top:48%}.m3{top:85%}
+
 /* Pantallas angostas con scroll: debajo de la escena se lee solo la pieza actual */
 @media (max-width:1068px){
   .td-scene{--s:min(320px,66vw,38vh)}
-  .td-scroll .td-tags{grid-template-columns:1fr;width:min(100%,420px);min-height:68px;text-align:center}
+  .td-scroll .td-tags{grid-template-columns:1fr;width:min(100%,420px);min-height:92px;text-align:center}
+  .td-scroll .td-prog{right:-8px;width:1.5px;height:min(140px,20svh)}
   .td-scroll .td-tags li{grid-area:1/1;transition:opacity .3s var(--ease)}
 }
 @media (prefers-reduced-motion:reduce){

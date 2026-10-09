@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useReducedMotion } from './app-shell';
 import { TEARDOWN } from '@/lib/data/service';
-import type { Teardown3D } from '@/lib/teardown3d';
+import type { Teardown3D, phases as Phases } from '@/lib/teardown3d';
 
 // Despiece de la notebook (al estilo de las páginas de producto de Apple): con el scroll la notebook se abre, se separa
 // en piezas y aparece qué repara el técnico en cada una. Con WebGL se ve el modelo 3D de lib/teardown3d.ts (se descarga
@@ -129,8 +129,12 @@ export function Teardown() {
     const anchors = tags.map(t => el.querySelector<SVGElement>(`[data-a="${t.dataset.a}"]`)!);
     const rig = el.querySelector<HTMLElement>('.td-rig')!;
     const wide = matchMedia('(min-width:1069px)');
-    let t3d: Teardown3D | null = null, phases3d: ((p: number) => { open: number; apart: number }) | null = null;
-    let p = reduce ? 1 : 0, alive = true;
+    const fill = el.querySelector<HTMLElement>('.td-prog-fill')!, marks = [...el.querySelectorAll<HTMLElement>('.td-prog-m')];
+    let t3d: Teardown3D | null = null, phases3d: typeof Phases | null = null;
+    // p: avance dibujado; target: el del scroll. El dibujado lo sigue con inercia (como el "scrub" de GSAP, sin la
+    // librería), en función del tiempo y no de los cuadros: llega igual en un equipo lento. El rAF corre solo mientras
+    // hay diferencia y se detiene al llegar.
+    let target = reduce ? 1 : 0, p = target, raf = 0, last = 0, alive = true;
     el.classList.add('td-live');
 
     // Etiquetas pegadas a su pieza (solo en pantallas anchas): punto en la pieza, línea guía y texto en una columna
@@ -146,18 +150,18 @@ export function Teardown() {
         if (t3d) return t3d.anchor(t.dataset.a!);
         const a = anchors[i].getBoundingClientRect(); return { x: a.left + a.width / 2 - s.left, y: a.top + a.height / 2 - s.top };
       });
-      const ty: number[] = pts.map(q => q.y - 11);
+      const ty: number[] = pts.map(q => q.y - 23);
       for (const side of ['l', 'r']) {
         const idx = tags.map((_, i) => i).filter(i => tags[i].classList.contains(side)).sort((a, b) => pts[a].y - pts[b].y);
         let floor = -Infinity;
-        for (const i of idx) { ty[i] = Math.max(ty[i], floor); floor = ty[i] + (tags[i].children[3] as HTMLElement).offsetHeight + 14; }
+        for (const i of idx) { ty[i] = Math.max(ty[i], floor); floor = ty[i] + (tags[i].children[3] as HTMLElement).offsetHeight + 12; }
       }
       tags.forEach((t, i) => {
         const { x: ax, y: ay } = pts[i];
         const left = t.classList.contains('l'), edge = left ? colL : colR;
         const [dot, ln, lv, tx] = t.children as unknown as HTMLElement[];
         const x0 = left ? edge + 6 : ax + 9, len = Math.max(0, left ? ax - 9 - x0 : edge - 6 - x0);
-        const drop = Math.max(0, ty[i] + 11 - ay), vx = left ? edge + 6 : edge - 6;
+        const drop = Math.max(0, ty[i] + 23 - ay), vx = left ? edge + 6 : edge - 6;
         dot.style.transform = `translate(${(ax - 5).toFixed(1)}px,${(ay - 5).toFixed(1)}px)`;
         ln.style.transform = `translate(${x0.toFixed(1)}px,${ay.toFixed(1)}px) scaleX(${(len / 100).toFixed(3)})`;
         lv.style.transform = `translate(${vx.toFixed(1)}px,${ay.toFixed(1)}px) scaleY(${(drop / 100).toFixed(3)})`;
@@ -165,12 +169,21 @@ export function Teardown() {
       });
     };
 
-    // Aplica el avance: notebook (3D o CSS) y etiquetas. En pantallas angostas se lee solo la pieza actual
+    // Aplica el avance: notebook (3D o CSS), etiquetas por fase y barra de progreso. En pantallas angostas se lee solo
+    // la pieza actual. data-fase / data-p quedan a la vista para las pruebas.
     const apply = () => {
       const e = smooth(clamp((p - .08) / .62));
       el.style.setProperty('--e', e.toFixed(4));
-      const reveal = phases3d ? phases3d(p).apart : e, from = phases3d ? .28 : .45, step = phases3d ? .14 : .1;
-      const shown = tags.map(t => (reduce ? 1 : clamp((reveal - (from + step * +t.dataset.k!)) / .14)));
+      el.dataset.fase = String(p < .18 ? 1 : p < .48 ? 2 : 3); el.dataset.p = p.toFixed(3);
+      const ph = phases3d?.(p);
+      const shown = tags.map(t => {
+        if (reduce) return 1;
+        const k = +t.dataset.k!;
+        if (!ph) return clamp((e - (.45 + .1 * +t.dataset.g!)) / .12);
+        return t.dataset.f === '2' ? clamp((ph.f2 - (.55 + .15 * k)) / .2) : clamp((ph.f3 - (.35 + .15 * k)) / .2);
+      });
+      fill.style.transform = `scaleY(${p.toFixed(4)})`;
+      marks.forEach(m => m.classList.toggle('on', p >= +m.dataset.m! - .001));
       const cur = shown.reduce((c, o, i) => (o > .5 ? i : c), -1);
       tags.forEach((t, i) => t.style.setProperty('--o', (wide.matches || reduce ? shown[i] : i === cur ? 1 : 0).toFixed(3)));
       t3d?.set(p);
@@ -192,20 +205,34 @@ export function Teardown() {
     const ro = new ResizeObserver(() => { t3d?.resize(); place(); });
     ro.observe(scene);
 
+    const step = (now: number) => {
+      raf = 0;
+      const dt = last ? Math.min(1000, now - last) : 16; last = now;
+      const d = target - p;
+      p = Math.abs(d) < .0005 ? target : p + d * (1 - Math.exp(-dt / 120));
+      apply();
+      if (p !== target) raf = requestAnimationFrame(step); else last = 0;
+      el.dataset.raf = raf ? '1' : '0';
+    };
     let ticking = false;
     const frame = () => {
       ticking = false;
       const r = el.getBoundingClientRect();
+      // Mientras el despiece está en pantalla, el saludo de WhatsApp se esconde para no tapar las etiquetas
+      document.documentElement.classList.toggle('td-on', r.top < innerHeight * .5 && r.bottom > innerHeight * .5);
       if (r.bottom < -100 || r.top > innerHeight + 100) return;
-      p = clamp(-r.top / Math.max(1, r.height - stage.offsetHeight));
-      apply();
+      // El avance arranca cuando el escenario queda fijo debajo del nav (su top de sticky) y termina cuando se suelta
+      const pin = parseFloat(getComputedStyle(stage).top) || 0;
+      target = clamp((pin - r.top) / Math.max(1, r.height - stage.offsetHeight));
+      if (!raf && target !== p) { el.dataset.raf = '1'; raf = requestAnimationFrame(step); }
     };
     const onScroll = () => { if (!ticking) { ticking = true; requestAnimationFrame(frame); } };
     if (reduce) { el.classList.remove('td-scroll'); apply(); }
     else { el.classList.add('td-scroll'); addEventListener('scroll', onScroll, { passive: true }); frame(); }
     addEventListener('resize', onScroll);
     return () => {
-      alive = false; io.disconnect(); ro.disconnect();
+      alive = false; io.disconnect(); ro.disconnect(); cancelAnimationFrame(raf);
+      document.documentElement.classList.remove('td-on');
       removeEventListener('scroll', onScroll); removeEventListener('resize', onScroll);
       t3d?.dispose();
     };
@@ -214,6 +241,10 @@ export function Teardown() {
   return (
     <div className="td" id="despiece" ref={root}>
       <div className="td-stage">
+        <div className="td-prog" aria-hidden="true">
+          <i className="td-prog-fill"></i>
+          {[0, .48, .85].map((m, i) => <i key={m} className={`td-prog-m m${i + 1}`} data-m={m}></i>)}
+        </div>
         <div className="td-copy">
           <h3>Conocemos cada pieza.</h3>
           <p>Abrimos tu equipo, encontramos la falla y te pasamos el presupuesto antes de reparar.</p>
@@ -230,7 +261,7 @@ export function Teardown() {
           </div>
           <ol className="td-tags">
             {TEARDOWN.map(t => (
-              <li key={t.a} className={t.side} data-a={t.a} data-k={t.k}>
+              <li key={t.a} className={t.side} data-a={t.a} data-f={t.f} data-k={t.k} data-g={t.g}>
                 <i className="dot"></i><i className="ln"></i><i className="lv"></i>
                 <span className="tx"><b>{t.t}</b><small>{t.d}</small></span>
               </li>
