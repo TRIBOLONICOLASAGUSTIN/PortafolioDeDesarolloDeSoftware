@@ -210,3 +210,42 @@ body:has(.pn){background:var(--bg-alt)}
 .pn-day-n{margin-top:2px;font-size:14px;color:var(--text-2)}
 .pn-day-n b{font-weight:600;color:var(--text)}
 .pn-more{justify-self:center;min-height:46px}
+
+/* Acciones (cuatro botones con ícono) */
+.pn-acts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+.pn-act{display:flex;flex-direction:column;align-items:center;gap:8px;min-height:44px;padding:6px 2px;border-radius:18px;font-size:14px;font-weight:500;line-height:1.25;text-align:center;color:var(--text);transition:background-color .15s}
+@media (hover:hover){.pn-act:hover{background:var(--fill-2)}}
+.pn-act-i{display:grid;place-items:center;flex:none;width:48px;height:48px;border-radius:50%;color:var(--link);background:var(--pn-sel)}
+.pn-aviso-btn{display:inline-flex;align-items:center;min-height:44px;margin-top:2px;font-size:15px;font-weight:600;color:var(--link)}
+
+/* Hoja de opciones */
+.pn-opts{list-style:none;display:grid;gap:10px;margin:20px 0 0;padding:0}
+.pn-opt{display:grid;grid-template-columns:48px minmax(0,1fr);align-items:center;gap:14px;width:100%;padding:14px;border-radius:18px;text-align:left;background:var(--bg-alt);transition:background-color .15s}
+@media (hover:hover){.pn-opt:hover{background:var(--fill)}}
+
+/* Formularios */
+.pn-form{display:grid;gap:18px;margin-top:20px}
+.pn-fld{display:grid;gap:6px;min-width:0}
+.pn-fld>label,.pn-lab{font-size:15px;font-weight:600}
+.pn-fld .pn-chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin:0}
+.pn-in{width:100%;min-width:0;min-height:48px;padding:0 14px;border:0;border-radius:12px;font-size:17px;color:var(--text);background:var(--bg);box-shadow:inset 0 0 0 1px var(--field)}
+.pn-in:focus{outline:2px solid var(--accent);outline-offset:1px}
+.pn-in[aria-invalid="true"]{box-shadow:inset 0 0 0 2px var(--danger)}
+select.pn-in{padding-right:8px}
+.pn-money{position:relative;display:block}
+.pn-money>span{position:absolute;left:14px;top:50%;translate:0 -50%;font-size:17px;color:var(--text-2);pointer-events:none}
+.pn-money .pn-in{padding-left:32px}
+.pn-qty{display:grid;grid-template-columns:48px minmax(0,1fr) 48px;gap:8px;max-width:240px}
+.pn-qty button{display:grid;place-items:center;height:48px;border-radius:12px;color:var(--text);background:var(--fill-2)}
+.pn-qty .pn-in{text-align:center}
+.pn-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.pn-hint{font-size:14px;line-height:1.4;color:var(--text-2)}
+.pn-err{font-size:14px;font-weight:500;color:var(--danger)}
+.pn-prev{padding:14px 16px;border-radius:18px;font-size:15px;line-height:1.5;background:var(--bg-alt)}
+.pn-warn{display:flex;align-items:center;gap:6px;margin-top:6px;font-weight:500}
+.pn-count-r{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.pn-reg{min-height:44px}
+@media (max-width:420px){.pn-2{grid-template-columns:1fr}}
+
+/* Avisos del panel: abajo al centro (sin botón flotante de WhatsApp en el panel) */
+.pn-toasts{bottom:max(24px,env(safe-area-inset-bottom))}

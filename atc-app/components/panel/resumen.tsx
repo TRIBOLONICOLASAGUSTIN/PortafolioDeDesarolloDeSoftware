@@ -5,6 +5,7 @@ import { usePanel } from './panel-shell';
 import { Ganancia } from './ganancia';
 import { Desglose } from './desglose';
 import { Aviso } from './aviso';
+import { Acciones } from './acciones';
 import { Categorias } from './categorias';
 import { MasVendidos } from './mas-vendidos';
 import { Ultimos } from './ultimos';
@@ -36,6 +37,7 @@ export function Resumen() {
         <Aviso />
         <Ganancia range={range} onRange={setRange} total={t.ganancia} prev={prev.ganancia} serie={s} />
         <Desglose t={t} />
+        <Acciones />
         <Categorias cats={cats} />
         <MasVendidos per={per} />
         <Ultimos />

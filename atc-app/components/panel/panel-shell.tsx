@@ -5,6 +5,7 @@ import { generar } from '@/lib/data/panel';
 import { indexar, type Index } from '@/lib/panel/stats';
 import type { Movement } from '@/lib/panel/types';
 import { Sheets } from './sheets';
+import { Icon } from '../ui';
 
 /* =========================================================
    Panel del dueño (maqueta): estado compartido entre Resumen y Movimientos.
@@ -15,20 +16,35 @@ import { Sheets } from './sheets';
    Escape la cierra y el foco vuelve al botón que la abrió.
    ========================================================= */
 export type Ahora = { ymd: string; hm: string };
-export type Sheet = { t: 'detalle'; id: string } | null;
+export type Sheet = { t: 'detalle'; id: string } | { t: 'acciones' } | { t: 'venta' } | { t: 'gasto' } | { t: 'cobro'; code?: string } | { t: 'exportar' } | null;
 type Panel = {
   ahora: Ahora; hoy: string; ms: Movement[]; idx: Index; byMov: Map<string, Movement>;
   sheet: Sheet; openSheet: (s: Exclude<Sheet, null>) => void; closeSheet: () => void;
+  /** Lo cargado en esta visita (maqueta: no se guarda, se pierde al recargar). */
+  extra: Movement[]; agregar: (m: Movement) => void; nuevoId: (prefijo: 'V' | 'R' | 'G') => string;
+  toast: (msg: string) => void;
 };
 const PanelCtx = createContext<Panel | null>(null);
 export const usePanel = () => useContext(PanelCtx)!;
 
 export function PanelShell({ ahora, children }: { ahora: Ahora; children: ReactNode }) {
   const { ymd, hm } = ahora;
+  const base = useMemo(() => generar({ ymd, hm }), [ymd, hm]);
+  const [extra, setExtra] = useState<Movement[]>([]);
   const data = useMemo(() => {
-    const ms = generar({ ymd, hm });
+    const ms = extra.length ? [...extra, ...base] : base;
     return { ahora: { ymd, hm }, hoy: ymd, ms, idx: indexar(ms), byMov: new Map(ms.map(m => [m.id, m])) };
-  }, [ymd, hm]);
+  }, [ymd, hm, base, extra]);
+  const agregar = useCallback((m: Movement) => setExtra(x => [m, ...x]), []);
+  const nuevoId = useCallback((p: 'V' | 'R' | 'G') => `${p}-${ymd.slice(2).replaceAll('-', '')}-n${extra.length + 1}`, [ymd, extra.length]);
+
+  const [toasts, setToasts] = useState<{ id: number; msg: string }[]>([]);
+  const seq = useRef(0);
+  const toast = useCallback((msg: string) => {
+    const id = ++seq.current;
+    setToasts(t => [...t.slice(-2), { id, msg }]);
+    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 4000);
+  }, []);
 
   const [sheet, setSheet] = useState<Sheet>(null);
   const opener = useRef<HTMLElement | null>(null);
@@ -47,7 +63,7 @@ export function PanelShell({ ahora, children }: { ahora: Ahora; children: ReactN
       const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeSheet(); };
       document.addEventListener('keydown', onKey);
       // Foco adentro de la hoja: el primer campo marcado, o el botón de cerrar.
-      requestAnimationFrame(() => document.querySelector<HTMLElement>('.pn-sheet.open [data-autofocus], .pn-sheet.open .pn-close')?.focus());
+      requestAnimationFrame(() => (document.querySelector<HTMLElement>('.pn-sheet.open [data-autofocus]') ?? document.querySelector<HTMLElement>('.pn-sheet.open .pn-close'))?.focus());
       return () => document.removeEventListener('keydown', onKey);
     }
     // Al cerrar, el foco vuelve a quien abrió (cuando el panel ya dejó de estar inert).
@@ -56,11 +72,16 @@ export function PanelShell({ ahora, children }: { ahora: Ahora; children: ReactN
   }, [sheet, closeSheet]);
   useEffect(() => () => document.documentElement.classList.remove('lock'), []);
 
-  const value = useMemo<Panel>(() => ({ ...data, sheet, openSheet, closeSheet }), [data, sheet, openSheet, closeSheet]);
+  const value = useMemo<Panel>(() => ({ ...data, sheet, openSheet, closeSheet, extra, agregar, nuevoId, toast }), [data, sheet, openSheet, closeSheet, extra, agregar, nuevoId, toast]);
   return (
     <PanelCtx.Provider value={value}>
       <div className="pn" inert={!!sheet}>{children}</div>
-      <div className="pn-layer"><Sheets /></div>
+      <div className="pn-layer">
+        <Sheets />
+        <div className="toasts pn-toasts" aria-live="polite">
+          {toasts.map(t => <div key={t.id} className="toast no-act"><Icon n="check-c" /><span>{t.msg}</span></div>)}
+        </div>
+      </div>
     </PanelCtx.Provider>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Chips } from './chips';
+import { Icon } from '../ui';
 import { MovRow } from './mov-row';
 import { usePanel } from './panel-shell';
 import { porDia } from '@/lib/panel/stats';
@@ -16,7 +17,7 @@ const PASO = 30;
 
 // Lista de movimientos (equivale a "Crypto transactions" de la referencia): filtros por tipo y días agrupados.
 export function Movimientos({ tipo: inicial }: { tipo: Tipo }) {
-  const { idx, hoy, ms } = usePanel();
+  const { idx, hoy, ms, openSheet } = usePanel();
   const [tipo, setTipo] = useState<Tipo>(inicial);
   const [dias, setDias] = useState(PASO);
   const desde = addDays(hoy, -(dias - 1));
@@ -33,7 +34,10 @@ export function Movimientos({ tipo: inicial }: { tipo: Tipo }) {
   return (
     <div className="pn-movl" data-hoy={hoy}>
       <Chips name="pn-tipo" legend="Tipo de movimiento" value={tipo} onChange={elegir} options={TIPOS} />
-      <p className="pn-count" role="status">{n === 1 ? '1 movimiento' : `${n} movimientos`} en los últimos {dias} días</p>
+      <div className="pn-count-r">
+        <p className="pn-count" role="status">{n === 1 ? '1 movimiento' : `${n} movimientos`} en los últimos {dias} días</p>
+        <button type="button" className="btn pn-reg" onClick={() => openSheet({ t: 'acciones' })}><Icon n="plus" />Registrar</button>
+      </div>
       {grupos.map(g => {
         const neto = g.items.reduce((a, m) => a + resultado(m), 0);
         return (

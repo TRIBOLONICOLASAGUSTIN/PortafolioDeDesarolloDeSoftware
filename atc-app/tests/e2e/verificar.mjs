@@ -376,7 +376,7 @@ for (const rm of ['no-preference', 'reduce']) {
 const PANEL = server.base + '/panel';
 const PANEL_VPS = [[390, 844, 'light'], [820, 1180, 'dark'], [1440, 900, 'light']];
 const panelPage = async (w, h, scheme, opts = {}) => {
-  const ctx = await browser.newContext({ viewport: { width: w, height: h }, colorScheme: scheme, hasTouch: w < 900, ...opts });
+  const ctx = await browser.newContext({ viewport: { width: w, height: h }, colorScheme: scheme, hasTouch: w < 900, acceptDownloads: true, ...opts });
   const p = await ctx.newPage();
   const errs = [];
   p.on('pageerror', e => errs.push(e.message));
@@ -527,9 +527,49 @@ for (const [w, h, scheme] of PANEL_VPS) {
     check(tag, 'detalle: Escape lo cierra, queda oculto y el foco vuelve a la fila', Object.values(closed).every(Boolean), JSON.stringify(closed));
     check(tag, 'detalle: letra ≥ 13 px y botones de 44 px', sheetA11y.tiny.length === 0 && sheetA11y.small.length === 0, [...sheetA11y.tiny, ...sheetA11y.small].join(' | '));
 
-    // El aviso se puede cerrar
-    await p.click('.pn-aviso-x'); await p.waitForTimeout(100);
-    check(tag, 'el aviso del día se puede cerrar', await p.evaluate(() => !document.querySelector('.pn-aviso')));
+    // Formularios (maqueta: no guardan). Venta: vacía marca errores y lleva el foco al primero; completa se agrega
+    // como "Sin guardar", suma su ganancia exacta y el foco vuelve al botón. La nota con "=" sale escapada en la planilla.
+    const totalOf = () => p.evaluate(() => document.querySelector('#pn-total').textContent);
+    const rowOf = k => p.evaluate(k => document.querySelector(`.pn-des .pn-row[data-k="${k}"] .pn-amt`).textContent, k);
+    const t0 = PARSE_ARS(await totalOf());
+    await p.click('.pn-act[data-act="venta"]'); await p.waitForTimeout(450);
+    const firstField = await p.evaluate(() => document.activeElement.id);
+    await p.click('.pn-sheet button[type="submit"]'); await p.waitForTimeout(150);
+    const inval = await p.evaluate(() => ({ prod: document.querySelector('#f-prod').getAttribute('aria-invalid'), focus: document.activeElement.id, desc: document.querySelector('#f-prod').getAttribute('aria-describedby') }));
+    await p.selectOption('#f-prod', 'ins-105a'); await p.fill('#f-qty', '2'); await p.fill('#f-note', '=HYPERLINK("x")'); await p.waitForTimeout(100);
+    const prev = await p.evaluate(() => document.querySelector('#pn-prev').textContent);
+    const gan = PARSE_ARS(prev.match(/Ganancia\s*([^()]+)/)[1]);
+    await p.click('.pn-sheet button[type="submit"]'); await p.waitForTimeout(500);
+    const venta = await p.evaluate(() => ({ closed: document.querySelector('.pn-sheet').inert, focus: document.activeElement?.dataset?.act, first: document.querySelector('.pn-ult .pn-mov')?.textContent ?? '', toast: document.querySelector('.pn-toasts').textContent }));
+    const t1 = PARSE_ARS(await totalOf());
+    check(tag, 'registrar venta: abre en el primer campo; vacía marca errores y enfoca el primero', firstField === 'f-prod' && inval.prod === 'true' && inval.focus === 'f-prod' && /f-prod-e/.test(inval.desc ?? ''), JSON.stringify({ firstField, ...inval }));
+    check(tag, 'registrar venta: se agrega "Sin guardar", suma su ganancia y el foco vuelve', venta.closed && venta.focus === 'venta' && /Sin guardar/.test(venta.first) && /no se guardó/.test(venta.toast) && gan > 0 && t1 - t0 === gan, JSON.stringify({ ...venta, gan, t0, t1 }));
+
+    // Gasto: resta exacto del total y suma en "Gastos"
+    const g0 = PARSE_ARS(await rowOf('gastos'));
+    await p.click('.pn-act[data-act="gasto"]'); await p.waitForTimeout(450);
+    await p.click('.pn-sheet button[type="submit"]'); await p.waitForTimeout(150);
+    const gInv = await p.evaluate(() => ['#f-cat', '#f-con', '#f-gamt'].every(s => document.querySelector(s).getAttribute('aria-invalid') === 'true'));
+    await p.selectOption('#f-cat', 'servicios'); await p.fill('#f-con', 'Luz de prueba'); await p.fill('#f-gamt', '10.000'); await p.waitForTimeout(100);
+    await p.click('.pn-sheet button[type="submit"]'); await p.waitForTimeout(500);
+    const g1 = PARSE_ARS(await rowOf('gastos')), t2 = PARSE_ARS(await totalOf());
+    check(tag, 'registrar gasto: valida, resta $ 10.000 del total y suma en gastos', gInv && g1 - g0 === -10000 && t1 - t2 === 10000, JSON.stringify({ gInv, g0, g1, t1, t2 }));
+
+    // Cobro desde el aviso: viene completo, suma en "Servicio técnico" y el aviso desaparece
+    const s0 = PARSE_ARS(await rowOf('servicio'));
+    await p.click('.pn-aviso-btn'); await p.waitForTimeout(450);
+    const cob = await p.evaluate(() => ({ ord: document.querySelector('#f-ord').value, amt: document.querySelector('#f-amt').value }));
+    await p.click('.pn-sheet button[type="submit"]'); await p.waitForTimeout(500);
+    const s1 = PARSE_ARS(await rowOf('servicio'));
+    const avisoGone = await p.evaluate(() => !document.querySelector('.pn-aviso'));
+    check(tag, 'cobrar desde el aviso: viene completo, suma en servicio y el aviso se va', cob.ord === 'AT-7KQ2-9M' && cob.amt === '45000' && s1 - s0 === 45000 && avisoGone, JSON.stringify({ cob, s0, s1, avisoGone }));
+
+    // Exportar: planilla CSV con BOM, encabezado, lo cargado ("Sin guardar") y la fórmula escapada
+    await p.click('.pn-act[data-act="exportar"]'); await p.waitForTimeout(450);
+    const [dl] = await Promise.all([p.waitForEvent('download'), p.click('.pn-sheet .btn')]);
+    const csvTxt = (await import('node:fs')).readFileSync(await dl.path(), 'utf8');
+    const lines = csvTxt.trim().split(/\r\n/);
+    check(tag, 'exportar: planilla CSV con datos de ejemplo y fórmulas escapadas', /EJEMPLO/.test(dl.suggestedFilename()) && csvTxt.startsWith('﻿Fecha;Hora;N.º;Tipo') && lines.length > 20 && lines.filter(l => /Sin guardar/.test(l)).length === 3 && csvTxt.includes(`"'=HYPERLINK(""x"")"`) && !/;=/.test(csvTxt), JSON.stringify({ name: dl.suggestedFilename(), n: lines.length, first: lines[1] }));
     await p.evaluate(() => scrollTo(0, document.documentElement.scrollHeight)); await p.waitForTimeout(150);
     const pillStill = await p.evaluate(() => { const r = document.querySelector('.pn-ej').getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; });
     check(tag, 'la píldora "Ejemplo" queda a la vista al bajar', pillStill);
@@ -570,6 +610,13 @@ for (const [w, h, scheme] of PANEL_VPS) {
     check(tag, 'movimientos: "Mostrar 30 días más" suma filas', more.n > n0 && /60 días/.test(more.txt), `${n0} → ${JSON.stringify(more)}`);
     const mvA11y = await p.evaluate(panelA11y);
     check(tag, 'movimientos: letra ≥ 13 px, 44 px y títulos sin saltos', mvA11y.tiny.length === 0 && mvA11y.small.length === 0 && mvA11y.h1 === 1 && !mvA11y.jump, JSON.stringify(mvA11y).slice(0, 300));
+    await p.click('.pn-reg'); await p.waitForTimeout(450);
+    const optFocus = await p.evaluate(() => document.activeElement?.dataset?.act);
+    await p.click('.pn-opt[data-act="gasto"]'); await p.waitForTimeout(450);
+    const chain = await p.evaluate(() => document.querySelector('#pn-sh-h').textContent);
+    await p.keyboard.press('Escape'); await p.waitForTimeout(450);
+    const back = await p.evaluate(() => document.activeElement?.classList.contains('pn-reg'));
+    check(tag, 'movimientos: "Registrar" → opción → formulario; Escape vuelve a "Registrar"', optFocus === 'venta' && chain === 'Registrar gasto' && back, JSON.stringify({ optFocus, chain, back }));
     // ?tipo preselecciona; un valor desconocido cae en "Todos"
     await p.goto(PANEL + '/movimientos?tipo=gastos'); await p.waitForTimeout(300);
     const pre = await p.evaluate(() => document.querySelector('input[value="gastos"]').checked && [...document.querySelectorAll('.pn-mov')].every(r => r.dataset.kind === 'gasto'));
@@ -594,6 +641,26 @@ for (const scheme of ['light', 'dark']) for (const w of [1440, 390]) {
   await p.locator('.pn-ult .pn-mov').first().click(); await p.waitForTimeout(450);
   bad.push(...await p.evaluate(panelContrast, '.pn-layer *'));
   check(`panel-contraste-${scheme === 'dark' ? 'oscuro' : 'claro'}`, `texto AA y líneas del gráfico ≥ 3:1 a ${w}px`, bad.length === 0, bad.slice(0, 6).join(' | '));
+  await ctx.close();
+}
+{
+  const { ctx, p } = await panelPage(1440, 900, 'light');
+  await p.goto(PANEL); await p.waitForTimeout(400);
+  await p.click('.pn-aviso-x'); await p.waitForTimeout(100);
+  check('panel-1440-claro', 'el aviso del día se puede cerrar', await p.evaluate(() => !document.querySelector('.pn-aviso')));
+  await ctx.close();
+}
+for (const scheme of ['light', 'dark']) for (const w of [390, 1440]) {
+  const { ctx, p } = await panelPage(w, 900, scheme);
+  await p.goto(PANEL); await p.waitForTimeout(400);
+  await p.click('.pn-act[data-act="venta"]'); await p.waitForTimeout(450);
+  await p.click('.pn-sheet button[type="submit"]'); await p.waitForTimeout(150);
+  await p.selectOption('#f-prod', 'ins-105a'); await p.fill('#f-cost', '99999'); await p.waitForTimeout(100);
+  const bad = await p.evaluate(panelContrast, '.pn-layer *');
+  const a = await p.evaluate(panelA11y, '.pn-layer');
+  const tagF = `panel-formulario-${scheme === 'dark' ? 'oscuro' : 'claro'}`;
+  check(tagF, `contraste AA con errores y aviso de pérdida a ${w}px`, bad.length === 0, bad.slice(0, 6).join(' | '));
+  check(tagF, `letra ≥ 13 px y controles de 44 px a ${w}px`, a.tiny.length === 0 && a.small.length === 0, [...a.tiny, ...a.small].join(' | '));
   await ctx.close();
 }
 for (const w of [768, 820, 900]) {
