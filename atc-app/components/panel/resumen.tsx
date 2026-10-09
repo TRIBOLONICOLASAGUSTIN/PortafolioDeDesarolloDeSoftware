@@ -4,7 +4,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePanel } from './panel-shell';
 import { Ganancia } from './ganancia';
 import { Desglose } from './desglose';
-import { RANGES, delta, periodo, serie, totales, type RangeId } from '@/lib/panel/stats';
+import { Aviso } from './aviso';
+import { Categorias } from './categorias';
+import { MasVendidos } from './mas-vendidos';
+import { Ultimos } from './ultimos';
+import { RANGES, delta, periodo, porCategoria, serie, totales, type RangeId } from '@/lib/panel/stats';
 import { fmtMonto, fmtPct } from '@/lib/format';
 
 // Resumen del panel: el período elegido manda en todas las tarjetas.
@@ -16,6 +20,7 @@ export function Resumen() {
   const t = useMemo(() => totales(idx, per.from, per.to), [idx, per]);
   const prev = useMemo(() => totales(idx, per.prevFrom, per.prevTo), [idx, per]);
   const s = useMemo(() => serie(idx, per), [idx, per]);
+  const cats = useMemo(() => porCategoria(idx, per), [idx, per]);
 
   // El cambio de período se anuncia (no al cargar la página).
   const first = useRef(true);
@@ -28,8 +33,12 @@ export function Resumen() {
   return (
     <>
       <div className="pn-grid">
+        <Aviso />
         <Ganancia range={range} onRange={setRange} total={t.ganancia} prev={prev.ganancia} serie={s} />
         <Desglose t={t} />
+        <Categorias cats={cats} />
+        <MasVendidos per={per} />
+        <Ultimos />
       </div>
       <p className="sr" role="status" id="pn-anuncio">{msg}</p>
     </>

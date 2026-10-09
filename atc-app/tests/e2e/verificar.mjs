@@ -388,7 +388,7 @@ const PARSE_ARS = s => { const t = String(s ?? '').replace(/\s/g, ''); const n =
 const PANEL_RANGES = [['7d', 7, 'Últimos 7 días'], ['30d', 30, 'Últimos 30 días'], ['3m', 13, 'Últimos 3 meses'], ['12m', 12, 'Últimos 12 meses']];
 const PANEL_COLORS = { light: ['rgb(29, 122, 53)', 'rgb(215, 0, 21)'], dark: ['rgb(48, 209, 88)', 'rgb(255, 69, 58)'] };
 // Contraste de todo el texto visible del panel contra su fondo real (compone los fondos con transparencia)
-const panelContrast = () => {
+const panelContrast = (sel = '.pn *') => {
   const rgba = c => { const m = c.match(/[\d.]+/g)?.map(Number) ?? [0, 0, 0, 0]; return [m[0], m[1], m[2], m.length > 3 ? m[3] : 1]; };
   const over = (top, under) => { const a = top[3]; return [0, 1, 2].map(i => top[i] * a + under[i] * (1 - a)).concat(1); };
   const bgOf = el => {
@@ -403,7 +403,7 @@ const panelContrast = () => {
   const lum = c => { const [r, g, b] = c.slice(0, 3).map(x => { x /= 255; return x <= .03928 ? x / 12.92 : ((x + .055) / 1.055) ** 2.4; }); return .2126 * r + .7152 * g + .0722 * b; };
   const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + .05) / (y + .05); };
   const bad = [];
-  for (const el of document.querySelectorAll('.pn *')) {
+  for (const el of document.querySelectorAll(sel)) {
     if (el.closest('.sr') || !el.getClientRects().length) continue;
     if (![...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) continue;
     const cs = getComputedStyle(el); if (cs.visibility !== 'visible' || +cs.opacity === 0) continue;
@@ -412,19 +412,19 @@ const panelContrast = () => {
     if (r < (big ? 3 : 4.5)) bad.push(`${(el.className && el.className.toString().split(' ')[0]) || el.tagName}:"${el.textContent.trim().slice(0, 16)}" ${r.toFixed(2)}`);
   }
   // Líneas del gráfico: 3:1 contra la tarjeta (elemento gráfico)
-  for (const l of document.querySelectorAll('.pn-l')) { const r = ratio(rgba(getComputedStyle(l).stroke), bgOf(l.closest('.pn-card'))); if (r < 3) bad.push(`${l.getAttribute('class')} ${r.toFixed(2)}`); }
+  if (sel === '.pn *') for (const l of document.querySelectorAll('.pn-l')) { const r = ratio(rgba(getComputedStyle(l).stroke), bgOf(l.closest('.pn-card'))); if (r < 3) bad.push(`${l.getAttribute('class')} ${r.toFixed(2)}`); }
   return [...new Set(bad)];
 };
 // Letra mínima (13 px), áreas táctiles (44 px) y títulos sin saltos de nivel dentro del panel
-const panelA11y = () => {
+const panelA11y = (root = '.pn') => {
   const tiny = [], small = [];
-  for (const el of document.querySelectorAll('.pn *')) {
+  for (const el of document.querySelectorAll(`${root} *`)) {
     if (el.closest('.sr') || !el.getClientRects().length) continue;
     if (![...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) continue;
     const cs = getComputedStyle(el); if (cs.visibility !== 'visible') continue;
     if (parseFloat(cs.fontSize) < 13) tiny.push(`${(el.className && el.className.toString().split(' ')[0]) || el.tagName}:${cs.fontSize}`);
   }
-  for (const el of document.querySelectorAll('.pn a, .pn button, .pn summary, .pn label.pn-chip, .pn label.pn-seg, .pn [role="slider"]')) {
+  for (const el of document.querySelectorAll(['a', 'button', 'summary', 'label.pn-chip', 'label.pn-seg', '[role="slider"]', 'select', 'input:not(.sr)'].map(x => `${root} ${x}`).join(', '))) {
     if (el.closest('p, .sr') && el.tagName === 'A' || !el.getClientRects().length || getComputedStyle(el).visibility !== 'visible') continue;
     const r = el.getBoundingClientRect(); if (r.width < 43.5 || r.height < 43.5) small.push(`${(el.className && el.className.toString().split(' ')[0]) || el.tagName}:${Math.round(r.width)}×${Math.round(r.height)}`);
   }
@@ -491,6 +491,45 @@ for (const [w, h, scheme] of PANEL_VPS) {
     check(tag, 'un solo h1 y títulos sin saltos de nivel', a11y.h1 === 1 && !a11y.jump, a11y.hs);
     const grid = await p.evaluate(() => { const a = document.querySelector('.pn-gan').getBoundingClientRect(), b = document.querySelector('.pn-des').getBoundingClientRect(); return { same: Math.abs(a.top - b.top) < 1, below: b.top >= a.bottom }; });
     check(tag, w >= 1069 ? 'grilla: ganancia y desglose lado a lado' : 'grilla: tarjetas apiladas', w >= 1069 ? grid.same : grid.below, JSON.stringify(grid));
+
+    // Categorías: ordenadas por ganancia y suman lo de ventas + servicio técnico
+    const cats = await p.evaluate(() => ({ v: [...document.querySelectorAll('.pn-cat .pn-row')].map(r => +r.dataset.v), rows: [...document.querySelectorAll('.pn-des .pn-row .pn-amt')].map(e => e.textContent) }));
+    const catSum = cats.v.reduce((a, b) => a + b, 0), vs = PARSE_ARS(cats.rows[0]) + PARSE_ARS(cats.rows[1]);
+    check(tag, 'categorías ordenadas por ganancia y suman ventas + servicio', cats.v.length > 2 && cats.v.every((x, i) => i === 0 || x <= cats.v[i - 1]) && catSum === vs, JSON.stringify({ catSum, vs }));
+
+    // Más vendidos: ordenado de mayor a menor en cada métrica y con barras proporcionales
+    const tops = [];
+    for (const m of ['ventas', 'ganancia', 'unidades']) {
+      await p.click(`label.pn-seg:has(input[value="${m}"])`); await p.waitForTimeout(450);
+      tops.push(await p.evaluate(m => {
+        const li = [...document.querySelectorAll('.pn-rank li')], v = li.map(l => +l.dataset.v), max = Math.max(...v);
+        const sc = li.map(l => new DOMMatrix(getComputedStyle(l.querySelector('.pn-bar')).transform).a);
+        return { m, ok: li.length === 5 && v.every((x, i) => i === 0 || x <= v[i - 1]) && sc.every((x, i) => Math.abs(x - v[i] / max) < .01) && document.querySelector(`input[value="${m}"]`).checked, v };
+      }, m));
+    }
+    check(tag, 'más vendidos: ordenado en cada métrica y barras proporcionales', tops.every(t => t.ok), JSON.stringify(tops));
+
+    // Detalle: abre con el foco adentro y el panel inert; Escape lo cierra, queda oculto e inert y el foco vuelve a la fila
+    const row = p.locator('.pn-ult .pn-mov').first();
+    const rowId = await row.getAttribute('data-id');
+    await row.click(); await p.waitForTimeout(450);
+    const opened = await p.evaluate(id => {
+      const sh = document.querySelector('.pn-sheet');
+      return { open: sh.classList.contains('open') && !sh.inert && getComputedStyle(sh).visibility === 'visible', focusIn: sh.contains(document.activeElement), bgInert: document.querySelector('.pn').inert, same: document.querySelector('.pn-det')?.dataset.id === id, lock: document.documentElement.classList.contains('lock') };
+    }, rowId);
+    const sheetA11y = await p.evaluate(panelA11y, '.pn-layer');
+    await p.keyboard.press('Escape'); await p.waitForTimeout(450);
+    const closed = await p.evaluate(id => {
+      const sh = document.querySelector('.pn-sheet');
+      return { hidden: sh.inert && getComputedStyle(sh).visibility === 'hidden', focusBack: document.activeElement?.dataset?.id === id, bgFree: !document.querySelector('.pn').inert, unlock: !document.documentElement.classList.contains('lock') };
+    }, rowId);
+    check(tag, 'detalle: abre con el foco adentro y el resto inert', Object.values(opened).every(Boolean), JSON.stringify(opened));
+    check(tag, 'detalle: Escape lo cierra, queda oculto y el foco vuelve a la fila', Object.values(closed).every(Boolean), JSON.stringify(closed));
+    check(tag, 'detalle: letra ≥ 13 px y botones de 44 px', sheetA11y.tiny.length === 0 && sheetA11y.small.length === 0, [...sheetA11y.tiny, ...sheetA11y.small].join(' | '));
+
+    // El aviso se puede cerrar
+    await p.click('.pn-aviso-x'); await p.waitForTimeout(100);
+    check(tag, 'el aviso del día se puede cerrar', await p.evaluate(() => !document.querySelector('.pn-aviso')));
     await p.evaluate(() => scrollTo(0, document.documentElement.scrollHeight)); await p.waitForTimeout(150);
     const pillStill = await p.evaluate(() => { const r = document.querySelector('.pn-ej').getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; });
     check(tag, 'la píldora "Ejemplo" queda a la vista al bajar', pillStill);
@@ -514,7 +553,17 @@ for (const scheme of ['light', 'dark']) for (const w of [1440, 390]) {
   await p.goto(PANEL); await p.waitForTimeout(500);
   await p.focus('.pn-hit'); await p.keyboard.press('Home');
   const bad = await p.evaluate(panelContrast);
+  await p.evaluate(() => document.activeElement.blur());
+  await p.locator('.pn-ult .pn-mov').first().click(); await p.waitForTimeout(450);
+  bad.push(...await p.evaluate(panelContrast, '.pn-layer *'));
   check(`panel-contraste-${scheme === 'dark' ? 'oscuro' : 'claro'}`, `texto AA y líneas del gráfico ≥ 3:1 a ${w}px`, bad.length === 0, bad.slice(0, 6).join(' | '));
+  await ctx.close();
+}
+for (const w of [768, 820, 900]) {
+  const { ctx, p } = await panelPage(w, 1024, 'light');
+  await p.goto(PANEL); await p.waitForTimeout(400);
+  const vis = await p.evaluate(() => [...document.querySelectorAll('.pn-sheet, .pn-scrim')].map(e => getComputedStyle(e).visibility + (e.inert || e.classList.contains('pn-scrim') ? '' : '!inert')));
+  check('panel-ventanas', `hojas cerradas ocultas e inert a ${w}px`, vis.length === 2 && vis.every(v => v === 'hidden'), vis.join(','));
   await ctx.close();
 }
 for (const rm of ['no-preference', 'reduce']) {
