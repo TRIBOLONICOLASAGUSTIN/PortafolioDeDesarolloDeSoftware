@@ -46,8 +46,8 @@
 .map .wt{fill:var(--map-water)}
 .map .rt{stroke:#0a84ff;stroke-width:5;fill:none;stroke-linecap:round;stroke-linejoin:round}
 .mpin{position:absolute;left:61%;top:42%;translate:-50% -100%;display:flex;flex-direction:column;align-items:center}
-.mpin span{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;background:#ff3b30;box-shadow:0 4px 12px rgba(255,59,48,.45),0 0 0 3px #fff}
-.mpin::after{content:'';width:3px;height:10px;background:#ff3b30;border-radius:0 0 2px 2px}
+.mpin span{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;background:#d70015;box-shadow:0 4px 12px rgba(215,0,21,.4),0 0 0 3px #fff}
+.mpin::after{content:'';width:3px;height:10px;background:#d70015;border-radius:0 0 2px 2px}
 .c-row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:16px;flex-wrap:wrap}
 .socials{display:flex;gap:6px}
 .socials .ib{background:var(--fill-2)}

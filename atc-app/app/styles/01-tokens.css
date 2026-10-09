@@ -27,5 +27,7 @@
   --shadow-h:0 0 0 1px rgba(255,255,255,.08),0 18px 50px rgba(0,0,0,.6);
   --e3:0 30px 90px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.08); --hair-c:rgba(255,255,255,.1);
   --map-land:#1f2023; --map-road:#3a3b40; --map-road-2:#2c2d31; --map-park:#1e3a26; --map-water:#16324a;
+  /* Ilustraciones: los negros de los equipos se aclaran a grafito para que no se pierdan sobre tarjetas oscuras */
+  --k0:#202125; --k1:#26282c; --k2:#2d2f34; --k3:#383a40; --k4:#45484f; --kg0:#5b5e67; --kg1:#25272c; --sh-o:.6;
   color-scheme:dark;
 }

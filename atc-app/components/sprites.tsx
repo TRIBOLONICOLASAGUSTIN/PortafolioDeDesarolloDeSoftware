@@ -2,7 +2,7 @@
 // Contenido estático y de confianza: se inserta como HTML en el servidor (no depende de datos del usuario).
 const SPRITES = `<defs>
 <linearGradient id="g-alu" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f1f2f4"/><stop offset=".55" stop-color="#d3d5da"/><stop offset="1" stop-color="#a6a9b0"/></linearGradient>
-<linearGradient id="g-black" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3b40"/><stop offset="1" stop-color="#111215"/></linearGradient>
+<linearGradient id="g-black" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--kg0,#3a3b40)"/><stop offset="1" style="stop-color:var(--kg1,#111215)"/></linearGradient>
 <linearGradient id="g-wall-a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3d8bff"/><stop offset=".55" stop-color="#5e5ce6"/><stop offset="1" stop-color="#c06bf5"/></linearGradient>
 <linearGradient id="g-wall-b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#34d399"/><stop offset="1" stop-color="#0a84ff"/></linearGradient>
 <linearGradient id="g-wall-c" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffb340"/><stop offset="1" stop-color="#ff375f"/></linearGradient>
@@ -10,23 +10,23 @@ const SPRITES = `<defs>
 <linearGradient id="g-rgb" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff375f"/><stop offset=".33" stop-color="#ffd60a"/><stop offset=".66" stop-color="#30d158"/><stop offset="1" stop-color="#0a84ff"/></linearGradient>
 <linearGradient id="g-paper" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e6e8ec"/></linearGradient>
 <linearGradient id="g-label" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3b82f6"/><stop offset="1" stop-color="#1e3a8a"/></linearGradient>
-<radialGradient id="g-sh"><stop offset="0" stop-color="#000" stop-opacity=".22"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
-<pattern id="p-keys" width="11" height="11" patternUnits="userSpaceOnUse"><rect x=".8" y=".8" width="9.4" height="9.4" rx="2" fill="#2c2e34"/></pattern>
+<radialGradient id="g-sh"><stop offset="0" style="stop-color:#000;stop-opacity:var(--sh-o,.22)"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+<pattern id="p-keys" width="11" height="11" patternUnits="userSpaceOnUse"><rect x=".8" y=".8" width="9.4" height="9.4" rx="2" style="fill:var(--k3,#2c2e34)"/></pattern>
 
 <!-- Product renders -->
 <symbol id="r-laptop" viewBox="0 0 200 150">
   <ellipse cx="100" cy="132" rx="94" ry="7" fill="url(#g-sh)"/>
-  <rect x="30" y="12" width="140" height="98" rx="7" fill="#1c1d20"/>
-  <rect x="31.5" y="13.5" width="137" height="95" rx="6" fill="#050506"/>
+  <rect x="30" y="12" width="140" height="98" rx="7" style="fill:var(--k2,#1c1d20)"/>
+  <rect x="31.5" y="13.5" width="137" height="95" rx="6" style="fill:var(--k0,#050506)"/>
   <rect x="36" y="19" width="128" height="82" rx="2" style="fill:var(--wall,url(#g-wall-a))"/>
   <rect x="60" y="35" width="80" height="50" rx="4" fill="#fff" opacity=".92"/>
   <rect x="60" y="35" width="80" height="8" rx="3" fill="#ececf1"/>
   <circle cx="65" cy="39" r="1.3" fill="#ff5f57"/><circle cx="69.5" cy="39" r="1.3" fill="#febc2e"/><circle cx="74" cy="39" r="1.3" fill="#28c840"/>
-  <rect x="66" y="50" width="34" height="4" rx="2" fill="#1d1d1f" opacity=".8"/>
+  <rect x="66" y="50" width="34" height="4" rx="2" opacity=".8" style="fill:var(--k2,#1d1d1f)"/>
   <rect x="66" y="58" width="58" height="3" rx="1.5" fill="#c7c7cc"/>
   <rect x="66" y="64" width="46" height="3" rx="1.5" fill="#c7c7cc"/>
   <rect x="66" y="73" width="22" height="6" rx="3" fill="#0071e3"/>
-  <circle cx="100" cy="16.3" r=".9" fill="#2a2b30"/>
+  <circle cx="100" cy="16.3" r=".9" style="fill:var(--k3,#2a2b30)"/>
   <path d="M17 110h166l10.5 9.6c1.7 1.6.6 4.4-1.7 4.4H8.2c-2.3 0-3.4-2.8-1.7-4.4z" fill="url(#g-alu)"/>
   <path d="M84 110h32v1.4a2.2 2.2 0 0 1-2.2 2.2H86.2A2.2 2.2 0 0 1 84 111.4z" fill="#9ea1a8"/>
   <rect x="8" y="122.6" width="184" height="1.4" rx=".7" fill="#7e8188" opacity=".55"/>
@@ -35,22 +35,22 @@ const SPRITES = `<defs>
   <ellipse cx="100" cy="134" rx="84" ry="7" fill="url(#g-sh)"/>
   <path d="M60 14h80v42H60z" fill="url(#g-paper)" stroke="#d5d8de" stroke-width=".8"/>
   <rect x="68" y="22" width="44" height="2.6" rx="1.3" fill="#c3c7ce"/><rect x="68" y="29" width="62" height="2" rx="1" fill="#d5d8de"/><rect x="68" y="34" width="54" height="2" rx="1" fill="#d5d8de"/>
-  <rect x="32" y="44" width="136" height="22" rx="9" fill="#2a2b30"/>
+  <rect x="32" y="44" width="136" height="22" rx="9" style="fill:var(--k3,#2a2b30)"/>
   <rect x="26" y="56" width="148" height="72" rx="13" fill="url(#g-black)"/>
   <rect x="30" y="58" width="140" height="3" rx="1.5" fill="#fff" opacity=".06"/>
-  <rect x="46" y="82" width="108" height="6" rx="3" fill="#050506"/>
-  <path d="M50 88h100l7 11H43z" fill="#3a3b41"/>
-  <rect x="132" y="100" width="32" height="22" rx="3.5" fill="#141518"/>
+  <rect x="46" y="82" width="108" height="6" rx="3" style="fill:var(--k0,#050506)"/>
+  <path d="M50 88h100l7 11H43z" style="fill:var(--k4,#3a3b41)"/>
+  <rect x="132" y="100" width="32" height="22" rx="3.5" style="fill:var(--k1,#141518)"/>
   <rect x="135.5" y="105" width="5" height="14" rx="1.5" fill="#22c3ee"/><rect x="142.5" y="107" width="5" height="12" rx="1.5" fill="#e5307b"/><rect x="149.5" y="104" width="5" height="15" rx="1.5" fill="#f6c90e"/><rect x="156.5" y="108" width="5" height="11" rx="1.5" fill="#55575e"/>
   <circle cx="44" cy="112" r="2.2" fill="#30d158"/>
-  <rect x="52" y="110" width="22" height="4" rx="2" fill="#2e2f35"/>
+  <rect x="52" y="110" width="22" height="4" rx="2" style="fill:var(--k3,#2e2f35)"/>
 </symbol>
 <symbol id="r-toner" viewBox="0 0 200 150">
   <ellipse cx="100" cy="120" rx="92" ry="7" fill="url(#g-sh)"/>
   <rect x="14" y="50" width="172" height="54" rx="15" fill="url(#g-black)"/>
-  <rect x="14" y="50" width="32" height="54" rx="13" fill="#26272c"/>
-  <path d="M23 63v28M30 63v28M37 63v28" stroke="#3b3c42" stroke-width="2.4" stroke-linecap="round"/>
-  <rect x="156" y="57" width="24" height="40" rx="8" fill="#1a1b1f"/>
+  <rect x="14" y="50" width="32" height="54" rx="13" style="fill:var(--k3,#26272c)"/>
+  <path d="M23 63v28M30 63v28M37 63v28" stroke-width="2.4" stroke-linecap="round" style="stroke:var(--k4,#3b3c42)"/>
+  <rect x="156" y="57" width="24" height="40" rx="8" style="fill:var(--k2,#1a1b1f)"/>
   <rect x="52" y="98" width="100" height="7" rx="3.5" fill="#2f8f6b"/>
   <rect x="64" y="61" width="80" height="26" rx="4" fill="#f5f5f7"/>
   <rect x="71" y="67" width="36" height="4" rx="2" fill="#0a84ff"/>
@@ -61,8 +61,8 @@ const SPRITES = `<defs>
 <symbol id="r-mouse" viewBox="0 0 200 150">
   <ellipse cx="100" cy="140" rx="46" ry="6" fill="url(#g-sh)"/>
   <rect x="68" y="10" width="64" height="126" rx="32" fill="url(#g-black)"/>
-  <path d="M100 12v44" stroke="#000" stroke-opacity=".55" stroke-width="1.4"/>
-  <path d="M70 57c10 3 50 3 60 0" stroke="#000" stroke-opacity=".35" stroke-width="1.2" fill="none"/>
+  <path d="M100 12v44" stroke-opacity=".55" stroke-width="1.4" style="stroke:var(--k0,#000)"/>
+  <path d="M70 57c10 3 50 3 60 0" stroke-opacity=".35" stroke-width="1.2" fill="none" style="stroke:var(--k0,#000)"/>
   <rect x="96" y="24" width="8" height="18" rx="4" fill="#5b5d64"/>
   <rect x="97.5" y="27" width="5" height="2" rx="1" fill="#7c7f87"/><rect x="97.5" y="32" width="5" height="2" rx="1" fill="#7c7f87"/><rect x="97.5" y="37" width="5" height="2" rx="1" fill="#7c7f87"/>
   <path d="M75 114c9 15 41 15 50 0" stroke="url(#g-rgb)" stroke-width="4.5" fill="none" stroke-linecap="round"/>
@@ -72,58 +72,58 @@ const SPRITES = `<defs>
 <symbol id="r-keyboard" viewBox="0 0 200 150">
   <ellipse cx="100" cy="116" rx="96" ry="7" fill="url(#g-sh)"/>
   <rect x="10" y="100" width="180" height="9" rx="4.5" fill="url(#g-rgb)" opacity=".5"/>
-  <rect x="8" y="38" width="184" height="68" rx="10" fill="#141518"/>
+  <rect x="8" y="38" width="184" height="68" rx="10" style="fill:var(--k1,#141518)"/>
   <rect x="17.5" y="45" width="165" height="44" fill="url(#p-keys)"/>
   <rect x="17.5" y="45" width="165" height="54" fill="url(#g-rgb)" opacity=".16"/>
-  <rect x="18.3" y="90.8" width="20" height="7.6" rx="2" fill="#2c2e34"/>
-  <rect x="40.3" y="90.8" width="20" height="7.6" rx="2" fill="#2c2e34"/>
-  <rect x="62.3" y="90.8" width="72" height="7.6" rx="2" fill="#34363d"/>
-  <rect x="136.3" y="90.8" width="20" height="7.6" rx="2" fill="#2c2e34"/>
-  <rect x="158.3" y="90.8" width="23.4" height="7.6" rx="2" fill="#2c2e34"/>
+  <rect x="18.3" y="90.8" width="20" height="7.6" rx="2" style="fill:var(--k3,#2c2e34)"/>
+  <rect x="40.3" y="90.8" width="20" height="7.6" rx="2" style="fill:var(--k3,#2c2e34)"/>
+  <rect x="62.3" y="90.8" width="72" height="7.6" rx="2" style="fill:var(--k4,#34363d)"/>
+  <rect x="136.3" y="90.8" width="20" height="7.6" rx="2" style="fill:var(--k3,#2c2e34)"/>
+  <rect x="158.3" y="90.8" width="23.4" height="7.6" rx="2" style="fill:var(--k3,#2c2e34)"/>
   <rect x="12" y="40" width="176" height="3" rx="1.5" fill="#fff" opacity=".06"/>
 </symbol>
 <symbol id="r-router" viewBox="0 0 200 150">
   <ellipse cx="100" cy="126" rx="90" ry="7" fill="url(#g-sh)"/>
-  <rect x="40" y="16" width="8" height="70" rx="4" fill="#1d1e22" transform="rotate(-14 44 86)"/>
-  <rect x="74" y="10" width="8" height="76" rx="4" fill="#1d1e22" transform="rotate(-5 78 86)"/>
-  <rect x="118" y="10" width="8" height="76" rx="4" fill="#1d1e22" transform="rotate(5 122 86)"/>
-  <rect x="152" y="16" width="8" height="70" rx="4" fill="#1d1e22" transform="rotate(14 156 86)"/>
+  <rect x="40" y="16" width="8" height="70" rx="4" transform="rotate(-14 44 86)" style="fill:var(--k2,#1d1e22)"/>
+  <rect x="74" y="10" width="8" height="76" rx="4" transform="rotate(-5 78 86)" style="fill:var(--k2,#1d1e22)"/>
+  <rect x="118" y="10" width="8" height="76" rx="4" transform="rotate(5 122 86)" style="fill:var(--k2,#1d1e22)"/>
+  <rect x="152" y="16" width="8" height="70" rx="4" transform="rotate(14 156 86)" style="fill:var(--k2,#1d1e22)"/>
   <rect x="20" y="78" width="160" height="40" rx="12" fill="url(#g-black)"/>
   <rect x="26" y="80" width="148" height="5" rx="2.5" fill="#fff" opacity=".07"/>
   <circle cx="64" cy="104" r="2" fill="#30d158"/><circle cx="78" cy="104" r="2" fill="#30d158"/><circle cx="92" cy="104" r="2" fill="#30d158"/><circle cx="106" cy="104" r="2" fill="#30d158"/><circle cx="120" cy="104" r="2" fill="#5b5d64"/><circle cx="134" cy="104" r="2" fill="#30d158"/>
 </symbol>
 <symbol id="r-ssd" viewBox="0 0 200 150">
   <ellipse cx="100" cy="106" rx="94" ry="6" fill="url(#g-sh)"/>
-  <rect x="176" y="56" width="14" height="40" rx="1.5" fill="#0d0e10"/>
+  <rect x="176" y="56" width="14" height="40" rx="1.5" style="fill:var(--k1,#0d0e10)"/>
   <g fill="#d4a63a"><rect x="179" y="59" width="9" height="3" rx=".6"/><rect x="179" y="64" width="9" height="3" rx=".6"/><rect x="179" y="69" width="9" height="3" rx=".6"/><rect x="179" y="80" width="9" height="3" rx=".6"/><rect x="179" y="85" width="9" height="3" rx=".6"/><rect x="179" y="90" width="9" height="3" rx=".6"/></g>
-  <rect x="10" y="56" width="168" height="40" rx="3" fill="#121316"/>
+  <rect x="10" y="56" width="168" height="40" rx="3" style="fill:var(--k1,#121316)"/>
   <rect x="24" y="59" width="142" height="34" rx="2.5" fill="url(#g-label)"/>
   <text x="38" y="80.5" font-family="-apple-system,Inter,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#fff" letter-spacing=".5">NVMe · 1 TB</text>
   <rect x="38" y="85" width="40" height="2.2" rx="1.1" fill="#fff" opacity=".45"/>
-  <circle cx="15" cy="76" r="3.4" fill="#2a2b30"/>
+  <circle cx="15" cy="76" r="3.4" style="fill:var(--k3,#2a2b30)"/>
 </symbol>
 <symbol id="r-tower" viewBox="0 0 200 150">
   <ellipse cx="100" cy="141" rx="64" ry="6" fill="url(#g-sh)"/>
   <rect x="56" y="6" width="88" height="132" rx="7" fill="url(#g-black)"/>
-  <rect x="62" y="12" width="76" height="120" rx="4" fill="#07080a"/>
+  <rect x="62" y="12" width="76" height="120" rx="4" style="fill:var(--k0,#07080a)"/>
   <g fill="none" stroke="url(#g-rgb)" stroke-width="3"><circle cx="100" cy="37" r="14"/><circle cx="100" cy="72" r="14"/><circle cx="100" cy="107" r="14"/></g>
-  <g fill="#15161a"><circle cx="100" cy="37" r="9.5"/><circle cx="100" cy="72" r="9.5"/><circle cx="100" cy="107" r="9.5"/></g>
-  <g fill="#2a2b30"><circle cx="100" cy="37" r="3"/><circle cx="100" cy="72" r="3"/><circle cx="100" cy="107" r="3"/></g>
+  <g style="fill:var(--k1,#15161a)"><circle cx="100" cy="37" r="9.5"/><circle cx="100" cy="72" r="9.5"/><circle cx="100" cy="107" r="9.5"/></g>
+  <g style="fill:var(--k3,#2a2b30)"><circle cx="100" cy="37" r="3"/><circle cx="100" cy="72" r="3"/><circle cx="100" cy="107" r="3"/></g>
   <path d="M64 14h22L64 74z" fill="#fff" opacity=".05"/>
-  <rect x="62" y="136" width="14" height="4" rx="2" fill="#1a1b1f"/><rect x="124" y="136" width="14" height="4" rx="2" fill="#1a1b1f"/>
+  <rect x="62" y="136" width="14" height="4" rx="2" style="fill:var(--k2,#1a1b1f)"/><rect x="124" y="136" width="14" height="4" rx="2" style="fill:var(--k2,#1a1b1f)"/>
 </symbol>
 <symbol id="r-cable" viewBox="0 0 200 150">
   <ellipse cx="100" cy="140" rx="70" ry="5" fill="url(#g-sh)"/>
-  <path d="M46 102c0-58 38-70 58-50s46 30 50-22" fill="none" stroke="#1c1d21" stroke-width="7" stroke-linecap="round"/>
+  <path d="M46 102c0-58 38-70 58-50s46 30 50-22" fill="none" stroke-width="7" stroke-linecap="round" style="stroke:var(--k2,#1c1d21)"/>
   <g transform="translate(46 102)"><rect x="-10" y="0" width="20" height="24" rx="4" fill="url(#g-black)"/><rect x="-8.5" y="22" width="17" height="11" rx="1.5" fill="url(#g-alu)"/><rect x="-5.5" y="25" width="11" height="4" rx=".8" fill="#5b5d64"/></g>
   <g transform="translate(154 30) rotate(180)"><rect x="-10" y="0" width="20" height="24" rx="4" fill="url(#g-black)"/><rect x="-8.5" y="22" width="17" height="11" rx="1.5" fill="url(#g-alu)"/><rect x="-5.5" y="25" width="11" height="4" rx=".8" fill="#5b5d64"/></g>
 </symbol>
 <symbol id="r-ink" viewBox="0 0 200 150">
   <ellipse cx="100" cy="134" rx="86" ry="6" fill="url(#g-sh)"/>
-  <g transform="translate(25 0)"><rect x="8" y="20" width="14" height="16" rx="3" fill="#1d1d1f"/><rect x="0" y="34" width="30" height="96" rx="7" fill="#00a0d8"/><rect x="0" y="66" width="30" height="34" fill="#fff" opacity=".93"/><rect x="6" y="76" width="18" height="3.4" rx="1.7" fill="#00a0d8"/><rect x="4" y="38" width="4" height="86" rx="2" fill="#fff" opacity=".25"/></g>
-  <g transform="translate(65 0)"><rect x="8" y="20" width="14" height="16" rx="3" fill="#1d1d1f"/><rect x="0" y="34" width="30" height="96" rx="7" fill="#e0218a"/><rect x="0" y="66" width="30" height="34" fill="#fff" opacity=".93"/><rect x="6" y="76" width="18" height="3.4" rx="1.7" fill="#e0218a"/><rect x="4" y="38" width="4" height="86" rx="2" fill="#fff" opacity=".25"/></g>
-  <g transform="translate(105 0)"><rect x="8" y="20" width="14" height="16" rx="3" fill="#1d1d1f"/><rect x="0" y="34" width="30" height="96" rx="7" fill="#f6c600"/><rect x="0" y="66" width="30" height="34" fill="#fff" opacity=".93"/><rect x="6" y="76" width="18" height="3.4" rx="1.7" fill="#d9a900"/><rect x="4" y="38" width="4" height="86" rx="2" fill="#fff" opacity=".3"/></g>
-  <g transform="translate(145 0)"><rect x="8" y="20" width="14" height="16" rx="3" fill="#1d1d1f"/><rect x="0" y="34" width="30" height="96" rx="7" fill="#2b2b2e"/><rect x="0" y="66" width="30" height="34" fill="#fff" opacity=".93"/><rect x="6" y="76" width="18" height="3.4" rx="1.7" fill="#2b2b2e"/><rect x="4" y="38" width="4" height="86" rx="2" fill="#fff" opacity=".15"/></g>
+  <g transform="translate(25 0)"><rect x="8" y="20" width="14" height="16" rx="3" style="fill:var(--k2,#1d1d1f)"/><rect x="0" y="34" width="30" height="96" rx="7" fill="#00a0d8"/><rect x="0" y="66" width="30" height="34" fill="#fff" opacity=".93"/><rect x="6" y="76" width="18" height="3.4" rx="1.7" fill="#00a0d8"/><rect x="4" y="38" width="4" height="86" rx="2" fill="#fff" opacity=".25"/></g>
+  <g transform="translate(65 0)"><rect x="8" y="20" width="14" height="16" rx="3" style="fill:var(--k2,#1d1d1f)"/><rect x="0" y="34" width="30" height="96" rx="7" fill="#e0218a"/><rect x="0" y="66" width="30" height="34" fill="#fff" opacity=".93"/><rect x="6" y="76" width="18" height="3.4" rx="1.7" fill="#e0218a"/><rect x="4" y="38" width="4" height="86" rx="2" fill="#fff" opacity=".25"/></g>
+  <g transform="translate(105 0)"><rect x="8" y="20" width="14" height="16" rx="3" style="fill:var(--k2,#1d1d1f)"/><rect x="0" y="34" width="30" height="96" rx="7" fill="#f6c600"/><rect x="0" y="66" width="30" height="34" fill="#fff" opacity=".93"/><rect x="6" y="76" width="18" height="3.4" rx="1.7" fill="#d9a900"/><rect x="4" y="38" width="4" height="86" rx="2" fill="#fff" opacity=".3"/></g>
+  <g transform="translate(145 0)"><rect x="8" y="20" width="14" height="16" rx="3" style="fill:var(--k2,#1d1d1f)"/><rect x="0" y="34" width="30" height="96" rx="7" style="fill:var(--k3,#2b2b2e)"/><rect x="0" y="66" width="30" height="34" fill="#fff" opacity=".93"/><rect x="6" y="76" width="18" height="3.4" rx="1.7" style="fill:var(--k3,#2b2b2e)"/><rect x="4" y="38" width="4" height="86" rx="2" fill="#fff" opacity=".15"/></g>
 </symbol>
 <symbol id="r-all" viewBox="0 0 200 150">
   <rect x="46" y="14" width="50" height="50" rx="14" fill="currentColor"/>

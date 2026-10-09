@@ -214,6 +214,41 @@ for (const scheme of ['light', 'dark']) {
   await p.close();
 }
 
+// Modo oscuro: la barra del navegador sigue al botón de la luna, el cambio se aplica sin transiciones a destiempo,
+// los equipos negros se aclaran con luz de borde (solo en oscuro), el pin del mapa cumple AA y la banda marca su borde
+{
+  const p = await browser.newPage({ viewport: { width: 1440, height: 900 }, colorScheme: 'light' });
+  await p.goto(HTML); await p.waitForTimeout(500);
+  const meta = () => p.evaluate(() => [...document.querySelectorAll('meta[name="theme-color"]')].map(m => m.content));
+  const look = () => p.evaluate(() => ({
+    k3: getComputedStyle(document.documentElement).getPropertyValue('--k3').trim(),
+    filter: getComputedStyle(document.querySelector('.p-img svg.r')).filter,
+    band: getComputedStyle(document.getElementById('servicio')).boxShadow,
+  }));
+  const m0 = await meta(), claro = await look();
+  const during = await p.evaluate(() => new Promise(res => {
+    const root = document.documentElement;
+    const mo = new MutationObserver(() => { if (root.classList.contains('theme-sw')) { mo.disconnect(); res(getComputedStyle(document.querySelector('.nav')).transitionDuration); } });
+    mo.observe(root, { attributes: true, attributeFilter: ['class'] });
+    document.getElementById('themeBtn').click();
+    setTimeout(() => res('sin theme-sw'), 1500);
+  }));
+  await p.waitForTimeout(700);
+  const m1 = await meta(), oscuro = await look();
+  const sw = await p.evaluate(() => document.documentElement.classList.contains('theme-sw'));
+  check('oscuro', 'la barra del navegador (theme-color) sigue al botón de la luna', m0.every(c => c === '#ffffff') && m1.every(c => c === '#000000'), `${m0} → ${m1}`);
+  check('oscuro', 'el cambio de tema se aplica sin transiciones a destiempo', /^0s(, 0s)*$/.test(during) && !sw, during);
+  check('oscuro', 'equipos negros aclarados con luz de borde solo en oscuro', claro.k3 === '' && claro.filter === 'none' && oscuro.k3 !== '' && oscuro.filter.includes('drop-shadow'), `${JSON.stringify(claro)} / ${JSON.stringify(oscuro)}`);
+  check('oscuro', 'la banda de servicio marca su borde en oscuro', claro.band === 'none' && oscuro.band.includes('inset'), oscuro.band);
+  const pin = await p.evaluate(() => {
+    const cs = getComputedStyle(document.querySelector('.mpin span'));
+    const lum = c => { const [r, g, b] = c.match(/\d+/g).slice(0, 3).map(x => { x /= 255; return x <= .03928 ? x / 12.92 : ((x + .055) / 1.055) ** 2.4; }); return .2126 * r + .7152 * g + .0722 * b; };
+    const [x, y] = [lum(cs.color), lum(cs.backgroundColor)].sort((m, n) => n - m); return +((x + .05) / (y + .05)).toFixed(2);
+  });
+  check('oscuro', 'el "AT" del pin del mapa cumple AA', pin >= 4.5, `${pin}:1`);
+  await p.close();
+}
+
 await browser.close();
 await server.stop();
 

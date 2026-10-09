@@ -20,6 +20,8 @@
 .p-tag{min-height:18px;font-size:13px;font-weight:600;color:var(--warn)}
 .p-img{display:grid;place-items:center;height:232px;margin:8px 0 18px}
 .p-img .r{width:96%;height:100%;transition:transform .7s var(--ease)}
+/* En oscuro, una luz de borde fina recorta la silueta de los equipos negros (como una foto de estudio) */
+:root[data-theme="dark"] svg.r{filter:drop-shadow(0 0 .6px rgba(255,255,255,.42))}
 .p-brand{font-size:13px;color:var(--text-3);font-weight:500}
 .p-name{font-size:21px;font-weight:600;letter-spacing:-.025em;line-height:1.2;margin-top:4px}
 .p-spec{font-size:14px;color:var(--text-2);margin-top:6px;line-height:1.4}
