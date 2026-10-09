@@ -24,7 +24,7 @@ function Screen({ i }: { i: number }) {
           <div className="pc">
             <div className="pc-row"><b>AT-7KQ2-9M</b>{pill}</div><small>Lenovo IdeaPad 3 · Conector de carga</small>
             <div className="pbar"><span style={{ width: `${c.pg}%` }}></span></div>
-            {c.budget && <><div className="pc-row" style={{ marginTop: '1cqw' }}><small>Presupuesto</small><b>$ 45.000</b></div><div className="pbtns"><span>Aprobar</span><span>Consultar</span></div></>}
+            {c.budget && <><div className="pc-row" style={{ marginTop: 'var(--u)' }}><small>Presupuesto</small><b>$ 45.000</b></div><div className="pbtns"><span>Aprobar</span><span>Consultar</span></div></>}
           </div>
           {c.bub && <div className="bub"><small>AT Computación</small>{c.bub}</div>}
         </>
@@ -66,7 +66,7 @@ export function Service() {
             <div className="phone"><div className="phone-scr" id="phoneScr">
               <span className="island"></span>
               <div className="tabbar"><span className="url"><Icon n="lock" />atcomputacion.com.ar</span></div>
-              <div className="sbar"><span>9:41</span><i>{[1.6, 2.4, 3.2, 4].map(h => <b key={h} style={{ height: `${h}cqw` }}></b>)}</i></div>
+              <div className="sbar"><span>9:41</span><i>{[1.6, 2.4, 3.2, 4].map(h => <b key={h} style={{ height: `calc(${h} * var(--u))` }}></b>)}</i></div>
               {STORY.map((s, i) => <div key={s.n} className={`ps${s.scr.done ? ' center' : ''}${i === cur ? ' on' : ''}`} data-ps={i}><Screen i={i} /></div>)}
             </div></div>
           </div>
