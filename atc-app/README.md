@@ -5,7 +5,7 @@ El sitio de AT Computación en **Next.js 16 + React 19**, sobre una base Postgre
 | Hito | Estado |
 |---|---|
 | 1 · Base de datos y seguridad | Hecho: 19 pruebas (`tests/db`) |
-| 2 · Sitio público en React y `/api/seguimiento` seguro | Hecho: 7 pruebas de la ruta (`tests/api`) y 80 verificaciones del sitio (`tests/e2e`). **Falta configurar** Turnstile, Upstash y el hosting |
+| 2 · Sitio público en React y `/api/seguimiento` seguro | Hecho: 7 pruebas de la ruta (`tests/api`) y las verificaciones del sitio en el navegador (`tests/e2e`). **Falta configurar** Turnstile, Upstash y el hosting |
 | 3 · Panel del dueño | Etapa 1 en curso: maqueta con datos de ejemplo en `/panel` (solo con `ATC_DEMO=1`). Etapa 2 (login y base) pendiente |
 
 - Seguridad, con cada control y la prueba que lo demuestra: [`docs/atc/seguridad.md`](../docs/atc/seguridad.md).
@@ -75,11 +75,15 @@ atc-app/
 ├─ app/
 │  ├─ layout.tsx            <html>, metadatos, tema sin parpadeo (script con nonce), fuente Inter servida localmente
 │  ├─ page.tsx              la portada: compone las secciones
-│  ├─ styles/               CSS por sección (01-tokens … 12-responsive)
+│  ├─ styles/               CSS por sección (01-tokens … 14-panel)
+│  ├─ panel/                panel del dueño (etapa 1: maqueta con datos de ejemplo, solo con ATC_DEMO=1)
+│  ├─ not-found.tsx         404 en castellano
 │  └─ api/seguimiento/      la única puerta pública a una orden
 ├─ components/              nav, hero, values, shop, tiers, service, tracker, estimator, info, layers, whatsapp-widget…
+│  └─ panel/                resumen, gráfico, movimientos, hojas y formularios del panel
 ├─ lib/
 │  ├─ data/                 datos de ejemplo tipados (catálogo, servicios, cotizador, órdenes demo, configuración)
+│  ├─ panel/                cálculos del panel (períodos, totales, gráfico, CSV, validación)
 │  ├─ format.ts · hours.ts · whatsapp.ts
 │  └─ server/               config (modos), ratelimit, turnstile, tracking (pg como atc_tracker)
 ├─ supabase/                migraciones (0100–0400) y seed de ejemplo

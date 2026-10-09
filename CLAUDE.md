@@ -89,14 +89,14 @@ Las reglas de abajo aplican a todo lo de AT Computación.
 
 ## `atc-app/` (proyecto real)
 - **Estructura:**
-  - `app/`: la página, los estilos por sección en `app/styles/` y la ruta `api/seguimiento`.
+  - `app/`: la página, los estilos por sección en `app/styles/`, la ruta `api/seguimiento` y el panel del dueño en `app/panel/` (etapa 1: maqueta con datos de ejemplo que solo existe con `ATC_DEMO=1`).
   - `components/`: un componente por pieza; `'use client'` solo donde hay interacción.
   - `lib/data/`: datos de ejemplo.
   - `lib/server/`: código que solo corre en el servidor.
   - `supabase/`: migraciones.
   - `tests/`: pruebas.
 - **Antes de cada commit:** `npm test`.
-  - Corre tipos, build, base (19), API (7), e2e (80) y `check:docs`.
+  - Corre tipos, build, base (19), API (9), e2e (236) y `check:docs`.
   - Usa un Postgres 16 temporal que imita Supabase; `npm run db:stop` lo borra.
   - En la nube, el e2e necesita `PW="$(npm root -g)/playwright/index.mjs"`.
 - **Cada cambio de base lleva:**
