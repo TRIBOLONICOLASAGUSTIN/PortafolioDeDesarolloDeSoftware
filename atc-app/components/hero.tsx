@@ -10,23 +10,13 @@ export function Hero() {
   const stage = useRef<HTMLDivElement>(null);
   const st = openStatus();
 
-  // La notebook se endereza con el scroll (orienta: "esto es lo que hacemos").
+  // Al entrar en pantalla se completa una vez el progreso de la orden (confirma: "así seguís tu reparación").
   useEffect(() => {
     const el = stage.current; if (!el) return;
-    if (reduce) { el.style.setProperty('--p', '1'); el.classList.add('lit'); return; }
-    let ticking = false;
-    const onScroll = () => {
-      if (ticking) return; ticking = true;
-      requestAnimationFrame(() => {
-        ticking = false;
-        const r = el.getBoundingClientRect(), vh = innerHeight;
-        const p = Math.min(1, Math.max(0, (vh * .98 - r.top) / (vh * .62)));
-        el.style.setProperty('--p', p.toFixed(3));
-        if (p > .92) el.classList.add('lit');
-      });
-    };
-    addEventListener('scroll', onScroll, { passive: true }); addEventListener('resize', onScroll); onScroll();
-    return () => { removeEventListener('scroll', onScroll); removeEventListener('resize', onScroll); };
+    if (reduce) { el.classList.add('lit'); return; }
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { io.disconnect(); el.classList.add('lit'); } }, { threshold: .3 });
+    io.observe(el);
+    return () => io.disconnect();
   }, [reduce]);
 
   return (
@@ -56,7 +46,7 @@ export function Hero() {
               </div>
               <div className="mainw">
                 <div className="mh"><div><b>AT-7KQ2-9M</b><span>Lenovo IdeaPad 3 · Conector de carga</span></div><span className="pill">● Listo para retirar</span></div>
-                <div className="prog">{['Ingreso', 'Diagnóstico', 'Presupuesto', 'Reparación', 'Listo'].map((t, i) => <span key={t} style={vars({ '--d': `${(.2 + i * .4).toFixed(1)}s` })}>{t}</span>)}</div>
+                <div className="prog">{['Ingreso', 'Diagnóstico', 'Presupuesto', 'Reparación', 'Listo'].map((t, i) => <span key={t} style={vars({ '--d': `${(.1 + i * .12).toFixed(2)}s` })}>{t}</span>)}</div>
                 <div className="msg"><span className="av">AT</span><div><b>Mensaje del técnico</b><p>¡Listo! Cambiamos el conector y lo probamos 24 h con carga. Ya podés retirarlo.</p></div></div>
                 <ul className="hist"><li><i></i><b>Listo para retirar</b><span>06/10 · 18:10</span></li><li><i></i><b>En reparación</b><span>03/10 · 11:30</span></li><li><i></i><b>Presupuesto aprobado</b><span>03/10 · 09:05</span></li></ul>
                 <div className="kv"><div><small>Presupuesto aprobado</small><b>$ 45.000</b></div><div><small>Garantía escrita</small><b>90 días</b></div></div>
