@@ -76,6 +76,22 @@ export function Nav() {
     return () => removeEventListener('scroll', onScroll);
   }, []);
 
+  // Si los links no entran en la barra (texto agrandado), se muestran en el menú del celular.
+  useEffect(() => {
+    const nav = navRef.current, inner = nav?.firstElementChild as HTMLElement | null;
+    const links = nav?.querySelector<HTMLElement>('.links'), brand = nav?.querySelector<HTMLElement>('.brand');
+    const actions = nav?.querySelector<HTMLElement>('.actions'), btn = nav?.querySelector<HTMLElement>('.menu-btn');
+    if (!nav || !inner || !links || !brand || !actions || !btn) return;
+    const fit = () => {
+      const tight = nav.classList.contains('tight');
+      const gap = parseFloat(getComputedStyle(inner).columnGap) || 0;
+      const act = actions.offsetWidth - (tight ? btn.offsetWidth + (parseFloat(getComputedStyle(actions).columnGap) || 0) : 0);
+      nav.classList.toggle('tight', links.scrollWidth > inner.clientWidth - brand.offsetWidth - act - 2 * gap);
+    };
+    const ro = new ResizeObserver(fit); ro.observe(inner); ro.observe(links);
+    return () => ro.disconnect();
+  }, []);
+
   // El número de la bolsa "salta" una vez al agregar (confirma la acción).
   useEffect(() => {
     const b = badgeRef.current; if (!b || !bump) return;

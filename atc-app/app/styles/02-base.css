@@ -48,7 +48,7 @@ img{max-width:100%}
 .btn-wa{background:var(--wa)}
 .btn-wa:hover{background:#126b36}
 .btn-sm{min-height:34px;padding:0 16px;font-size:14px}
-.btn-full{width:100%}
+.btn-full{width:100%;white-space:normal;text-align:center;padding-block:10px}
 .lnk{display:inline-flex;align-items:center;gap:2px;color:var(--link);font-size:17px;white-space:nowrap}
 .lnk::after{content:'›';font-size:1.25em;line-height:1;margin-left:4px;transition:transform .25s var(--ease)}
 .lnk:hover{text-decoration:underline;text-underline-offset:3px}

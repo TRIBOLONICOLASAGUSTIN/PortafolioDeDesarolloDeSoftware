@@ -224,6 +224,50 @@ for (const w of [1440, 390]) {
   await p.close();
 }
 
+// Texto agrandado (zoom chico de Safari o tamaño mínimo de Accesibilidad): todo lo que mide < 18 px pasa a 18 px.
+// Nada se sale de su caja, los links del menú no se parten (si no entran, aparece el menú del celular) y no hay scroll horizontal.
+for (const w of [1440, 834, 390, 320]) {
+  const p = await browser.newPage({ viewport: { width: w, height: 900 } }); await p.goto(HTML); await p.waitForTimeout(300);
+  const normal = await p.evaluate(() => document.querySelector('.nav').classList.contains('tight'));
+  await p.evaluate(() => {
+    const els = [...document.querySelectorAll('main *, header *, .bag *')].filter(e => !e.closest('[aria-hidden="true"]') && parseFloat(getComputedStyle(e).fontSize) < 18);
+    for (const e of els) e.style.fontSize = '18px';
+  });
+  await p.waitForTimeout(200);
+  const r = await p.evaluate(() => {
+    const hit = (a, b) => a.right > b.left + .5 && b.right > a.left + .5 && a.bottom > b.top + .5 && b.bottom > a.top + .5;
+    const name = e => `${(e.className && e.className.toString().split(' ')[0]) || e.tagName}:${e.textContent.trim().slice(0, 18)}`;
+    const cats = [...document.querySelectorAll('.cat')];
+    const boxes = [...document.querySelectorAll('.cat, .hint button, .btn-sm, .sbadge, .ex, .ex b, .ex small, .btn-full, .pay-i')].filter(e => e.getClientRects().length && !e.closest('[aria-hidden="true"]'));
+    const over = [...boxes.filter(e => e.scrollWidth > e.clientWidth + 1).map(name), ...cats.slice(1).filter((c, i) => hit(c.getBoundingClientRect(), cats[i].getBoundingClientRect())).map(name)];
+    const nav = document.querySelector('.nav'), tight = nav.classList.contains('tight');
+    const links = [...document.querySelectorAll('.links a')].filter(a => a.getClientRects().length && getComputedStyle(a).visibility === 'visible');
+    const lines = a => { const g = document.createRange(); g.selectNodeContents(a); return new Set([...g.getClientRects()].map(x => Math.round(x.top))).size; };
+    const side = [document.querySelector('.brand'), document.querySelector('.actions')].map(e => e.getBoundingClientRect());
+    const navBad = links.filter((a, i) => lines(a) > 1 || side.some(b => hit(a.getBoundingClientRect(), b)) || (i && hit(a.getBoundingClientRect(), links[i - 1].getBoundingClientRect()))).map(a => a.textContent);
+    const menu = getComputedStyle(document.querySelector('.menu-btn')).display !== 'none';
+    return { over, navBad, links: links.length, tight, menu, ow: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+  });
+  check('texto-18px', `categorías, botones y tarjetas sin desbordes a ${w}px`, r.over.length === 0, r.over.slice(0, 6).join(' | '));
+  check('texto-18px', `menú en una línea o menú del celular a ${w}px`, r.navBad.length === 0 && (r.links === 6 || r.menu) && (!r.tight || r.menu), JSON.stringify(r));
+  check('texto-18px', `sin scroll horizontal a ${w}px`, r.ow <= 0, `${r.ow}px`);
+  if (w === 834) check('texto-18px', 'con letra normal a 834px el menú muestra los links', !normal);
+  await p.close();
+}
+
+// Pantallas muy anchas: el estante no pasa de 1760 px, la primera tarjeta sigue alineada con el contenido y los bordes se funden
+for (const [w, h] of [[2940, 1700], [1440, 900]]) {
+  const p = await browser.newPage({ viewport: { width: w, height: h } }); await p.goto(HTML); await p.waitForTimeout(300);
+  const r = await p.evaluate(() => {
+    const sh = document.getElementById('shelf'), b = sh.getBoundingClientRect(), cs = getComputedStyle(sh);
+    const cards = [...sh.querySelectorAll('.pcard')].map(c => c.getBoundingClientRect()), card = cards[0].left, wrap = document.querySelector('#tienda .wrap').getBoundingClientRect().left;
+    return { w: Math.round(b.width), center: Math.round(b.left + b.width / 2 - innerWidth / 2), align: Math.round(card - wrap), mask: (cs.maskImage || cs.webkitMaskImage || 'none') !== 'none', whole: cards.filter(c => c.left >= b.left + 120 && c.right <= b.right - 120).length, peek: cards.some(c => c.left < b.right && c.right > b.right), ow: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+  });
+  if (w > 1800) check('pantalla-ancha', `estante ≤ 1760 px, centrado, alineado, 4 tarjetas enteras y la siguiente asomando en el fundido a ${w}px`, r.w <= 1760 && Math.abs(r.center) <= 1 && Math.abs(r.align) <= 1 && r.mask && r.whole >= 4 && r.peek && r.ow <= 0, JSON.stringify(r));
+  else check('pantalla-ancha', `a ${w}px el estante sigue igual (sin fundido, alineado)`, !r.mask && Math.abs(r.align) <= 1, JSON.stringify(r));
+  await p.close();
+}
+
 // Despiece de la notebook (3D con WebGL): con el scroll se abre, se desarma y aparecen las etiquetas; con "reducir
 // movimiento" queda desarmada y quieta (sin recorrido largo). La escena es decorativa (aria-hidden) y las piezas se leen
 // como lista. En celular se lee solo la pieza actual, debajo del dibujo. Sin WebGL queda el despiece en CSS.

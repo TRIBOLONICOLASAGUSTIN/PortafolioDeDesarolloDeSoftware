@@ -9,7 +9,7 @@
 .mark{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:12px;font-weight:700;letter-spacing:.01em;color:#fff;background:linear-gradient(180deg,#48484d,#111113);box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
 :root[data-theme="dark"] .mark{color:#111;background:linear-gradient(180deg,#ffffff,#c7c7cc)}
 .links{display:flex;gap:30px;margin-inline:auto}
-.links a{font-size:13.5px;color:var(--text);opacity:.82;transition:opacity .2s;padding:6px 0}
+.links a{white-space:nowrap;font-size:13.5px;color:var(--text);opacity:.82;transition:opacity .2s;padding:6px 0}
 .links a:hover{opacity:1}
 .actions{display:flex;align-items:center;gap:6px}
 .duo{display:flex;align-items:center;gap:2px;padding:3px;border-radius:999px;background:var(--fill-2)}
@@ -22,6 +22,11 @@
 .badge.show{transform:scale(1)}
 .pop{animation:pop .45s}
 .menu-btn{display:none}
+/* Si los links no entran (texto agrandado por el zoom de Safari o por Accesibilidad), se usa el menú del celular.
+   Quedan medibles pero invisibles: nav.tsx compara su ancho con el espacio libre. */
+.nav.tight .links{position:absolute;visibility:hidden;pointer-events:none}
+.nav.tight .actions{margin-left:auto}
+.nav.tight .menu-btn{display:grid}
 .menu-btn .x{display:none}
 .menu-open .menu-btn .x{display:block}
 .menu-open .menu-btn .bars{display:none}
