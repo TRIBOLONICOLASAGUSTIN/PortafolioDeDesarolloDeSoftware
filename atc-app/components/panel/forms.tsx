@@ -126,7 +126,7 @@ export function VentaForm() {
           {c > u && <span className="pn-warn"><Icon n="info" cls="i xs" /> El costo es mayor que el precio: en esta venta perdés plata.</span>}
         </p>
       )}
-      <button className="btn btn-full" type="submit">Agregar venta</button>
+      <div className="pn-foot"><button className="btn btn-full" type="submit">Agregar venta</button></div>
     </form>
   );
 }
@@ -166,7 +166,7 @@ export function CobroForm({ code: pre }: { code?: string }) {
         <Plata id="f-parts" label="Repuestos" value={parts} onChange={limpiar('partsCost', setParts)} error={err.partsCost} hint="Lo que te costaron (0 si no hubo)" />
       </div>
       <Pago value={pay} onChange={setPay} error={err.pay} />
-      <button className="btn btn-full" type="submit">Agregar cobro</button>
+      <div className="pn-foot"><button className="btn btn-full" type="submit">Agregar cobro</button></div>
     </form>
   );
 }
@@ -212,7 +212,7 @@ export function GastoForm() {
         </Field>
       </div>
       <Pago value={pay} onChange={setPay} error={err.pay} />
-      <button className="btn btn-full" type="submit">Agregar gasto</button>
+      <div className="pn-foot"><button className="btn btn-full" type="submit">Agregar gasto</button></div>
     </form>
   );
 }

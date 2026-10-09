@@ -775,6 +775,31 @@ for (const scheme of ['light', 'dark']) for (const w of [390, 1440]) {
   check(tagF, `letra ≥ 13 px y controles de 44 px a ${w}px`, a.tiny.length === 0 && a.small.length === 0, [...a.tiny, ...a.small].join(' | '));
   await ctx.close();
 }
+// Hojas prolijas: la X centrada con el título y al ras del contenido, sin barra de scroll nativa, Precio y Costo a la
+// misma altura, campos que no son negros en oscuro y el botón principal siempre a la vista aunque el formulario scrollee
+for (const [w, h, scheme] of [[390, 700, 'light'], [1440, 640, 'dark'], [1440, 1000, 'light']]) {
+  const { ctx, p } = await panelPage(w, h, scheme);
+  await p.goto(PANEL); await p.waitForTimeout(400);
+  const geo = () => p.evaluate(() => {
+    const sb = document.querySelector('.pn-sheet.open .pn-sheet-b'), x = document.querySelector('.pn-sheet.open .pn-close'), t = sb.querySelector('.pn-sh-t');
+    const R = e => e.getBoundingClientRect(), s = R(sb), xr = R(x), tr = R(t), pad = parseFloat(getComputedStyle(x).paddingRight);
+    const foot = sb.querySelector('.pn-foot button'), unit = sb.querySelector('#f-unit'), cost = sb.querySelector('#f-cost');
+    return { mid: Math.round(xr.top + xr.height / 2 - (tr.top + parseFloat(getComputedStyle(t).lineHeight) / 2)), edge: Math.round(xr.right - pad - (s.right - parseFloat(getComputedStyle(sb).paddingRight))),
+      hit: Math.min(xr.width, xr.height), bar: sb.offsetWidth - sb.clientWidth, foot: foot ? R(foot).bottom <= s.bottom + .5 && R(foot).top >= s.top : null,
+      precio: unit && cost ? Math.round(R(unit).top - R(cost).top) : null, fondo: unit ? getComputedStyle(unit).backgroundColor : null };
+  });
+  await p.click('.pn-act[data-act="venta"]'); await p.waitForTimeout(450);
+  const v = await geo();
+  await p.keyboard.press('Escape'); await p.waitForTimeout(450);
+  await p.locator('.pn-ult .pn-mov').first().click(); await p.waitForTimeout(450);
+  const d = await geo();
+  const tagS = `panel-hojas-${w}-${scheme === 'dark' ? 'oscuro' : 'claro'}`;
+  check(tagS, 'la X centrada con el título (±2 px), al ras del contenido (±1 px) y de 44 px, en la venta y en el detalle', [v, d].every(g => Math.abs(g.mid) <= 2 && Math.abs(g.edge) <= 1 && g.hit >= 44), JSON.stringify({ v, d }));
+  check(tagS, 'sin barra de scroll nativa y el botón "Agregar venta" a la vista', v.bar === 0 && d.bar === 0 && v.foot === true, JSON.stringify(v));
+  check(tagS, w > 420 ? 'Precio y Costo a la misma altura' : 'Precio y Costo apilados', w > 420 ? v.precio === 0 : v.precio < 0, String(v.precio));
+  if (scheme === 'dark') check(tagS, 'los campos no son negros en oscuro', v.fondo !== 'rgb(0, 0, 0)', v.fondo);
+  await ctx.close();
+}
 for (const w of [768, 820, 900]) {
   const { ctx, p } = await panelPage(w, 1024, 'light');
   await p.goto(PANEL); await p.waitForTimeout(400);
