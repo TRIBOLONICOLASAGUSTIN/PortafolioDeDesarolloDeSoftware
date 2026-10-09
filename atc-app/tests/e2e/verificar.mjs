@@ -539,6 +539,43 @@ for (const [w, h, scheme] of PANEL_VPS) {
     await p.goto(PANEL + '/movimientos'); await p.waitForTimeout(400);
     const mv = await p.evaluate(() => ({ h1: document.querySelector('h1')?.textContent, back: document.querySelector('.pn-back')?.getAttribute('href'), banner: !!document.querySelector('#pn-demo') }));
     check(tag, 'movimientos carga con la vuelta al resumen', mv.h1 === 'Movimientos' && mv.back === '/panel' && mv.banner, JSON.stringify(mv));
+
+    // Pestañas: cada una muestra solo su tipo, "Todos" es la suma y la dirección refleja el filtro
+    const counts = {};
+    for (const t of ['ventas', 'reparaciones', 'gastos', 'todos']) {
+      await p.click(`label.pn-chip:has(input[value="${t}"])`); await p.waitForTimeout(200);
+      counts[t] = await p.evaluate(t => {
+        const k = { ventas: 'venta', reparaciones: 'reparacion', gastos: 'gasto' }[t], rows = [...document.querySelectorAll('.pn-mov')];
+        return { n: rows.length, ok: rows.every(r => !k || r.dataset.kind === k), url: location.search };
+      }, t);
+    }
+    check(tag, 'movimientos: las pestañas filtran y "Todos" es la suma', Object.values(counts).every(c => c.ok && c.n > 0) && counts.todos.n === counts.ventas.n + counts.reparaciones.n + counts.gastos.n && counts.gastos.url === '?tipo=gastos' && counts.todos.url === '', JSON.stringify(counts));
+    // Agrupados por día, del más nuevo al más viejo; cada fila en su día
+    const order = await p.evaluate(() => {
+      const g = [...document.querySelectorAll('.pn-group')], ymd = g.map(x => x.dataset.ymd);
+      return { n: g.length, dec: ymd.every((d, i) => i === 0 || d < ymd[i - 1]), match: g.every(x => [...x.querySelectorAll('.pn-mov')].every(r => r.dataset.ymd === x.dataset.ymd)) };
+    });
+    check(tag, 'movimientos: agrupados por día, del más nuevo al más viejo', order.n > 10 && order.dec && order.match, JSON.stringify(order));
+    // La ganancia de 7 días del resumen es la suma de los movimientos de esos 7 días
+    const sum7 = await p.evaluate(() => {
+      const hoy = document.querySelector('.pn-movl').dataset.hoy;
+      const from = new Date(Date.UTC(+hoy.slice(0, 4), +hoy.slice(5, 7) - 1, +hoy.slice(8, 10)) - 6 * 864e5).toISOString().slice(0, 10);
+      return [...document.querySelectorAll('.pn-mov')].filter(r => r.dataset.ymd >= from).reduce((a, r) => a + +r.dataset.res, 0);
+    });
+    check(tag, 'la ganancia de 7 días coincide con la suma de sus movimientos', sum7 === PARSE_ARS(ranges[0].total), `${sum7} vs ${ranges[0].total}`);
+    // "Mostrar 30 días más" suma filas
+    const n0 = await p.evaluate(() => document.querySelectorAll('.pn-mov').length);
+    await p.click('.pn-more'); await p.waitForTimeout(250);
+    const more = await p.evaluate(() => ({ n: document.querySelectorAll('.pn-mov').length, txt: document.querySelector('.pn-count').textContent }));
+    check(tag, 'movimientos: "Mostrar 30 días más" suma filas', more.n > n0 && /60 días/.test(more.txt), `${n0} → ${JSON.stringify(more)}`);
+    const mvA11y = await p.evaluate(panelA11y);
+    check(tag, 'movimientos: letra ≥ 13 px, 44 px y títulos sin saltos', mvA11y.tiny.length === 0 && mvA11y.small.length === 0 && mvA11y.h1 === 1 && !mvA11y.jump, JSON.stringify(mvA11y).slice(0, 300));
+    // ?tipo preselecciona; un valor desconocido cae en "Todos"
+    await p.goto(PANEL + '/movimientos?tipo=gastos'); await p.waitForTimeout(300);
+    const pre = await p.evaluate(() => document.querySelector('input[value="gastos"]').checked && [...document.querySelectorAll('.pn-mov')].every(r => r.dataset.kind === 'gasto'));
+    await p.goto(PANEL + '/movimientos?tipo=%3Cscript%3E'); await p.waitForTimeout(300);
+    const bad = await p.evaluate(() => document.querySelector('input[value="todos"]').checked);
+    check(tag, 'movimientos: ?tipo=gastos preselecciona y un valor raro cae en "Todos"', pre && bad, JSON.stringify({ pre, bad }));
     if (WANT_SHOTS) await p.screenshot({ path: `${SHOTS}${tag}--movimientos.png`, fullPage: true });
     check(tag, 'sin errores de consola (incluidas CSP e hidratación)', errs.length === 0, errs.slice(0, 3).join(' | '));
   } catch (e) {

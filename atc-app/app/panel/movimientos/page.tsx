@@ -5,11 +5,11 @@ import { panelMaqueta } from '@/lib/server/panel';
 import { PanelHeader } from '@/components/panel/panel-header';
 import { DemoBanner } from '@/components/panel/demo-banner';
 import { Icon } from '@/components/ui';
+import { Movimientos, type Tipo } from '@/components/panel/movimientos';
 
 export const metadata: Metadata = { title: 'Movimientos' };
 
-const TIPOS = ['todos', 'ventas', 'reparaciones', 'gastos'] as const;
-export type Tipo = (typeof TIPOS)[number];
+const TIPOS: readonly Tipo[] = ['todos', 'ventas', 'reparaciones', 'gastos'];
 
 export default async function PanelMovimientos({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   if (!(await panelMaqueta())) notFound();
@@ -23,6 +23,7 @@ export default async function PanelMovimientos({ searchParams }: { searchParams:
         <Link className="pn-back" href="/panel" prefetch={false}><Icon n="chev-l" cls="i sm" />Resumen</Link>
         <h1 className="pn-t" tabIndex={-1}>Movimientos</h1>
         <DemoBanner />
+        <Movimientos tipo={tipo} />
       </main>
     </>
   );

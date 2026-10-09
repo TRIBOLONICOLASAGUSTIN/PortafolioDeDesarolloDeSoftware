@@ -155,6 +155,18 @@ body:has(.pn){background:var(--bg-alt)}
 .pn-mic.venta{color:var(--link)}
 .pn-mic.reparacion{color:var(--pn-up-t)}
 .pn-ns{font-style:normal;font-weight:600;color:var(--text)}
+/* La ganancia de cada fila: debajo del monto en compu; en el celular, en la línea de abajo (deja más lugar al título) */
+.pn-g-in{display:none}
+@media (max-width:734px){
+  .pn-g-in{display:inline}.pn-g-out{display:none}
+  /* Título y monto en el mismo renglón; la línea de detalle usa todo el ancho */
+  .pn-mov{grid-template-columns:44px minmax(0,1fr) auto;grid-template-areas:"ic t a" "ic s s";column-gap:12px;row-gap:2px}
+  .pn-mov>.pn-mic{grid-area:ic}
+  .pn-mov>.pn-rt{display:contents}
+  .pn-mov>.pn-rt>b{grid-area:t;align-self:end}
+  .pn-mov>.pn-rt>small{grid-area:s;align-self:start}
+  .pn-mov>.pn-mamt{grid-area:a;align-self:end}
+}
 .pn-all{display:inline-flex;align-items:center;min-height:44px;margin-top:8px}
 
 /* Hojas: centradas en compu, abajo en el celular. Cerradas: invisibles e inert */
@@ -188,3 +200,13 @@ body:has(.pn){background:var(--bg-alt)}
 .pn-dl>div{padding:12px 0;box-shadow:inset 0 -1px 0 var(--line-2)}
 .pn-dl dt{font-size:14px;color:var(--text-2)}
 .pn-dl dd{margin:2px 0 0;font-size:17px}
+
+/* Lista de movimientos */
+.pn-movl{display:grid;gap:16px;margin-top:16px}
+.pn-movl .pn-chips{margin:0}
+.pn-count{font-size:15px;color:var(--text-2)}
+.pn-group{padding-block:16px 8px}
+.pn-day{font-size:19px;letter-spacing:-.02em}
+.pn-day-n{margin-top:2px;font-size:14px;color:var(--text-2)}
+.pn-day-n b{font-weight:600;color:var(--text)}
+.pn-more{justify-self:center;min-height:46px}
