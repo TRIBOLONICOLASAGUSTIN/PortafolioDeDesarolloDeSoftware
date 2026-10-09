@@ -18,11 +18,13 @@ export function Desglose({ t, sparks }: { t: Totales; sparks: Sparks }) {
       <CardHead id="pn-des-h" title="De dónde sale" value={fmtMonto(t.ganancia)} sub="ganancia del período" valueId="pn-des-total" />
       <ul className="pn-rows">
         {rows.map(([k, ic, title, sub, v]) => (
-          <li key={k} className="pn-row pn-row-s" data-k={k}>
+          <li key={k} className="pn-row" data-k={k}>
             <span className="pn-ic"><Icon n={ic} /></span>
             <span className="pn-rt"><b>{title}</b><small>{sub}</small></span>
-            <Sparkline values={sparks[k]} tone={k === 'gastos' ? 'neutral' : 'link'} />
-            <span className="pn-amt pn-num">{fmtMonto(v)}</span>
+            <span className="pn-amt-c">
+              <span className="pn-amt pn-num">{fmtMonto(v)}</span>
+              <Sparkline values={sparks[k]} tone={k === 'gastos' ? 'neutral' : 'link'} />
+            </span>
           </li>
         ))}
       </ul>

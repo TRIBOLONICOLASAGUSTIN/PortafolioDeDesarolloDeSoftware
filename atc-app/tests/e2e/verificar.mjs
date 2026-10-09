@@ -541,6 +541,8 @@ for (const [w, h, scheme] of PANEL_VPS) {
         if (t && a && hit(t.getBoundingClientRect(), a.getBoundingClientRect())) bad.push(t.textContent.slice(0, 20));
       }
       for (const b of document.querySelectorAll('.pn-act')) if (b.scrollWidth > b.clientWidth + 1) bad.push(`acción ${b.textContent}`);
+      // Mejor y peor tramo: el monto (con su signo) en una línea y dentro de su recuadro
+      for (const b of document.querySelectorAll('.pn-ext dd b')) { const box = b.closest('div'), cs = getComputedStyle(box); if (b.getClientRects().length > 1 || b.getBoundingClientRect().right > box.getBoundingClientRect().right - parseFloat(cs.paddingRight) + .5) bad.push(`extremo ${b.textContent}`); }
       return bad;
     });
     check(tag, 'títulos y montos no se pisan; acciones sin desborde', pisa.length === 0, pisa.slice(0, 5).join(' | '));
@@ -576,12 +578,13 @@ for (const [w, h, scheme] of PANEL_VPS) {
     });
     check(tag, 'barra de reparto: un tramo por categoría, orden, color y ancho proporcionales', share.n === share.rows && share.n > 2 && share.order && share.off <= 3.5 && share.dots && share.distinct, JSON.stringify(share));
 
-    // Tendencias del desglose: una por fila con un punto por tramo del gráfico; a 420 px o menos se ocultan
+    // Tendencias del desglose: una por fila, debajo del monto, con un punto por tramo del gráfico
     const spk = await p.evaluate(() => {
       const n = +document.querySelector('.pn-chart').dataset.n, s = [...document.querySelectorAll('.pn-des .pn-row .pn-spark')];
-      return { n, len: s.length, pts: s.map(e => e.querySelector('polyline').getAttribute('points').split(' ').length), vis: s.map(e => e.getBoundingClientRect().width > 0) };
+      return { n, len: s.length, pts: s.map(e => e.querySelector('polyline').getAttribute('points').split(' ').length), vis: s.map(e => e.getBoundingClientRect().width > 0),
+        below: s.every(e => e.getBoundingClientRect().top >= e.parentElement.querySelector('.pn-amt').getBoundingClientRect().bottom) };
     });
-    check(tag, w > 420 ? 'tendencia en cada fila del desglose' : 'tendencias ocultas en pantallas chicas', spk.len === 3 && spk.pts.every(x => x === spk.n) && spk.vis.every(x => x === w > 420), JSON.stringify(spk));
+    check(tag, 'tendencia en cada fila del desglose, debajo del monto', spk.len === 3 && spk.pts.every(x => x === spk.n) && spk.vis.every(Boolean) && spk.below, JSON.stringify(spk));
 
     check(tag, 'categorías ordenadas por ganancia y suman ventas + servicio', cats.v.length > 2 && cats.v.every((x, i) => i === 0 || x <= cats.v[i - 1]) && catSum === vs, JSON.stringify({ catSum, vs }));
 

@@ -101,7 +101,8 @@ body:has(.pn){background:var(--bg-alt)}
 .pn-ext>div{padding:12px 14px;border-radius:18px;background:var(--bg-alt)}
 .pn-ext dt{font-size:13px;color:var(--text-2)}
 .pn-ext dd{display:flex;flex-direction:column;margin:2px 0 0;font-size:15px}
-.pn-ext dd b{font-size:17px;font-weight:600}
+.pn-ext dd b{font-size:17px;font-weight:600;white-space:nowrap}
+@media (max-width:360px){.pn-ext>div{padding:12px}.pn-ext dd b{font-size:16px}}
 
 /* Filas (desglose y listas) */
 .pn-rows{list-style:none;margin:8px 0 0;padding:0}
@@ -264,13 +265,12 @@ select.pn-in{padding-right:8px}
 .pn-ch-v b{font-family:var(--font-d);font-size:21px;font-weight:600;letter-spacing:-.02em;line-height:1.2}
 .pn-ch-v small{font-size:13px;color:var(--text-2)}
 
-/* Filas del desglose con mini gráfico de tendencia */
-.pn-row-s{grid-template-columns:44px minmax(0,1fr) auto auto}
-.pn-spark{width:72px;height:28px;overflow:visible}
+/* Filas del desglose: el monto y, debajo, su tendencia (no le quita ancho al título) */
+.pn-amt-c{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.pn-spark{width:72px;height:24px;overflow:visible}
 .pn-spark polyline{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
 .pn-spark.link polyline{stroke:var(--link)}
 .pn-spark.neutral polyline{stroke:var(--text-3)}
-@media (max-width:420px){.pn-row-s{grid-template-columns:44px minmax(0,1fr) auto}.pn-spark{display:none}}
 
 /* Reparto por categoría (barra segmentada) y su punto de color en cada fila */
 .pn-share{display:flex;gap:2px;height:10px;margin:18px 0 6px;border-radius:999px;overflow:hidden;transform-origin:left;animation:pn-grow-x .6s var(--ease) .2s backwards}
@@ -283,6 +283,7 @@ select.pn-in{padding-right:8px}
 .pn-gan .pn-chip span{height:38px;padding:0 4px;background:none}
 .pn-gan .pn-chip input:checked+span{color:var(--text);background:var(--pn-seg);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 @media (max-width:420px){.pn-gan .pn-chip span{font-size:14px}}
+@media (max-width:360px){.pn-gan .pn-chip span{font-size:13px;padding:0 2px}}
 
 /* Movimiento: cada cosa aparece una vez y por una razón (orientar), solo con transform y opacity.
    Con "reducir movimiento" la regla global deja todo quieto. */
