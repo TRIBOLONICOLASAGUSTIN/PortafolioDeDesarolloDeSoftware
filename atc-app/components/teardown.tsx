@@ -3,10 +3,12 @@
 import { useEffect, useRef } from 'react';
 import { useReducedMotion } from './app-shell';
 import { TEARDOWN } from '@/lib/data/service';
+import type { Teardown3D } from '@/lib/teardown3d';
 
-// Despiece de la notebook (al estilo de las páginas de producto de Apple): con el scroll, las piezas se separan en capas
-// y aparece qué repara el técnico en cada una. Cada capa es un dibujo propio visto de arriba; el navegador las apila
-// en 3D (solo transform y opacity). Con "reducir movimiento" o sin JS se muestra ya desarmada y quieta.
+// Despiece de la notebook (al estilo de las páginas de producto de Apple): con el scroll la notebook se abre, se separa
+// en piezas y aparece qué repara el técnico en cada una. Con WebGL se ve el modelo 3D de lib/teardown3d.ts (se descarga
+// al acercarse); sin WebGL, el respaldo en CSS: capas dibujadas vistas de arriba y apiladas en 3D (solo transform y
+// opacity). Con "reducir movimiento" o sin JS se muestra ya desarmada y quieta.
 
 const clamp = (v: number) => Math.min(1, Math.max(0, v));
 const smooth = (t: number) => t * t * (3 - 2 * t);
@@ -122,53 +124,91 @@ export function Teardown() {
     const el = root.current; if (!el) return;
     const scene = el.querySelector<HTMLElement>('.td-scene')!;
     const stage = el.querySelector<HTMLElement>('.td-stage')!;
+    const canvas = el.querySelector<HTMLCanvasElement>('.td-canvas')!;
     const tags = [...el.querySelectorAll<HTMLElement>('.td-tags li')];
     const anchors = tags.map(t => el.querySelector<SVGElement>(`[data-a="${t.dataset.a}"]`)!);
     const rig = el.querySelector<HTMLElement>('.td-rig')!;
     const wide = matchMedia('(min-width:1069px)');
+    let t3d: Teardown3D | null = null, phases3d: ((p: number) => { open: number; apart: number }) | null = null;
+    let p = reduce ? 1 : 0, alive = true;
     el.classList.add('td-live');
 
-    // Etiquetas pegadas a su pieza (solo en pantallas anchas): se mueven con transform, nunca con top/left
+    // Etiquetas pegadas a su pieza (solo en pantallas anchas): punto en la pieza, línea guía y texto en una columna
+    // fuera del dibujo. Todo se mueve con transform. En 3D, las anclas son puntos del modelo proyectados al canvas.
     const place = () => {
       if (!wide.matches) { tags.forEach(t => [...t.children].forEach(c => { (c as HTMLElement).style.transform = ''; })); return; }
-      const s = scene.getBoundingClientRect(), cx = s.width / 2, col = rig.offsetWidth * .66 + 24;
+      const s = scene.getBoundingClientRect(), cx = s.width / 2;
+      let colL = cx - (rig.offsetWidth * .66 + 24), colR = cx + (rig.offsetWidth * .66 + 24);
+      if (t3d) { const x = t3d.extent(); colL = Math.min(x.left - 28, cx - 160); colR = Math.max(x.right + 28, cx + 160); }
+      // Anclas de cada etiqueta; si dos textos de la misma columna chocan, el de abajo baja y un tramo vertical
+      // une la línea guía con el texto
+      const pts = tags.map((t, i) => {
+        if (t3d) return t3d.anchor(t.dataset.a!);
+        const a = anchors[i].getBoundingClientRect(); return { x: a.left + a.width / 2 - s.left, y: a.top + a.height / 2 - s.top };
+      });
+      const ty: number[] = pts.map(q => q.y - 11);
+      for (const side of ['l', 'r']) {
+        const idx = tags.map((_, i) => i).filter(i => tags[i].classList.contains(side)).sort((a, b) => pts[a].y - pts[b].y);
+        let floor = -Infinity;
+        for (const i of idx) { ty[i] = Math.max(ty[i], floor); floor = ty[i] + (tags[i].children[3] as HTMLElement).offsetHeight + 14; }
+      }
       tags.forEach((t, i) => {
-        const a = anchors[i].getBoundingClientRect();
-        const ax = a.left + a.width / 2 - s.left, ay = a.top + a.height / 2 - s.top;
-        const left = t.classList.contains('l'), edge = left ? cx - col : cx + col;
-        const [dot, ln, tx] = t.children as unknown as HTMLElement[];
+        const { x: ax, y: ay } = pts[i];
+        const left = t.classList.contains('l'), edge = left ? colL : colR;
+        const [dot, ln, lv, tx] = t.children as unknown as HTMLElement[];
         const x0 = left ? edge + 6 : ax + 9, len = Math.max(0, left ? ax - 9 - x0 : edge - 6 - x0);
+        const drop = Math.max(0, ty[i] + 11 - ay), vx = left ? edge + 6 : edge - 6;
         dot.style.transform = `translate(${(ax - 5).toFixed(1)}px,${(ay - 5).toFixed(1)}px)`;
         ln.style.transform = `translate(${x0.toFixed(1)}px,${ay.toFixed(1)}px) scaleX(${(len / 100).toFixed(3)})`;
-        tx.style.transform = `translate(${(left ? edge - 10 - tx.offsetWidth : edge + 10).toFixed(1)}px,${(ay - 11).toFixed(1)}px)`;
+        lv.style.transform = `translate(${vx.toFixed(1)}px,${ay.toFixed(1)}px) scaleY(${(drop / 100).toFixed(3)})`;
+        tx.style.transform = `translate(${(left ? edge - 10 - tx.offsetWidth : edge + 10).toFixed(1)}px,${ty[i].toFixed(1)}px)`;
       });
     };
 
-    if (reduce) {
-      el.classList.remove('td-scroll');
-      el.style.setProperty('--e', '1'); tags.forEach(t => t.style.setProperty('--o', '1'));
-      place(); addEventListener('resize', place);
-      return () => removeEventListener('resize', place);
-    }
+    // Aplica el avance: notebook (3D o CSS) y etiquetas. En pantallas angostas se lee solo la pieza actual
+    const apply = () => {
+      const e = smooth(clamp((p - .08) / .62));
+      el.style.setProperty('--e', e.toFixed(4));
+      const reveal = phases3d ? phases3d(p).apart : e, from = phases3d ? .28 : .45, step = phases3d ? .14 : .1;
+      const shown = tags.map(t => (reduce ? 1 : clamp((reveal - (from + step * +t.dataset.k!)) / .14)));
+      const cur = shown.reduce((c, o, i) => (o > .5 ? i : c), -1);
+      tags.forEach((t, i) => t.style.setProperty('--o', (wide.matches || reduce ? shown[i] : i === cur ? 1 : 0).toFixed(3)));
+      t3d?.set(p);
+      place();
+    };
 
-    el.classList.add('td-scroll');
+    // Modelo 3D (three.js): se descarga cuando la sección se acerca; sin WebGL queda el despiece en CSS
+    const io = new IntersectionObserver(async ([en]) => {
+      if (!en.isIntersecting) return;
+      io.disconnect();
+      try {
+        const m = await import('@/lib/teardown3d');
+        if (!alive) return;
+        t3d = m.mount(canvas); phases3d = m.phases;
+        el.classList.add('td-3d'); t3d.resize(); apply();
+      } catch { el.classList.remove('td-3d'); }
+    }, { rootMargin: '900px 0px' });
+    io.observe(el);
+    const ro = new ResizeObserver(() => { t3d?.resize(); place(); });
+    ro.observe(scene);
+
     let ticking = false;
     const frame = () => {
       ticking = false;
       const r = el.getBoundingClientRect();
       if (r.bottom < -100 || r.top > innerHeight + 100) return;
-      const p = clamp(-r.top / Math.max(1, r.height - stage.offsetHeight));
-      const e = smooth(clamp((p - .08) / .62));
-      el.style.setProperty('--e', e.toFixed(4));
-      // Etiquetas: en pantallas anchas aparecen todas a medida que su capa se separa; en angostas, solo la pieza actual
-      const shown = tags.map(t => clamp((e - (.45 + .1 * +t.dataset.k!)) / .12));
-      const cur = shown.reduce((c, o, i) => (o > .5 ? i : c), -1);
-      tags.forEach((t, i) => t.style.setProperty('--o', (wide.matches ? shown[i] : i === cur ? 1 : 0).toFixed(3)));
-      place();
+      p = clamp(-r.top / Math.max(1, r.height - stage.offsetHeight));
+      apply();
     };
     const onScroll = () => { if (!ticking) { ticking = true; requestAnimationFrame(frame); } };
-    addEventListener('scroll', onScroll, { passive: true }); addEventListener('resize', onScroll); frame();
-    return () => { removeEventListener('scroll', onScroll); removeEventListener('resize', onScroll); };
+    if (reduce) { el.classList.remove('td-scroll'); apply(); }
+    else { el.classList.add('td-scroll'); addEventListener('scroll', onScroll, { passive: true }); frame(); }
+    addEventListener('resize', onScroll);
+    return () => {
+      alive = false; io.disconnect(); ro.disconnect();
+      removeEventListener('scroll', onScroll); removeEventListener('resize', onScroll);
+      t3d?.dispose();
+    };
   }, [reduce]);
 
   return (
@@ -179,6 +219,7 @@ export function Teardown() {
           <p>Abrimos tu equipo, encontramos la falla y te pasamos el presupuesto antes de reparar.</p>
         </div>
         <div className="td-scene">
+          <canvas className="td-canvas" aria-hidden="true"></canvas>
           <div className="td-rig" aria-hidden="true">
             {LAYERS.map(({ c, Art, edge }) => (
               <div key={c} className={`td-l ${c}${edge ? ` ${edge}` : ''}`}>
@@ -190,7 +231,7 @@ export function Teardown() {
           <ol className="td-tags">
             {TEARDOWN.map(t => (
               <li key={t.a} className={t.side} data-a={t.a} data-k={t.k}>
-                <i className="dot"></i><i className="ln"></i>
+                <i className="dot"></i><i className="ln"></i><i className="lv"></i>
                 <span className="tx"><b>{t.t}</b><small>{t.d}</small></span>
               </li>
             ))}
