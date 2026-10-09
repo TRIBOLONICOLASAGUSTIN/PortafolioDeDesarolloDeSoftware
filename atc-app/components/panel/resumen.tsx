@@ -24,9 +24,10 @@ export function Resumen() {
   const cats = useMemo(() => porCategoria(idx, per), [idx, per]);
 
   // El cambio de período se anuncia (no al cargar la página).
-  const first = useRef(true);
+  const lastRange = useRef(range);
   useEffect(() => {
-    if (first.current) { first.current = false; return; }
+    if (lastRange.current === range) return;
+    lastRange.current = range;
     const d = delta(t.ganancia, prev.ganancia);
     setMsg(`${RANGES[range].label}: ganancia ${fmtMonto(t.ganancia)}${d.pct !== null ? `, ${fmtPct(d.pct)}` : ''} frente a ${RANGES[range].prev}.`);
   }, [range, t, prev]);

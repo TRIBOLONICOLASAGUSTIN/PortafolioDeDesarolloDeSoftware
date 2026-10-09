@@ -23,7 +23,7 @@ test('API-8 · Sin ATC_DEMO (producción) el panel no existe: /panel y /panel/mo
     const r = await fetch(prod.base + p);
     const html = await r.text();
     assert.equal(r.status, 404, `${p} respondió ${r.status}`);
-    assert.doesNotMatch(html, /Datos de ejemplo|Maqueta|Ganancia|Registrar venta/, `${p} muestra contenido del panel`);
+    assert.doesNotMatch(html, /datos de ejemplo|maqueta|ganancia|registrar venta/i, `${p} muestra contenido del panel`);
     assert.match(html, /<meta name="robots" content="noindex/, `${p} sin noindex`);
     assert.match(html, /No encontramos esta página/, `${p} sin la página 404 en castellano`);
   }

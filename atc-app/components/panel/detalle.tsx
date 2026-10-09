@@ -20,7 +20,7 @@ export function Detalle({ id }: { id: string }) {
     : m.kind === 'reparacion' ? `Cobraste la reparación de ${m.equipo}` : `Pagaste: ${m.concept}`;
   // El detalle para el cliente va sin número fijo: el dueño elige el contacto en WhatsApp. No es una factura.
   const wa = m.kind === 'gasto' ? null : `https://wa.me/?text=${encodeURIComponent([
-    'Detalle de tu compra en AT Computación', long(m.ymd, m.hm),
+    'EJEMPLO (maqueta): no es una compra real', 'Detalle de tu compra en AT Computación', long(m.ymd, m.hm),
     ...(m.kind === 'venta' ? m.items.map(i => `${i.qty} × ${productName(i.productId)}: ${fmt(i.qty * i.unit)}`) : [`Reparación de ${m.equipo} (orden ${m.orderCode}): ${fmt(m.amount)}`]),
     `Total: ${fmt(ingreso(m))} · ${payLabel(m.pay)}`, '¡Gracias!',
   ].join('\n'))}`;

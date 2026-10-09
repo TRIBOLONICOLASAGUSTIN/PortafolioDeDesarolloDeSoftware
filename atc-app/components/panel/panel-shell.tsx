@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 import { generar } from '@/lib/data/panel';
 import { indexar, type Index } from '@/lib/panel/stats';
 import type { Movement } from '@/lib/panel/types';
@@ -16,6 +17,7 @@ import { Icon } from '../ui';
    Escape la cierra y el foco vuelve al botón que la abrió.
    ========================================================= */
 export type Ahora = { ymd: string; hm: string };
+export type Lista = { codigo: string; equipo: string; presupuesto: number | null };
 export type Sheet = { t: 'detalle'; id: string } | { t: 'acciones' } | { t: 'venta' } | { t: 'gasto' } | { t: 'cobro'; code?: string } | { t: 'exportar' } | null;
 type Panel = {
   ahora: Ahora; hoy: string; ms: Movement[]; idx: Index; byMov: Map<string, Movement>;
@@ -23,11 +25,13 @@ type Panel = {
   /** Lo cargado en esta visita (maqueta: no se guarda, se pierde al recargar). */
   extra: Movement[]; agregar: (m: Movement) => void; nuevoId: (prefijo: 'V' | 'R' | 'G') => string;
   toast: (msg: string) => void;
+  /** Órdenes listas para retirar que todavía no se cobraron. */
+  listas: Lista[];
 };
 const PanelCtx = createContext<Panel | null>(null);
 export const usePanel = () => useContext(PanelCtx)!;
 
-export function PanelShell({ ahora, children }: { ahora: Ahora; children: ReactNode }) {
+export function PanelShell({ ahora, listas: todas, children }: { ahora: Ahora; listas: Lista[]; children: ReactNode }) {
   const { ymd, hm } = ahora;
   const base = useMemo(() => generar({ ymd, hm }), [ymd, hm]);
   const [extra, setExtra] = useState<Movement[]>([]);
@@ -36,6 +40,11 @@ export function PanelShell({ ahora, children }: { ahora: Ahora; children: ReactN
     return { ahora: { ymd, hm }, hoy: ymd, ms, idx: indexar(ms), byMov: new Map(ms.map(m => [m.id, m])) };
   }, [ymd, hm, base, extra]);
   const agregar = useCallback((m: Movement) => setExtra(x => [m, ...x]), []);
+  // Una vez cobrada (aunque sea en la maqueta), la orden deja de estar lista.
+  const listas = useMemo(() => {
+    const cobradas = new Set(extra.flatMap(m => (m.kind === 'reparacion' ? [m.orderCode] : [])));
+    return todas.filter(o => !cobradas.has(o.codigo));
+  }, [todas, extra]);
   const nuevoId = useCallback((p: 'V' | 'R' | 'G') => `${p}-${ymd.slice(2).replaceAll('-', '')}-n${extra.length + 1}`, [ymd, extra.length]);
 
   const [toasts, setToasts] = useState<{ id: number; msg: string }[]>([]);
@@ -67,12 +76,16 @@ export function PanelShell({ ahora, children }: { ahora: Ahora; children: ReactN
       return () => document.removeEventListener('keydown', onKey);
     }
     // Al cerrar, el foco vuelve a quien abrió (cuando el panel ya dejó de estar inert).
+    // Si ese botón ya no existe (por ejemplo, el aviso desaparece al cobrar), va al título de la página.
     const el = opener.current;
-    if (el) requestAnimationFrame(() => { if (el.isConnected) el.focus(); opener.current = null; });
+    if (el) requestAnimationFrame(() => { (el.isConnected ? el : document.querySelector<HTMLElement>('#pn-main .pn-t'))?.focus(); opener.current = null; });
   }, [sheet, closeSheet]);
   useEffect(() => () => document.documentElement.classList.remove('lock'), []);
+  // Si se cambia de página (por ejemplo con "Atrás"), la hoja se cierra.
+  const path = usePathname();
+  useEffect(() => { closeSheet(); }, [path, closeSheet]);
 
-  const value = useMemo<Panel>(() => ({ ...data, sheet, openSheet, closeSheet, extra, agregar, nuevoId, toast }), [data, sheet, openSheet, closeSheet, extra, agregar, nuevoId, toast]);
+  const value = useMemo<Panel>(() => ({ ...data, sheet, openSheet, closeSheet, extra, agregar, nuevoId, toast, listas }), [data, sheet, openSheet, closeSheet, extra, agregar, nuevoId, toast, listas]);
   return (
     <PanelCtx.Provider value={value}>
       <div className="pn" inert={!!sheet}>{children}</div>

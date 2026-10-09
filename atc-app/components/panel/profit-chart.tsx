@@ -71,7 +71,8 @@ export function ProfitChart({ serie, label, unit }: { serie: Bucket[]; label: st
           aria-valuemin={0} aria-valuemax={n - 1} aria-valuenow={cur} aria-valuetext={txt(cur)}
           onKeyDown={onKey} onFocus={() => setSel(s => s ?? n - 1)} onBlur={() => setSel(null)}
           onPointerDown={e => { if (e.pointerType !== 'mouse') e.currentTarget.setPointerCapture(e.pointerId); at(e); }}
-          onPointerMove={at} onPointerLeave={e => { if (e.pointerType === 'mouse' && document.activeElement !== e.currentTarget) setSel(null); }} />
+          onPointerMove={at} onPointerLeave={e => { if (e.pointerType === 'mouse' && document.activeElement !== e.currentTarget) setSel(null); }}
+          onPointerCancel={() => setSel(null)} onPointerUp={e => { if (e.pointerType !== 'mouse') e.currentTarget.focus({ preventScroll: true }); }} />
       </div>
       <div className="pn-x" aria-hidden="true"><span>{serie[0].label}</span><span>{serie[n - 1].label}</span></div>
       <table className="sr">

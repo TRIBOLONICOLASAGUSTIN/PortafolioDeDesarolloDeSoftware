@@ -2,18 +2,15 @@
 
 import { useState } from 'react';
 import { Icon } from '../ui';
-import { DEMO_ORDERS } from '@/lib/data/tracking';
 import { usePanel } from './panel-shell';
 import { fmt } from '@/lib/format';
 
 // Aviso del día (equivale a "Bitcoin is on the move" de la referencia): una reparación lista para retirar.
 // Sale de las órdenes de ejemplo; en la etapa 2, de las órdenes reales en estado "listo".
 export function Aviso() {
-  const { extra, openSheet } = usePanel();
+  const { listas, openSheet } = usePanel();
   const [open, setOpen] = useState(true);
-  // Una vez cobrada (aunque sea en la maqueta), deja de avisar.
-  const cobradas = new Set(extra.flatMap(m => (m.kind === 'reparacion' ? [m.orderCode] : [])));
-  const lista = Object.values(DEMO_ORDERS).map(o => o.r).find(r => r.estado === 'listo' && !cobradas.has(r.codigo));
+  const lista = listas[0];
   if (!open || !lista) return null;
   return (
     <section className="pn-aviso" aria-labelledby="pn-aviso-h">
@@ -23,7 +20,7 @@ export function Aviso() {
         <p>{lista.equipo} · orden {lista.codigo}{lista.presupuesto ? ` · ${fmt(lista.presupuesto)}` : ''}</p>
         <button type="button" className="pn-aviso-btn" onClick={() => openSheet({ t: 'cobro', code: lista.codigo })}>Cobrar reparación</button>
       </div>
-      <button className="ib pn-aviso-x" type="button" aria-label="Cerrar aviso" onClick={() => setOpen(false)}><Icon n="x" /></button>
+      <button className="ib pn-aviso-x" type="button" aria-label="Cerrar aviso" onClick={() => { document.querySelector<HTMLElement>('#pn-main .pn-t')?.focus(); setOpen(false); }}><Icon n="x" /></button>
     </section>
   );
 }

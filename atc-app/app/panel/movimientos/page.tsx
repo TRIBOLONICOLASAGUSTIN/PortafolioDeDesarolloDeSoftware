@@ -7,7 +7,7 @@ import { DemoBanner } from '@/components/panel/demo-banner';
 import { Icon } from '@/components/ui';
 import { Movimientos, type Tipo } from '@/components/panel/movimientos';
 
-export const metadata: Metadata = { title: 'Movimientos' };
+export async function generateMetadata(): Promise<Metadata> { return (await panelMaqueta()) ? { title: 'Movimientos' } : {}; }
 
 const TIPOS: readonly Tipo[] = ['todos', 'ventas', 'reparaciones', 'gastos'];
 

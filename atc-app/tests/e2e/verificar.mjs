@@ -374,7 +374,7 @@ for (const rm of ['no-preference', 'reduce']) {
 
 // Panel del dueño (etapa 1, maqueta con datos de ejemplo): solo existe con ATC_DEMO=1 (este servidor lo tiene).
 const PANEL = server.base + '/panel';
-const PANEL_VPS = [[390, 844, 'light'], [820, 1180, 'dark'], [1440, 900, 'light']];
+const PANEL_VPS = [[320, 568, 'light'], [390, 844, 'light'], [820, 1180, 'dark'], [1440, 900, 'light']];
 const panelPage = async (w, h, scheme, opts = {}) => {
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, colorScheme: scheme, hasTouch: w < 900, acceptDownloads: true, ...opts });
   const p = await ctx.newPage();
@@ -489,6 +489,17 @@ for (const [w, h, scheme] of PANEL_VPS) {
     check(tag, 'sin texto visible menor a 13 px', a11y.tiny.length === 0, a11y.tiny.join(' | '));
     check(tag, 'áreas táctiles de 44 px o más', a11y.small.length === 0, a11y.small.join(' | '));
     check(tag, 'un solo h1 y títulos sin saltos de nivel', a11y.h1 === 1 && !a11y.jump, a11y.hs);
+    const pisa = await p.evaluate(() => {
+      const hit = (a, b) => a.right > b.left + .5 && b.right > a.left + .5 && a.bottom > b.top + .5 && b.bottom > a.top + .5;
+      const bad = [];
+      for (const r of document.querySelectorAll('.pn .pn-row, .pn .pn-mov, .pn .pn-rank li')) {
+        const t = r.querySelector('.pn-rt b'), a = r.querySelector('.pn-amt, .pn-mamt b, .pn-rv');
+        if (t && a && hit(t.getBoundingClientRect(), a.getBoundingClientRect())) bad.push(t.textContent.slice(0, 20));
+      }
+      for (const b of document.querySelectorAll('.pn-act')) if (b.scrollWidth > b.clientWidth + 1) bad.push(`acción ${b.textContent}`);
+      return bad;
+    });
+    check(tag, 'títulos y montos no se pisan; acciones sin desborde', pisa.length === 0, pisa.slice(0, 5).join(' | '));
     const grid = await p.evaluate(() => { const a = document.querySelector('.pn-gan').getBoundingClientRect(), b = document.querySelector('.pn-des').getBoundingClientRect(); return { same: Math.abs(a.top - b.top) < 1, below: b.top >= a.bottom }; });
     check(tag, w >= 1069 ? 'grilla: ganancia y desglose lado a lado' : 'grilla: tarjetas apiladas', w >= 1069 ? grid.same : grid.below, JSON.stringify(grid));
 
@@ -561,7 +572,7 @@ for (const [w, h, scheme] of PANEL_VPS) {
     const cob = await p.evaluate(() => ({ ord: document.querySelector('#f-ord').value, amt: document.querySelector('#f-amt').value }));
     await p.click('.pn-sheet button[type="submit"]'); await p.waitForTimeout(500);
     const s1 = PARSE_ARS(await rowOf('servicio'));
-    const avisoGone = await p.evaluate(() => !document.querySelector('.pn-aviso'));
+    const avisoGone = await p.evaluate(() => !document.querySelector('.pn-aviso') && document.activeElement?.classList.contains('pn-t'));
     check(tag, 'cobrar desde el aviso: viene completo, suma en servicio y el aviso se va', cob.ord === 'AT-7KQ2-9M' && cob.amt === '45000' && s1 - s0 === 45000 && avisoGone, JSON.stringify({ cob, s0, s1, avisoGone }));
 
     // Exportar: planilla CSV con BOM, encabezado, lo cargado ("Sin guardar") y la fórmula escapada
@@ -647,7 +658,7 @@ for (const scheme of ['light', 'dark']) for (const w of [1440, 390]) {
   const { ctx, p } = await panelPage(1440, 900, 'light');
   await p.goto(PANEL); await p.waitForTimeout(400);
   await p.click('.pn-aviso-x'); await p.waitForTimeout(100);
-  check('panel-1440-claro', 'el aviso del día se puede cerrar', await p.evaluate(() => !document.querySelector('.pn-aviso')));
+  check('panel-1440-claro', 'el aviso del día se puede cerrar y el foco va al título', await p.evaluate(() => !document.querySelector('.pn-aviso') && document.activeElement?.classList.contains('pn-t')));
   await ctx.close();
 }
 for (const scheme of ['light', 'dark']) for (const w of [390, 1440]) {

@@ -1,6 +1,7 @@
 import 'server-only';
 import pg from 'pg';
-import { DEMO_ORDERS, type TrackResult } from '@/lib/data/tracking';
+import type { TrackResult } from '@/lib/data/tracking';
+import { DEMO_ORDERS } from '@/lib/data/demo-orders';
 
 // Conexión como atc_tracker: un rol que SOLO puede ejecutar public.track_order (seguridad.md §4).
 // La contraseña vive en ATC_TRACKER_DATABASE_URL, una variable de entorno del servidor: nunca en el repo.

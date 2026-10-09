@@ -5,7 +5,7 @@ import { PanelHeader } from '@/components/panel/panel-header';
 import { DemoBanner } from '@/components/panel/demo-banner';
 import { Resumen } from '@/components/panel/resumen';
 
-export const metadata: Metadata = { title: 'Resumen' };
+export async function generateMetadata(): Promise<Metadata> { return (await panelMaqueta()) ? { title: 'Resumen' } : {}; }
 
 export default async function PanelResumen() {
   // El layout ya controla; se repite porque los layouts no se vuelven a evaluar al navegar dentro del panel.

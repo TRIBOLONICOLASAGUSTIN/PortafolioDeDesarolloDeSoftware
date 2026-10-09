@@ -15,14 +15,14 @@ export function Categorias({ cats }: { cats: Cat[] }) {
         {cats.map(c => {
           const cat = CATS.find(x => x.id === c.id);
           const d = delta(c.ganancia, c.prev);
-          const up = d.abs >= 0;
+          const up = d.abs > 0;
           const n = c.id === 'servicio' ? `${c.n} ${c.n === 1 ? 'reparación' : 'reparaciones'}` : `${c.n} ${c.n === 1 ? 'unidad' : 'unidades'}`;
           return (
             <li key={c.id} className="pn-row" data-cat={c.id} data-v={c.ganancia}>
               <span className="pn-ic pn-ic-r">{cat ? <Render r={cat.r} /> : <Icon n="wrench" />}</span>
               <span className="pn-rt">
                 <b>{cat?.t ?? 'Servicio técnico'}</b>
-                <small>{n}{d.pct !== null && <> · <span className={`pn-var ${up ? 'up' : 'dn'}`}><Icon n={up ? 'trend-up' : 'trend-down'} cls="i xs" />{fmtPct(d.pct)}</span></>}</small>
+                <small>{n}{d.abs === 0 ? <> · sin cambios</> : d.pct !== null && <> · <span className={`pn-var ${up ? 'up' : 'dn'}`}><Icon n={up ? 'trend-up' : 'trend-down'} cls="i xs" /><span className="sr">{up ? 'subió' : 'bajó'} </span>{fmtPct(d.pct)}</span></>}</small>
               </span>
               <span className="pn-mamt"><b className="pn-num">{fmtMonto(c.ganancia)}</b><small className="pn-num">de {fmt(c.ingresos)}</small></span>
             </li>

@@ -49,7 +49,10 @@ export function Movimientos({ tipo: inicial }: { tipo: Tipo }) {
         );
       })}
       {!grupos.length && <p className="pn-empty">No hay movimientos de este tipo en estos días.</p>}
-      {hayMas && <button type="button" className="btn btn-gray pn-more" onClick={() => setDias(d => d + PASO)}>Mostrar {PASO} días más</button>}
+      {/* El botón no se desmonta al llegar al final (perdería el foco): queda desactivado */}
+      <button type="button" className="btn btn-gray pn-more" aria-disabled={!hayMas || undefined} onClick={() => { if (hayMas) setDias(d => d + PASO); }}>
+        {hayMas ? `Mostrar ${PASO} días más` : 'No hay movimientos más viejos'}
+      </button>
     </div>
   );
 }
