@@ -108,6 +108,8 @@ Varios hallazgos repiten el mismo problema visto desde distintos ángulos. En el
   - Los diagramas de fronteras y de `track_order` en FigJam.
 - [x] **Hito 2 — Sitio público en React (Next.js 16) y servidor seguro.** *(commit `d6e675d`: CSP con nonce, `/api/seguimiento` con atc_tracker, pruebas API-1…7 y las 80 verificaciones portadas.)*
   - [ ] **Falta configurar** (necesita cuentas): Turnstile, Upstash, hosting (Vercel/Netlify/Cloudflare) y `ATC_IP_HEADER` según el hosting (`seguridad.md` §8 punto 8).
+- [x] **Tienda centrada:** flechas del estante en el eje de la sección (44 px), encabezados de servicio y reseñas centrados como el resto, categorías hasta el borde en el celular y Contacto con padding simétrico (e2e "centrado-*").
+- [ ] **Áreas táctiles de la tienda < 44 px** (lote aparte): `.btn-sm` (34), `.ib` (40/38), `.duo .ib` (36/34), `.x-btn` (36), `.qty.sm button` (32×34), `.pays button` (38), `.hint button` (34), `.wa-greet button` (26), links del menú (≈32) y `.shop-links .lnk`. Sumar el chequeo de 44 px a la tienda (hoy solo corre en el panel y `/ingresar`).
 - [ ] **Hito 3 — Panel del dueño.**
   - [x] **Etapa 1 — Maqueta** en `/panel`, con datos de ejemplo marcados:
     - Resumen: ganancia del período con gráfico de ganancia acumulada, desglose, categorías, más vendidos, últimos movimientos y aviso de la orden lista.

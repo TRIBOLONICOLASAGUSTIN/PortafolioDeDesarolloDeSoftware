@@ -66,7 +66,7 @@
   .pay-ic{width:38px;height:38px;margin-bottom:10px}
   .pay-i b{font-size:16px}
   .pay-i small{font-size:13px}
-  .cats{margin-top:40px}
+  .cats{margin-top:40px;margin-inline:-20px;padding-inline:20px;scroll-padding-inline:20px}
   .cat{min-width:96px;gap:10px;font-size:13px}
   .cat .r{width:72px;height:48px}
   .shop-links{flex-direction:column;align-items:center;gap:12px}

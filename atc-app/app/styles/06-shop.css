@@ -39,11 +39,12 @@
 .stock.ok::before{content:'';display:inline-block;width:6px;height:6px;margin:0 6px 1px 0;border-radius:50%;background:var(--ok)}.stock.low{color:var(--warn)}.stock.out{color:var(--danger)}
 .p-foot .btn{position:relative;z-index:2}
 .shelf>.pcard:first-child,.shelf>.p-empty:first-child{margin-left:auto}.shelf>:last-child{margin-right:auto}
-.shelf-nav{display:flex;justify-content:flex-end;gap:12px}
+.shelf-nav{display:flex;justify-content:center;gap:12px}
 .shelf-nav.off{visibility:hidden}
-.round{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--fill);color:var(--text);transition:opacity .2s,background-color .2s}
+.round{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--fill);color:var(--text);transition:background-color .15s,color .15s}
 .round:hover{background:var(--line)}
-.round[disabled]{opacity:.35;cursor:default}
+/* Desactivada: el círculo sigue a la vista (el par queda centrado) y solo se apaga la flecha */
+.round[disabled],.round[disabled]:hover{background:var(--fill);color:var(--text-3);cursor:default}
 .p-empty{flex:0 0 min(520px,86vw);display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:16px;padding:36px;border-radius:24px;background:var(--card)}
 .p-empty b{font-size:21px;letter-spacing:-.02em}
 

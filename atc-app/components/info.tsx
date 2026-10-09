@@ -17,7 +17,7 @@ export function Reviews() {
   return (
     <section className="sec" id="opiniones">
       <div className="wrap">
-        <div className="head rv">
+        <div className="head center rv">
           <h2 className="h2">Lo que dicen <span className="muted">nuestros clientes.</span></h2>
           <a className="lnk" href="#" id="reviewLink">Dejanos tu reseña en Google</a>
         </div>

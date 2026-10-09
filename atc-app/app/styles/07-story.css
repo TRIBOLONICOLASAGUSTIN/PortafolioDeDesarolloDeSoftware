@@ -58,7 +58,7 @@
 .stx h3{font-size:clamp(30px,3.6vw,44px);letter-spacing:-.035em;margin:10px 0 16px;line-height:1.1}
 .stx p{font-size:clamp(17px,1.6vw,21px);color:#a1a1a6;max-width:460px;line-height:1.45}
 .stx p b{color:#f5f5f7;font-weight:600}
-.svc-head{margin-top:clamp(52px,6.5vw,88px)}
+.svc-head{margin-top:clamp(52px,6.5vw,88px);flex-direction:column;align-items:center;text-align:center}
 .svcs{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:28px}
 .svc{padding:26px 24px;border-radius:24px;background:var(--card);transition:background-color .3s}
 .svc:hover{background:#232325}

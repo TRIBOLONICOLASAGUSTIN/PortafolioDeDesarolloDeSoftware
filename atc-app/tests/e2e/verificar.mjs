@@ -257,6 +257,27 @@ for (const w of [1440, 834, 390, 320]) {
   await p.close();
 }
 
+// Centrado: las flechas del estante quedan en el eje de la sección (44 px), y los encabezados de servicio y reseñas
+// van centrados como el resto; en celular la fila de categorías llega al borde sin scroll horizontal
+for (const [w, scheme] of [[320, 'light'], [390, 'dark'], [820, 'light'], [1440, 'dark']]) {
+  const ctx = await browser.newContext({ viewport: { width: w, height: 900 }, colorScheme: scheme });
+  const p = await ctx.newPage(); await p.goto(HTML); await p.waitForTimeout(400);
+  const r = await p.evaluate(() => {
+    const mid = el => { const b = el.getBoundingClientRect(); return b.left + b.width / 2; };
+    const axis = mid(document.querySelector('#tienda .head'));
+    const btns = [...document.querySelectorAll('.shelf-nav .round')], bb = btns.map(b => b.getBoundingClientRect());
+    const pair = (bb[0].left + bb[1].right) / 2;
+    const heads = ['.svc-head h2', '#opiniones .head h2', '.svc-head .lnk', '#opiniones .head .lnk'].map(s => Math.round(mid(document.querySelector(s)) - innerWidth / 2));
+    const cats = document.querySelector('.cats').getBoundingClientRect();
+    return { arrows: Math.round(pair - axis), size: bb.map(b => Math.min(b.width, b.height)), heads, cats: [Math.round(cats.left), Math.round(innerWidth - cats.right)], ow: document.documentElement.scrollWidth - innerWidth };
+  });
+  const tagC = `centrado-${w}`;
+  check(tagC, 'flechas del estante centradas en la sección y de 44 px', Math.abs(r.arrows) <= 1 && r.size.every(x => x >= 44), JSON.stringify(r));
+  check(tagC, 'encabezados de servicio y reseñas centrados', r.heads.every(x => Math.abs(x) <= 2), JSON.stringify(r.heads));
+  if (w <= 734) check(tagC, 'la fila de categorías llega a los bordes, sin scroll horizontal', r.cats[0] === 0 && r.cats[1] === 0 && r.ow <= 0, JSON.stringify(r));
+  await ctx.close();
+}
+
 // Pantallas muy anchas: el estante no pasa de 1760 px, la primera tarjeta sigue alineada con el contenido y los bordes se funden
 for (const [w, h] of [[2940, 1700], [1440, 900]]) {
   const p = await browser.newPage({ viewport: { width: w, height: h } }); await p.goto(HTML); await p.waitForTimeout(300);
