@@ -14,7 +14,8 @@ const PAYMENTS: [string, string, string][] = [
   ['zap', 'Mercado Pago', 'Con QR o link de pago.'],
   ['card', 'Débito y crédito', 'Cuotas en productos seleccionados.'],
 ];
-const BRANDS = ['HP', 'Lenovo', 'Epson', 'Brother', 'Logitech', 'Samsung', 'Kingston', 'TP-Link', 'ASUS', 'Dell', 'Canon', 'Acer', 'Western Digital', 'Redragon'];
+// Marcas de ejemplo: confirmar con el dueño cuáles trabaja de verdad antes de publicar (el logo dice "esto se vende acá").
+const BRANDS = ['HP', 'Lenovo', 'Epson', 'Brother', 'Logitech', 'Samsung', 'Kingston', 'TP-Link', 'ASUS', 'Corsair', 'Dell', 'Canon', 'NVIDIA', 'Acer', 'AMD', 'Western Digital', 'MSI', 'Redragon'];
 
 export function Values() {
   return (

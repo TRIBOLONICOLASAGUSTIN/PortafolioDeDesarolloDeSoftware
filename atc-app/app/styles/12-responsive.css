@@ -121,5 +121,6 @@
   .js .rv{opacity:1;transform:none}
   .mq{-webkit-mask-image:none;mask-image:none}
   .mq-track{width:auto;flex-wrap:wrap;justify-content:center;gap:8px 0}
-  .mq-track [aria-hidden]{display:none}
+  .mq-track>[aria-hidden]{display:none}
+  .mq-track>.bl{padding:4px 16px}
 }

@@ -112,6 +112,9 @@ Varios hallazgos repiten el mismo problema visto desde distintos ángulos. En el
   - Link mágico solo para su mail.
   - ABM de productos y órdenes.
   - Novedades y mensaje de WhatsApp armado.
+- [ ] **Marcas del carrusel** (`components/values.tsx`, logos en `components/brand-logos.tsx`):
+  - Confirmar con el dueño qué marcas trabaja de verdad: un logo le dice al cliente "esto se vende acá".
+  - Logitech, Canon, Brother y Western Digital no tienen logo libre: conseguir el SVG oficial del kit de prensa de cada marca y sumarlo. Hasta entonces no se muestran.
 - [ ] **Antes de producción:**
   - Checklist de `seguridad.md` §8.
   - Datos reales del dueño.

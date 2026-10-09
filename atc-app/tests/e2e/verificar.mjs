@@ -214,6 +214,21 @@ for (const scheme of ['light', 'dark']) {
   await p.close();
 }
 
+// Marcas: logos con nombre accesible, la copia del bucle oculta a lectores de pantalla y, con "reducir movimiento",
+// los logos se ven (la regla que oculta la copia no debe ocultar los SVG de cada logo); nunca "oficial" ni "distribuidor"
+for (const rm of ['no-preference', 'reduce']) {
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: rm });
+  const p = await ctx.newPage(); await p.goto(HTML); await p.waitForTimeout(400);
+  const m = await p.evaluate(() => {
+    const own = [...document.querySelectorAll('.mq-track>.bl[role="img"]')];
+    return { n: own.length, named: own.every(b => b.getAttribute('aria-label')), visible: own.filter(b => b.querySelector('svg').getBoundingClientRect().width > 0).length,
+      copies: [...document.querySelectorAll('.mq-track>.bl:not([role])')].every(b => b.getAttribute('aria-hidden') === 'true'),
+      claim: /oficial|distribuidor|autorizado/i.test(document.querySelector('.brands').textContent) };
+  });
+  check('marcas', `logos visibles y con nombre${rm === 'reduce' ? ' (reducir movimiento)' : ''}`, m.n >= 10 && m.named && m.visible === m.n && m.copies && !m.claim, JSON.stringify(m));
+  await ctx.close();
+}
+
 // Modo oscuro: la barra del navegador sigue al botón de la luna, el cambio se aplica sin transiciones a destiempo,
 // los equipos negros se aclaran con luz de borde (solo en oscuro), el pin del mapa cumple AA y la banda marca su borde
 {

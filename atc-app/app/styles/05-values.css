@@ -22,4 +22,8 @@
 .mq.on:hover .mq-track{animation-play-state:paused}
 .mq-track span{padding:6px clamp(26px,3.6vw,52px);font-family:var(--font-d);font-size:clamp(22px,2.4vw,30px);font-weight:600;letter-spacing:-.025em;color:var(--text-3);opacity:.6;white-space:nowrap;transition:opacity .3s,color .3s}
 .mq-track span:hover{opacity:1;color:var(--text)}
+/* Logos: monocromos, alto en em por equilibrio óptico; los que son solo símbolo llevan el nombre al lado */
+.mq-track .bl{display:inline-flex;align-items:center;gap:.5em;font-family:var(--font);font-size:clamp(15px,1.5vw,19px);font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.72}
+.bl svg{display:block;flex:none;fill:currentColor}
+.bl b{font-weight:600;font-size:.92em}
 @keyframes mq{to{transform:translateX(-50%)}}
