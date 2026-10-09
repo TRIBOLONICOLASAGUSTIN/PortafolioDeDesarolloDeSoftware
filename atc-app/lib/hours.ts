@@ -34,6 +34,13 @@ export function greeting(now = new Date()) {
   return hour < 13 ? '¡Buen día!' : hour < 20 ? '¡Buenas tardes!' : '¡Buenas noches!';
 }
 
+/** { ymd: '2026-10-09', hm: '14:37' } en hora del local. La calcula el servidor y la pasa al panel. */
+export function storeStamp(now = new Date()) {
+  const p = new Intl.DateTimeFormat('en-CA', { timeZone: CONFIG.timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(now);
+  const g = (t: string) => (p.find(x => x.type === t)?.value ?? '').padStart(2, '0');
+  return { ymd: `${g('year')}-${g('month')}-${g('day')}`, hm: `${g('hour') === '24' ? '00' : g('hour')}:${g('minute')}` };
+}
+
 /** 06/10 · 18:10 en hora del local. */
 export function shortDateTime(iso: string) {
   const d = new Date(iso);

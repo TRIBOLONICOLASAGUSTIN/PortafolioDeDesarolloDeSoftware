@@ -1,7 +1,7 @@
 # AT Computación — Seguridad (Hito 1: base de datos · Hito 2: servidor)
 
-> Estado: **Hito 1 implementado y probado** (19/19 pruebas en verde contra Postgres 16). **Hito 2 (servidor) implementado y probado**: `/api/seguimiento`, CSP con nonce y encabezados (7/7 pruebas `API-n` contra la app compilada y la base local).
-> Servidor: `atc-app/app/api/seguimiento/route.ts`, `atc-app/lib/server/`, `atc-app/proxy.ts` (CSP), `atc-app/next.config.ts` (encabezados) · Pruebas: `atc-app/tests/api/seguimiento.test.mjs`.
+> Estado: **Hito 1 implementado y probado** (19/19 pruebas en verde contra Postgres 16). **Hito 2 (servidor) implementado y probado**: `/api/seguimiento`, CSP con nonce y encabezados (9/9 pruebas `API-n` contra la app compilada y la base local). **Panel del dueño, etapa 1:** maqueta con datos de ejemplo en `/panel`, que solo existe con `ATC_DEMO=1` (API-8, API-9).
+> Servidor: `atc-app/app/api/seguimiento/route.ts`, `atc-app/lib/server/`, `atc-app/proxy.ts` (CSP), `atc-app/next.config.ts` (encabezados), `atc-app/app/panel/` (maqueta del panel) · Pruebas: `atc-app/tests/api/seguimiento.test.mjs` y `atc-app/tests/api/panel.test.mjs`.
 > Código: `atc-app/supabase/migrations/` · Pruebas: `atc-app/tests/db/seguridad.test.mjs` · Cómo correrlas: `atc-app/README.md`.
 > Cada control cita la prueba que lo demuestra (IDs `RLS-n`, `FN-n`, `TRK-n`, `GEN-n`, `RET-n` de la base y `API-n` del servidor). `npm run check:docs` falla si un ID de este documento no tiene prueba o al revés.
 > Las rutas `0100`, `0200`, `0300` y `0400` son las migraciones `atc-app/supabase/migrations/20261008000NNN_*.sql`; el número después de `:` es la línea.
@@ -117,6 +117,7 @@ Verificada por **RLS-2**, **FN-2** y **FN-3** contra `information_schema` y `pg_
 | 14 | **Abuso de la ruta de seguimiento** (desde otro sitio, cuerpos enormes, formato roto) | Mismo sitio, máximo 1 KB, Zod estricto, respuestas sin detalles. | `route.ts` | API-3 |
 | 15 | **IP falsificada para esquivar el límite** | La IP sale del encabezado de la plataforma, nunca de `X-Forwarded-For`; límite del servidor + bloqueos de la base. | `lib/server/config.ts`, `lib/server/ratelimit.ts` | API-4, API-5 |
 | 16 | **Despliegue con configuración incompleta** | La ruta falla cerrada (503) y nunca cae en modo demo. | `lib/server/config.ts` | API-6 |
+| 17 | **Panel del dueño visible antes de tener login** (etapa 1, maqueta) | <ul><li>`/panel` solo existe con `ATC_DEMO=1` o en desarrollo; si no, 404 (se evalúa en cada pedido).</li><li>Siempre `noindex` (meta + `X-Robots-Tag`), `Cache-Control: private, no-store`, sin enlaces desde la tienda.</li><li>Solo datos de ejemplo marcados; nada se guarda ni se manda a ningún lado.</li><li>`?tipo=` acepta solo valores conocidos.</li></ul>El panel real (etapa 2) lleva login del dueño con segundo factor. | `lib/server/panel.ts`, `app/panel/layout.tsx`, `next.config.ts` | API-8, API-9 |
 | 12 | **Pagos** | **Fuera de alcance:** no se cobra online; el sitio nunca toca datos de tarjeta. | — | — |
 | 13 | **Pérdida de datos** | Backups y prueba de restauración (§8, §9). | — | — |
 
@@ -196,7 +197,7 @@ Verificada por **RLS-2**, **FN-2** y **FN-3** contra `information_schema` y `pg_
    - `TURNSTILE_SECRET_KEY` y `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, de Cloudflare.
    - `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN`.
    - `ATC_IP_HEADER` **(verificar según el hosting)**: Cloudflare `cf-connecting-ip`, Vercel `x-vercel-forwarded-for` y Netlify `x-nf-client-connection-ip`. Confirmarlo en la documentación del proveedor elegido.
-   - `ATC_INDEXAR=1` recién con los datos reales. `ATC_DEMO` **nunca** en el sitio real.
+   - `ATC_INDEXAR=1` recién con los datos reales. `ATC_DEMO` **nunca** en el sitio real (además de los botones de demo, mostraría la maqueta del panel en `/panel`).
    - **(verificar)** que el hosting pase el `Host` original: la ruta compara `Origin` con `Host` y, si no coinciden, responde 403. Probar el seguimiento una vez publicado.
    - **La IP que se le pasa a `track_order` tiene que ser la que fija la plataforma de hosting**, nunca el primer valor de `X-Forwarded-For`: ese lo escribe el cliente, y cambiándolo se esquivaría el bloqueo por IP. Lo prueba API-5.
 9. **No mergear a `main`** mientras haya datos de ejemplo (GitHub Pages publica el repo).
@@ -255,6 +256,7 @@ select date_trunc('hour', created_at) h, outcome, count(*) from private.track_at
 | `style-src-attr 'unsafe-inline'` | Las animaciones usan variables CSS en atributos `style` | Solo afecta atributos de estilo, no scripts. El riesgo es inyección de CSS, acotado porque React escapa el texto |
 | La página se arma en cada pedido (por el nonce) | Es el precio de la CSP estricta | Una sola página, liviana: costo bajo |
 | Comportamientos propios de Supabase probados con un **shim**, no contra Supabase real | Sin cuenta durante el desarrollo | Auditoría rápida en producción (§8 punto 7) |
+| Con `ATC_DEMO=1`, quien conozca `/panel` ve la maqueta | Es para que el dueño apruebe el diseño en una rama | Solo datos de ejemplo, `noindex`, sin enlaces; `ATC_DEMO` nunca en el sitio real (API-8, API-9) |
 
 ---
 
@@ -262,5 +264,6 @@ select date_trunc('hour', created_at) h, outcome, count(*) from private.track_at
 
 | Fecha | Cambio |
 |---|---|
+| 2026-10-09 | **Panel del dueño, etapa 1 (maqueta):** `/panel` y `/panel/movimientos` con datos de ejemplo, sin base ni login. Solo existen con `ATC_DEMO=1` o en desarrollo (404 si no), siempre `noindex` y sin caché, sin enlaces desde la tienda. Página 404 en castellano. 2 pruebas nuevas (API-8, API-9). |
 | 2026-10-08 | **Hito 2 (servidor):** sitio en Next.js 16 con `/api/seguimiento` (mismo sitio, Zod, límite por IP con Upstash, IP de la plataforma, Turnstile y `atc_tracker`), modos demo/local/prod con falla cerrada, CSP con nonce y encabezados. 7 pruebas nuevas (API-1…7). La bolsa limita el largo de la dirección y el nombre. |
 | 2026-10-08 | **Hito 1:** esquema, RLS, revocación de los permisos de fábrica, `is_owner`, rol `atc_tracker`, `track_order` con bloqueos, HMAC con pepper, retención y 19 pruebas. Se corrige la documentación previa: el código tiene 30 bits (no 40), y ~40 bits sumando el teléfono. `track_order` deja de estar pensada para `anon`. Queda documentado que el bloqueo por IP depende de que el servidor pase la IP real. La contraseña de `atc_tracker` se carga con `\password` (nunca en claro en el SQL Editor). |

@@ -315,8 +315,12 @@ test('TRK-7 · Los intentos se guardan solo como HMAC: ni códigos ni IP en crud
     const { rows } = await c.query('select * from private.track_attempts');
     assert.ok(rows.length >= 2);
     const dump = JSON.stringify(rows);
-    for (const raw of ['7KQ2', 'ZZZZ', '203.0.113', '321', '999']) assert.ok(!dump.includes(raw), `aparece en crudo: ${raw}`);
-    for (const r of rows) { assert.match(r.code_hash, /^[0-9a-f]{64}$/); assert.match(r.ip_hash, /^[0-9a-f]{64}$/); }
+    for (const raw of ['7KQ2', 'ZZZZ', '203.0.113']) assert.ok(!dump.includes(raw), `aparece en crudo: ${raw}`);
+    // Los dígitos del teléfono pueden salir por azar dentro de un hash hexadecimal, del id o de la fecha:
+    // se buscan en el resto de las columnas (esas tres se validan por formato).
+    const rest = JSON.stringify(rows.map(({ id, code_hash, ip_hash, created_at, ...r }) => r));
+    for (const raw of ['321', '999']) assert.ok(!rest.includes(raw), `aparece en crudo: ${raw}`);
+    for (const r of rows) { assert.match(r.code_hash, /^[0-9a-f]{64}$/); assert.match(r.ip_hash, /^[0-9a-f]{64}$/); assert.ok(r.created_at instanceof Date); assert.match(String(r.id), /^\d+$/); }
   });
 });
 

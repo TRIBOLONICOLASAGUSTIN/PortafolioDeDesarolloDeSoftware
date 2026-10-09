@@ -38,12 +38,8 @@ const store = {
   set(k: string, v: unknown) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
 };
 
-/** ¿El usuario pidió "reducir movimiento"? */
-export function useReducedMotion() {
-  const [r, setR] = useState(false);
-  useEffect(() => { setR(matchMedia('(prefers-reduced-motion: reduce)').matches); }, []);
-  return r;
-}
+// Vive en hooks.ts (lo usa también el panel, que no monta AppShell).
+export { useReducedMotion } from './hooks';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [layer, setLayer] = useState<Layer>(null);

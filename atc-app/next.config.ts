@@ -17,7 +17,14 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ['pg'],
   reactStrictMode: true,
   async headers() {
-    return [{ source: '/:path*', headers: securityHeaders }];
+    return [
+      { source: '/:path*', headers: securityHeaders },
+      // Panel del dueño: nunca se indexa ni queda en caché (también cubre /panel).
+      { source: '/panel/:path*', headers: [
+        { key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' },
+        { key: 'Cache-Control', value: 'private, no-store, max-age=0' },
+      ] },
+    ];
   },
 };
 

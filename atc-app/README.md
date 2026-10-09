@@ -6,7 +6,7 @@ El sitio de AT Computación en **Next.js 16 + React 19**, sobre una base Postgre
 |---|---|
 | 1 · Base de datos y seguridad | Hecho: 19 pruebas (`tests/db`) |
 | 2 · Sitio público en React y `/api/seguimiento` seguro | Hecho: 7 pruebas de la ruta (`tests/api`) y 80 verificaciones del sitio (`tests/e2e`). **Falta configurar** Turnstile, Upstash y el hosting |
-| 3 · Panel del dueño | Pendiente |
+| 3 · Panel del dueño | Etapa 1 en curso: maqueta con datos de ejemplo en `/panel` (solo con `ATC_DEMO=1`). Etapa 2 (login y base) pendiente |
 
 - Seguridad, con cada control y la prueba que lo demuestra: [`docs/atc/seguridad.md`](../docs/atc/seguridad.md).
 - Reglas del proyecto: [`CLAUDE.md`](../CLAUDE.md).
@@ -41,7 +41,7 @@ npm test             # todo: tipos, build, base, API, e2e y check:docs
 | `npm run typecheck` | Tipos de TypeScript |
 | `npm run build` | Que compile para producción |
 | `npm run test:db` | Base: RLS, permisos, `track_order`, bloqueos y retención (RLS/FN/TRK/GEN/RET) |
-| `npm run test:api` | Ruta y encabezados: respuesta mínima, uniforme, origen, límite, IP, falla cerrada y CSP (API-1…7) |
+| `npm run test:api` | Ruta y encabezados: respuesta mínima, uniforme, origen, límite, IP, falla cerrada y CSP (API-1…7); panel cerrado sin `ATC_DEMO` y siempre `noindex` (API-8, API-9) |
 | `npm run test:e2e` | El sitio en el navegador: flujos, responsive, contraste AA, movimiento, accesibilidad, notebook visible y sin errores de consola |
 | `npm run check:docs` | Que `seguridad.md` y las pruebas citen los mismos IDs |
 
@@ -60,7 +60,7 @@ npm test             # todo: tipos, build, base, API, e2e y check:docs
 | `ATC_IP_HEADER` | Encabezado con la IP real que pone el hosting (p. ej. `cf-connecting-ip`). **Nunca** `x-forwarded-for` | Obligatoria |
 | `ATC_RL_MAX` | Pedidos por IP cada 10 minutos (por defecto, 20) | Opcional |
 | `ATC_INDEXAR=1` | Permite indexar en Google: solo con datos reales | Al publicar |
-| `ATC_DEMO=1` | Muestra los botones "Probá la demo" | **Nunca** |
+| `ATC_DEMO=1` | Muestra los botones "Probá la demo" y la maqueta del panel en `/panel` | **Nunca** |
 | `ATC_LOCAL=1` | Pruebas con la base en 127.0.0.1 (se ignora con una base remota) | **Nunca** |
 
 - **Si falta una obligatoria,** `/api/seguimiento` responde 503: falla cerrado y nunca cae en modo demo.

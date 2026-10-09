@@ -370,6 +370,44 @@ for (const rm of ['no-preference', 'reduce']) {
   await p.close();
 }
 
+// Panel del dueño (etapa 1, maqueta con datos de ejemplo): solo existe con ATC_DEMO=1 (este servidor lo tiene).
+const PANEL = server.base + '/panel';
+const PANEL_VPS = [[390, 844, 'light'], [820, 1180, 'dark'], [1440, 900, 'light']];
+const panelPage = async (w, h, scheme, opts = {}) => {
+  const ctx = await browser.newContext({ viewport: { width: w, height: h }, colorScheme: scheme, hasTouch: w < 900, ...opts });
+  const p = await ctx.newPage();
+  const errs = [];
+  p.on('pageerror', e => errs.push(e.message));
+  p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
+  return { ctx, p, errs };
+};
+for (const [w, h, scheme] of PANEL_VPS) {
+  const tag = `panel-${w}-${scheme === 'dark' ? 'oscuro' : 'claro'}`;
+  const { ctx, p, errs } = await panelPage(w, h, scheme);
+  try {
+    await p.goto(PANEL); await p.waitForTimeout(500);
+    const top = await p.evaluate(() => {
+      const vis = s => { const e = document.querySelector(s); if (!e) return false; const r = e.getBoundingClientRect(), cs = getComputedStyle(e); return r.width > 0 && r.height > 0 && cs.visibility === 'visible' && +cs.opacity > 0; };
+      return { h1: document.querySelector('h1')?.textContent, banner: vis('#pn-demo') && /datos de ejemplo/i.test(document.querySelector('#pn-demo').textContent), pill: vis('.pn-ej'), theme: document.documentElement.dataset.theme };
+    });
+    check(tag, 'carga la maqueta con el aviso "Datos de ejemplo" y la píldora "Ejemplo"', top.h1 === 'Resumen' && top.banner && top.pill && top.theme === scheme, JSON.stringify(top));
+    await p.evaluate(() => scrollTo(0, document.documentElement.scrollHeight)); await p.waitForTimeout(150);
+    const pillStill = await p.evaluate(() => { const r = document.querySelector('.pn-ej').getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; });
+    check(tag, 'la píldora "Ejemplo" queda a la vista al bajar', pillStill);
+    const ow = await p.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+    check(tag, 'sin scroll horizontal', ow <= 0, `${ow}px`);
+    if (WANT_SHOTS) await p.screenshot({ path: `${SHOTS}${tag}--resumen.png`, fullPage: true });
+    await p.goto(PANEL + '/movimientos'); await p.waitForTimeout(400);
+    const mv = await p.evaluate(() => ({ h1: document.querySelector('h1')?.textContent, back: document.querySelector('.pn-back')?.getAttribute('href'), banner: !!document.querySelector('#pn-demo') }));
+    check(tag, 'movimientos carga con la vuelta al resumen', mv.h1 === 'Movimientos' && mv.back === '/panel' && mv.banner, JSON.stringify(mv));
+    if (WANT_SHOTS) await p.screenshot({ path: `${SHOTS}${tag}--movimientos.png`, fullPage: true });
+    check(tag, 'sin errores de consola (incluidas CSP e hidratación)', errs.length === 0, errs.slice(0, 3).join(' | '));
+  } catch (e) {
+    check(tag, 'flujo del panel sin excepciones', false, e.message.split('\n')[0]);
+  }
+  await ctx.close();
+}
+
 await browser.close();
 await server.stop();
 
