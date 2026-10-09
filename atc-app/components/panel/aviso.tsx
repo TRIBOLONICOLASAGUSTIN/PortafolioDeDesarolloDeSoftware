@@ -15,11 +15,11 @@ export function Aviso() {
   return (
     <section className="pn-aviso" aria-labelledby="pn-aviso-h">
       <span className="pn-ic"><Icon n="check-c" /></span>
-      <div>
+      <div className="pn-aviso-tx">
         <h2 className="pn-aviso-t" id="pn-aviso-h">Tenés una reparación lista para retirar</h2>
         <p>{lista.equipo} · orden {lista.codigo}{lista.presupuesto ? ` · ${fmt(lista.presupuesto)}` : ''}</p>
-        <button type="button" className="pn-aviso-btn" onClick={() => openSheet({ t: 'cobro', code: lista.codigo })}>Cobrar reparación</button>
       </div>
+      <button type="button" className="pn-aviso-btn" onClick={() => openSheet({ t: 'cobro', code: lista.codigo })}>Cobrar reparación</button>
       <button className="ib pn-aviso-x" type="button" aria-label="Cerrar aviso" onClick={() => { document.querySelector<HTMLElement>('#pn-main .pn-t')?.focus(); setOpen(false); }}><Icon n="x" /></button>
     </section>
   );

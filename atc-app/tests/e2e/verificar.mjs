@@ -591,6 +591,28 @@ for (const [w, h, scheme] of PANEL_VPS) {
     const grid = await p.evaluate(() => { const a = document.querySelector('.pn-gan').getBoundingClientRect(), b = document.querySelector('.pn-des').getBoundingClientRect(); return { same: Math.abs(a.top - b.top) < 1, below: b.top >= a.bottom }; });
     check(tag, w >= 1069 ? 'grilla: ganancia y desglose lado a lado' : 'grilla: tarjetas apiladas', w >= 1069 ? grid.same : grid.below, JSON.stringify(grid));
 
+    // Diseño: el período arriba (a la derecha del título desde tablet); en compu las tarjetas de cada fila terminan juntas
+    // y los espacios entre tarjetas son iguales; en cada fila de lista el monto va en la línea del título
+    const lay = await p.evaluate(() => {
+      const R = s => document.querySelector(s).getBoundingClientRect();
+      const range = R('.pn-range'), h1 = R('h1'), gan = R('.pn-gan'), des = R('.pn-des'), acc = R('.pn-acc'), ult = R('.pn-ult'), top = R('.pn-top');
+      const line = e => { const r = document.createRange(); r.selectNodeContents(e); return r.getClientRects()[0]; };
+      const off = [];
+      for (const row of document.querySelectorAll('.pn-des .pn-row, .pn-cat .pn-row, .pn-rank li, .pn-ult .pn-mov')) {
+        if (!row.getClientRects().length) continue;
+        const t = row.querySelector('.pn-rt b'), a = row.querySelector('.pn-amt, .pn-mamt b, .pn-rv');
+        const d = Math.abs(line(t).bottom - line(a).bottom);
+        if (d > 3) off.push(`${t.textContent.slice(0, 16)} ${d.toFixed(1)}`);
+      }
+      return { arriba: range.bottom <= gan.top, lado: range.top < h1.bottom && range.left > h1.right, filas: [Math.round(gan.bottom - acc.bottom), Math.round(ult.bottom - top.bottom)],
+        gaps: [Math.round(acc.top - des.bottom), Math.round(ult.top - gan.bottom)], off };
+    });
+    check(tag, w >= 735 ? 'el período va arriba, a la derecha del título' : 'el período va arriba, debajo del título', lay.arriba && (w < 735 || lay.lado), JSON.stringify(lay));
+    if (w >= 1069) check(tag, 'grilla: las tarjetas de cada fila terminan juntas y los espacios son iguales', lay.filas.every(x => Math.abs(x) <= 1) && lay.gaps.every(x => x === lay.gaps[0]), JSON.stringify(lay));
+    check(tag, 'en cada fila de lista el monto va en la línea del título', lay.off.length === 0, lay.off.slice(0, 4).join(' | '));
+    const tonos = await p.evaluate(() => [...document.querySelectorAll('.pn-share i')].map(i => getComputedStyle(i).backgroundColor));
+    check(tag, 'categorías en un solo tono, sin el verde ni el rojo de subir y bajar', tonos.length > 2 && tonos.every(c => !PANEL_COLORS[scheme].includes(c)), tonos.join(' '));
+
     // Categorías: ordenadas por ganancia y suman lo de ventas + servicio técnico
     const cats = await p.evaluate(() => ({ v: [...document.querySelectorAll('.pn-cat .pn-row')].map(r => +r.dataset.v), rows: [...document.querySelectorAll('.pn-des .pn-row .pn-amt')].map(e => e.textContent) }));
     const catSum = cats.v.reduce((a, b) => a + b, 0), vs = PARSE_ARS(cats.rows[0]) + PARSE_ARS(cats.rows[1]);
@@ -712,6 +734,10 @@ for (const [w, h, scheme] of PANEL_VPS) {
     await p.goto(PANEL + '/movimientos'); await p.waitForTimeout(400);
     const mv = await p.evaluate(() => ({ h1: document.querySelector('h1')?.textContent, back: document.querySelector('.pn-back')?.getAttribute('href'), banner: !!document.querySelector('#pn-demo') }));
     check(tag, 'movimientos carga con la vuelta al resumen', mv.h1 === 'Movimientos' && mv.back === '/panel' && mv.banner, JSON.stringify(mv));
+    if (w >= 1069) {
+      const col = await p.evaluate(() => { const r = document.querySelector('main[data-tipo]').getBoundingClientRect(); return { w: Math.round(r.width), c: Math.round(r.left + r.width / 2 - innerWidth / 2) }; });
+      check(tag, 'movimientos en una columna centrada de 760 px como máximo', col.w <= 760 && Math.abs(col.c) <= 1, JSON.stringify(col));
+    }
 
     // Pestañas: cada una muestra solo su tipo, "Todos" es la suma y la dirección refleja el filtro
     const counts = {};

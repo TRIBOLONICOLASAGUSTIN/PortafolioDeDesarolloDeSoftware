@@ -9,12 +9,14 @@ import { Acciones } from './acciones';
 import { Categorias } from './categorias';
 import { MasVendidos } from './mas-vendidos';
 import { Ultimos } from './ultimos';
-import { RANGES, delta, periodo, porCategoria, serie, totales, type RangeId } from '@/lib/panel/stats';
+import { Chips } from './chips';
+import { DemoBanner } from './demo-banner';
+import { RANGES, RANGE_IDS, delta, periodo, porCategoria, serie, totales, type RangeId } from '@/lib/panel/stats';
 import { fmtMonto, fmtPct } from '@/lib/format';
 import { resultado } from '@/lib/panel/types';
 
-// Resumen del panel: el período elegido manda en todas las tarjetas.
-export function Resumen() {
+// Resumen del panel: el período elegido manda en todas las tarjetas (por eso su control va arriba, junto al título).
+export function Resumen({ fecha }: { fecha: string }) {
   const { idx, hoy } = usePanel();
   const [range, setRange] = useState<RangeId>('30d');
   const [msg, setMsg] = useState('');
@@ -42,14 +44,23 @@ export function Resumen() {
 
   return (
     <>
+      <header className="pn-head">
+        <div>
+          <p className="pn-eyebrow">{fecha}</p>
+          <h1 className="pn-t" tabIndex={-1}>Resumen</h1>
+        </div>
+        <div className="pn-range"><Chips name="pn-rango" legend="Período" value={range} onChange={setRange} options={RANGE_IDS.map(r => [r, RANGES[r].chip])} /></div>
+      </header>
+      <DemoBanner />
+      {/* Orden del HTML = orden en el celular y del foco; en compu la grilla ubica cada tarjeta por su área */}
       <div className="pn-grid">
         <Aviso />
-        <Ganancia range={range} onRange={setRange} total={t.ganancia} prev={prev.ganancia} serie={s} prevSerie={ps} />
-        <Desglose t={t} sparks={sparks} />
+        <Ganancia range={range} total={t.ganancia} prev={prev.ganancia} serie={s} prevSerie={ps} />
         <Acciones />
+        <Desglose t={t} sparks={sparks} />
+        <Ultimos />
         <Categorias cats={cats} />
         <MasVendidos per={per} t={t} />
-        <Ultimos />
       </div>
       <p className="sr" role="status" id="pn-anuncio">{msg}</p>
     </>
