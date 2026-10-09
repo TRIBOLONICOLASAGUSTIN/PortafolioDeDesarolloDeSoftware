@@ -35,5 +35,6 @@
 .mmenu a.m{font-family:var(--font-d);font-size:28px;font-weight:600;letter-spacing:-.03em;padding:8px 0;opacity:0;transform:translateY(-8px);transition:opacity .4s var(--d),transform .4s var(--d)}
 .menu-open .mmenu a.m{opacity:1;transform:none}
 .mmenu .btn{margin-top:28px;align-self:flex-start}
-.ribbon{background:var(--bg-alt);text-align:center;padding:13px 20px;font-size:14px;color:var(--text-2)}
+/* Cinta de arriba: negra, como el inicio que sigue debajo (borde fino que los separa) */
+.ribbon{--link:#2997ff;background:#000;text-align:center;padding:13px 20px;font-size:14px;color:#a1a1a6;box-shadow:inset 0 -1px 0 rgba(255,255,255,.1)}
 .ribbon .lnk{font-size:14px}

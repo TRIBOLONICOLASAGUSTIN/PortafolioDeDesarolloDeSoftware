@@ -1,8 +1,12 @@
 /* =========================================================
    Hero
    ========================================================= */
-.hero{padding:clamp(32px,4vw,56px) 0 0;text-align:center;overflow:clip;background:var(--bg)}
-.status{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--text-2)}
+/* Negro en los dos temas (como la banda de Servicio técnico), con sus tokens de texto para que todo cumpla AA */
+.hero{--text:#f5f5f7;--text-2:#a1a1a6;--text-3:#86868b;--link:#2997ff;--line-2:rgba(255,255,255,.12);
+  position:relative;padding:clamp(32px,4vw,56px) 0 clamp(56px,7vw,96px);text-align:center;overflow:clip;color:var(--text);background:#000}
+:root[data-theme="dark"] .hero{box-shadow:inset 0 -1px 0 rgba(255,255,255,.08)}
+/* Píldora del estado con borde fino */
+.status{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;font-size:14px;font-weight:500;color:var(--text-2);box-shadow:inset 0 0 0 1px var(--line-2)}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
 .dot.off{background:var(--text-3)}
 .hero h1{font-size:clamp(44px,7.6vw,92px);line-height:1.03;letter-spacing:-.035em;margin-top:14px;text-wrap:balance}
@@ -25,11 +29,48 @@
 .base::before{content:'';position:absolute;left:50%;top:0;width:15%;height:42%;translate:-50% 0;border-radius:0 0 12px 12px;background:linear-gradient(#a9acb3,#cdd0d5)}
 /* Bisagra: franja oscura donde la tapa apoya en la base */
 .base::after{content:'';position:absolute;left:9%;right:9%;top:0;height:max(2px,.22vw);border-radius:0 0 3px 3px;background:linear-gradient(#2c2d32,#5d5f66)}
-.floor{position:relative;height:46px;width:92%;margin:0 auto;background:radial-gradient(50% 60% at 50% 0%,rgba(0,0,0,.16),transparent 75%)}
-/* Sombra de apoyo: ajustada bajo la base, además de la difusa */
-.floor::before{content:'';position:absolute;left:3%;right:3%;top:0;height:10px;background:radial-gradient(50% 100% at 50% 0%,rgba(0,0,0,.32),transparent 72%)}
-:root[data-theme="dark"] .floor::before{background:radial-gradient(50% 100% at 50% 0%,rgba(0,0,0,.8),transparent 72%)}
-:root[data-theme="dark"] .floor{background:radial-gradient(50% 60% at 50% 0%,rgba(140,160,255,.10),transparent 75%)}
+/* Apoyo sobre el negro: un reflejo suave en vez de sombra */
+.floor{position:relative;height:46px;width:92%;margin:0 auto;background:radial-gradient(50% 60% at 50% 0%,rgba(140,160,255,.10),transparent 75%)}
+.floor::before{content:'';position:absolute;left:3%;right:3%;top:0;height:10px;background:radial-gradient(50% 100% at 50% 0%,rgba(0,0,0,.8),transparent 72%)}
+
+/* Texto que acompaña a la compu (debajo de ella cuando no hay escena) */
+.hero-end{max-width:560px;margin:clamp(32px,4vw,48px) auto 0}
+.hero-end-t{font-size:clamp(28px,3.4vw,40px);line-height:1.1;letter-spacing:-.025em;text-wrap:balance}
+.hero-end p{margin-top:12px;font-size:17px;line-height:1.47;color:var(--text-2);text-wrap:pretty}
+.hero-end .lnk{margin-top:16px;min-height:44px}
+.hero-obj{display:none}
+
+/* Escena (con JS y sin "reducir movimiento"; la altura la decide el CSS, así no salta al cargar):
+   el escenario queda fijo debajo de la barra mientras se recorren 240vh. Las capas se mueven con variables que pone
+   components/hero.tsx: --copy (título), --swap (3D → compu HTML), --end (texto final) y --tx/--ty/--ts/--tr (la compu). */
+@media (prefers-reduced-motion:no-preference){
+  .js .hero{--scene:1;height:240vh;padding:0;text-align:left}
+  .js .hero-pin{position:sticky;top:52px;height:calc(100svh - 52px);overflow:hidden}
+  .js .hero-copy{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;opacity:var(--copy,1);transform:translateY(calc((1 - var(--copy,1)) * -32px))}
+  .js .hero-copy>*{max-width:min(560px,46%)}
+  .js .hero h1{font-size:clamp(44px,5.4vw,80px)}
+  .js .hero-sub{margin-inline:0}
+  .js .hero .ctas{justify-content:flex-start}
+  .js .hero-obj{display:block;position:absolute;inset:0;opacity:0;transition:opacity .6s var(--ease)}
+  .js .h3d .hero-obj{opacity:1}
+  .js .hero-canvas{display:block;width:100%;height:100%;opacity:calc(1 - var(--swap,0))}
+  /* La compu queda centrada en el escenario (ahí se encuadra el 3D para el fundido); --sw es su ancho */
+  .js .hero .stage{--sw:min(58vw,calc((82svh - 89px) / .7));--u:calc(var(--sw) * .00947462);position:absolute;z-index:1;inset:0;width:var(--sw);height:fit-content;margin:auto;opacity:0;
+    transform:translate(var(--tx,0px),var(--ty,0px)) scale(var(--ts,1)) perspective(1800px) rotateX(var(--tr,0deg))}
+  .js .h3d .stage{opacity:var(--swap,0)}
+  .js .hflat .stage{opacity:1;transition:opacity .6s var(--ease)}
+  .js .hero-end{position:absolute;z-index:2;left:64%;right:4%;top:0;bottom:0;height:fit-content;max-width:440px;margin:auto 0;opacity:var(--end,0);transform:translateY(calc((1 - var(--end,0)) * 16px))}
+}
+/* Pantallas más altas que anchas (celular, tablet parada): título arriba, notebook abajo; al final, la compu sube y el texto queda debajo */
+@media (prefers-reduced-motion:no-preference) and (max-aspect-ratio:11/10){
+  .js .hero{text-align:center}
+  .js .hero-copy{justify-content:flex-start;align-items:center;padding-top:clamp(16px,3.5svh,48px)}
+  .js .hero-copy>*{max-width:100%}
+  .js .hero-sub{margin-inline:auto}
+  .js .hero .ctas{justify-content:center}
+  .js .hero .stage{--sw:min(90vw,calc((60svh - 89px) / .7))}
+  .js .hero-end{left:0;right:0;top:auto;bottom:clamp(24px,7svh,72px);width:min(560px,100% - 40px);max-width:none;margin:0 auto}
+}
 
 /* Pantalla (la interfaz escala con --u). Reflejo del vidrio: */
 .screen::after{content:'';position:absolute;inset:0;z-index:4;background:linear-gradient(118deg,rgba(255,255,255,.09) 0%,rgba(255,255,255,.03) 34%,rgba(255,255,255,0) 35%);pointer-events:none}

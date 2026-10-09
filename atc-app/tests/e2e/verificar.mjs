@@ -108,13 +108,58 @@ for (const v of VIEWPORTS) {
   await ctx.close();
 }
 
-// La notebook del inicio entra en la primera pantalla: laptop con la barra del navegador y iPhone SE (V1)
+// La notebook del inicio entra en la primera pantalla: laptop con la barra del navegador y iPhone SE (V1). Es la notebook
+// 3D cerrada (data-caja: dónde quedó dibujada en el canvas), junto al título en compu y debajo en el celular
 for (const [w, h, min] of [[1440, 790, 230], [1280, 720, 160], [375, 667, 80]]) {
   const p = await browser.newPage({ viewport: { width: w, height: h } });
-  await p.goto(HTML); await p.waitForTimeout(1200);
-  const vis = await p.evaluate(() => innerHeight - document.querySelector('.laptop').getBoundingClientRect().top);
-  check('inicio', `notebook visible en la primera pantalla a ${w}×${h}`, vis >= min, `${Math.round(vis)} px visibles`);
+  await p.goto(HTML); await p.waitForTimeout(2500);
+  const r = await p.evaluate(() => {
+    const c = document.querySelector('.hero-canvas'), [, y0] = (c.dataset.caja ?? '').split(',').map(Number);
+    return { h3d: document.getElementById('inicio').classList.contains('h3d'), vis: innerHeight - (c.getBoundingClientRect().top + y0) };
+  });
+  check('inicio', `notebook 3D visible en la primera pantalla a ${w}×${h}`, r.h3d && r.vis >= min, `${Math.round(r.vis)} px visibles`);
   await p.close();
+}
+
+// Inicio (escena): la notebook 3D cerrada al lado del título se abre con el scroll, se funde con la compu HTML (el
+// seguimiento) y aparece su texto. Negro en los dos temas, con la barra oscura encima. Sin bucles: el rAF se detiene.
+const inicio = async (p, f) => {
+  await p.evaluate(f => { const el = document.getElementById('inicio'), pin = el.querySelector('.hero-pin'); scrollTo({ top: el.getBoundingClientRect().top + scrollY - 52 + f * (el.offsetHeight - pin.offsetHeight), behavior: 'instant' }); }, f);
+  await p.waitForTimeout(1200);
+  await p.waitForFunction(() => document.getElementById('inicio').dataset.raf !== '1', null, { timeout: 2000 }).catch(() => {});
+  return p.evaluate(() => {
+    const el = document.getElementById('inicio'), op = s => +getComputedStyle(el.querySelector(s)).opacity, c = el.querySelector('.hero-canvas');
+    const [x0, y0, x1, y1] = (c.dataset.caja ?? '0,0,0,0').split(',').map(Number);
+    const lid = el.querySelector('.lid').getBoundingClientRect(), end = el.querySelector('.hero-end').getBoundingClientRect();
+    return { p: +el.dataset.p, h3d: el.classList.contains('h3d'), flat: el.classList.contains('hflat'), tris: +(c.dataset.tris ?? 0), alto: y1 - y0, ancho: x1 - x0,
+      canvas: +getComputedStyle(c).opacity * op('.hero-obj'), stage: op('.stage'), copy: op('.hero-copy'), end: op('.hero-end'),
+      copyInert: el.querySelector('.hero-copy').inert, endInert: el.querySelector('.hero-end').inert, raf: el.dataset.raf, lit: el.querySelector('.stage').classList.contains('lit'),
+      bg: getComputedStyle(el).backgroundColor, navDark: document.querySelector('.nav').classList.contains('on-dark'),
+      pisa: lid.right > end.left + 1 && end.right > lid.left + 1 && lid.bottom > end.top + 1 && end.bottom > lid.top + 1, dentro: end.bottom <= innerHeight + 1 && end.top >= 52 };
+  });
+};
+for (const [w, h, scheme] of [[1440, 900, 'light'], [1440, 900, 'dark'], [390, 844, 'light']]) {
+  const ctx = await browser.newContext({ viewport: { width: w, height: h }, colorScheme: scheme });
+  const p = await ctx.newPage(); const errs = []; p.on('console', m => m.type() === 'error' && errs.push(m.text())); p.on('pageerror', e => errs.push(e.message));
+  await p.goto(HTML); await p.waitForTimeout(2500);
+  const navLoad = await p.evaluate(() => document.querySelector('.nav').classList.contains('on-dark'));
+  const a = await inicio(p, 0), b = await inicio(p, .35), c = await inicio(p, 1);
+  const tagI = `inicio-${w}-${scheme === 'dark' ? 'oscuro' : 'claro'}`;
+  check(tagI, 'en reposo: título y notebook 3D cerrada (la compu HTML todavía no)', a.h3d && a.tris > 1000 && a.copy > .95 && a.canvas > .95 && a.stage < .05 && !a.copyInert && a.endInert, JSON.stringify(a));
+  check(tagI, 'al bajar, la tapa se abre (la notebook crece en alto)', b.alto > a.alto * 1.6 && b.copy < .5, JSON.stringify({ a: a.alto, b: b.alto, copy: b.copy }));
+  check(tagI, 'al final: la compu HTML con el seguimiento y su texto, sin pisarse; el 3D se fue y el rAF se detuvo', c.p === 1 && c.canvas < .05 && c.stage > .95 && c.end > .95 && c.copy < .05 && c.copyInert && !c.endInert && c.raf === '0' && c.lit && !c.pisa && c.dentro, JSON.stringify(c));
+  check(tagI, 'el inicio es negro y la barra va oscura encima (también al cargar)', a.bg === 'rgb(0, 0, 0)' && navLoad && a.navDark && b.navDark, JSON.stringify({ bg: a.bg, navLoad, a: a.navDark, b: b.navDark }));
+  check(tagI, 'sin errores de consola ni scroll horizontal', errs.length === 0 && await p.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 0, errs.slice(0, 2).join(' | '));
+  await ctx.close();
+}
+{
+  // Con "reducir movimiento": sin escena ni 3D arriba; título, compu y texto quietos, uno debajo del otro
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
+  const p = await ctx.newPage(); await p.goto(HTML); await p.waitForTimeout(1500);
+  const r = await p.evaluate(() => { const el = document.getElementById('inicio'), op = s => +getComputedStyle(el.querySelector(s)).opacity;
+    return { pin: getComputedStyle(el.querySelector('.hero-pin')).position, h3d: el.classList.contains('h3d'), obj: getComputedStyle(el.querySelector('.hero-obj')).display, stage: op('.stage'), end: op('.hero-end'), lit: el.querySelector('.stage').classList.contains('lit') }; });
+  check('inicio', 'reducir movimiento: sin escena ni 3D arriba; la compu y su texto quietos', r.pin !== 'sticky' && !r.h3d && r.obj === 'none' && r.stage === 1 && r.end === 1 && r.lit, JSON.stringify(r));
+  await ctx.close();
 }
 
 // Lectores de pantalla y bordes: búsqueda anunciada, campos de la bolsa con nombre, bolsa vacía sin pie (A11, K12)
@@ -342,6 +387,11 @@ for (const [w, h, rm] of [[1440, 900, 'no-preference'], [1440, 900, 'reduce'], [
   await p.waitForTimeout(1500);
   const a = await despiece(p, 0), b = await despiece(p, 1);
   check('despiece', 'sin WebGL queda el despiece en CSS y se desarma', !b.is3d && b.drawH > 200 && b.spread - a.spread > 150 && b.o.every(o => o === 1), JSON.stringify({ a, b }));
+  // Inicio sin WebGL: no se descarga three.js (sin errores); la compu HTML hace el mismo recorrido y termina con su texto
+  const q = await nogl.newPage({ viewport: { width: 1440, height: 900 } }); const errs = []; q.on('console', m => m.type() === 'error' && errs.push(m.text()));
+  await q.goto(HTML); await q.waitForTimeout(1500);
+  const i0 = await inicio(q, 0), i1 = await inicio(q, 1);
+  check('inicio', 'sin WebGL: la compu HTML recorre la escena y termina con su texto, sin errores', i0.flat && !i0.h3d && i0.stage > .95 && i1.end > .95 && !i1.pisa && errs.length === 0, JSON.stringify({ i0, i1, errs: errs.slice(0, 2) }));
   await nogl.close();
 }
 

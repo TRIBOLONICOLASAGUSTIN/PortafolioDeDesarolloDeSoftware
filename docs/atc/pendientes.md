@@ -127,7 +127,8 @@ Varios hallazgos repiten el mismo problema visto desde distintos ángulos. En el
     - Migración nueva: ventas, ítems (precio y costo al vender), gastos, cobros de reparaciones y costos de productos (solo el dueño: `products` es pública).
     - Registrar de verdad (descuenta stock), ABM de productos y órdenes, novedades y mensaje de WhatsApp armado.
     - Pruebas RLS-n, FN-n y API-n nuevas.
-- [ ] **Despiece en Blender** (con Claude conectado a Blender en la Mac del dueño): secuencia de cuadros (AVIF/WebP) + JSON con la posición de las etiquetas por cuadro; reemplaza el módulo three.js de `components/teardown.tsx` y se reescriben sus pruebas. Sin logos de marcas.
+- [x] **Inicio con la notebook 3D (estilo Resend, editado):** inicio negro; la notebook 3D cerrada al lado del título se abre con el scroll, gira de frente y se funde con la compu del seguimiento, que se corre y deja lugar a su texto. Mismo modelo que el despiece (`lib/teardown3d.ts`, modo "inicio"), se descarga cuando el navegador está libre y no con ahorro de datos, poca memoria o sin WebGL. Cinta y barra oscuras encima. e2e "inicio-*".
+- [ ] **Despiece en Blender** (con Claude conectado a Blender en la Mac del dueño): secuencia de cuadros (AVIF/WebP) + JSON con la posición de las etiquetas por cuadro; reemplaza el módulo three.js de `components/teardown.tsx` (y del inicio, `components/hero.tsx`, que usa el mismo modelo) y se reescriben sus pruebas. Sin logos de marcas.
 - [ ] **Marcas del carrusel** (`components/values.tsx`, logos en `components/brand-logos.tsx`):
   - Confirmar con el dueño qué marcas trabaja de verdad: un logo le dice al cliente "esto se vende acá".
   - Logitech, Canon, Brother y Western Digital no tienen logo libre: conseguir el SVG oficial del kit de prensa de cada marca y sumarlo. Hasta entonces no se muestran.

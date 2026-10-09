@@ -76,7 +76,7 @@
 .td-live .td-tags .tx{padding:12px 14px;border-radius:18px;background:rgba(255,255,255,.05);-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.12)}
 
 /* Mientras el despiece está en pantalla, el saludo de WhatsApp no tapa las etiquetas (vuelve al salir) */
-.td-on .wa-greet.show{opacity:0;transform:translateY(8px);pointer-events:none}
+:is(.td-on,.hero-on) .wa-greet.show{opacity:0;transform:translateY(8px);pointer-events:none}
 
 /* Barra de progreso vertical (decorativa): relleno por scaleY y una marca por fase (cerrada, abierta, desarmada) */
 .td-prog{display:none}

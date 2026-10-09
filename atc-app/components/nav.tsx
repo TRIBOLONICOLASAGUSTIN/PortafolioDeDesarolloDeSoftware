@@ -14,18 +14,19 @@ export function Nav() {
   const navRef = useRef<HTMLElement>(null);
   const badgeRef = useRef<HTMLSpanElement>(null);
 
-  // Borde al hacer scroll y barra oscura sobre la sección de Servicio técnico.
+  // Borde al hacer scroll y barra oscura sobre el inicio y sobre la sección de Servicio técnico.
   useEffect(() => {
     let ticking = false;
-    const story = document.getElementById('servicio');
+    const story = document.getElementById('servicio'), hero = document.getElementById('inicio');
     const onScroll = () => {
       if (ticking) return; ticking = true;
       requestAnimationFrame(() => {
         ticking = false;
         const nav = navRef.current; if (!nav) return;
         nav.classList.toggle('scrolled', scrollY > 8);
-        const sr = story?.getBoundingClientRect();
-        nav.classList.toggle('on-dark', !!sr && sr.top <= 52 && sr.bottom > 52);
+        const sr = story?.getBoundingClientRect(), hr = hero?.getBoundingClientRect();
+        // Oscura sobre el inicio (negro, también al cargar, con la cinta arriba) y sobre Servicio técnico
+        nav.classList.toggle('on-dark', (!!hr && hr.top <= 140 && hr.bottom > 52) || (!!sr && sr.top <= 52 && sr.bottom > 52));
       });
     };
     addEventListener('scroll', onScroll, { passive: true }); onScroll();

@@ -1,6 +1,9 @@
-// Despiece 3D de la notebook (three.js). Modelo propio armado en código, sin marcas ni logos.
+// Notebook 3D (three.js). Modelo propio armado en código, sin marcas ni logos. Dos usos con el mismo modelo:
+// - "despiece" (components/teardown.tsx): se abre y se desarma pieza por pieza en Servicio técnico.
+// - "inicio" (components/hero.tsx): cerrada de 3/4, se abre y gira hasta quedar de frente, encuadrada donde está la
+//   compu HTML del inicio (para pasar de una a otra con un fundido).
 // Unidades: centímetros. Se dibuja solo cuando cambia el scroll o el tamaño (sin bucle de animación).
-// Se carga bajo demanda desde components/teardown.tsx; si no hay WebGL, queda el despiece en CSS.
+// Se carga bajo demanda; si no hay WebGL, cada lugar queda con su versión en CSS.
 import {
   ACESFilmicToneMapping, AmbientLight, BoxGeometry, CanvasTexture, CatmullRomCurve3, CylinderGeometry,
   DirectionalLight, DoubleSide, ExtrudeGeometry, Group, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, MeshPhysicalMaterial,
@@ -19,7 +22,12 @@ export type Teardown3D = {
   extent(): { left: number; right: number };
   resize(): void;
   dispose(): void;
+  /** Solo modo "inicio": dónde va la tapa al empezar (cerrada) y al terminar (abierta y de frente), en fracciones del canvas */
+  encuadre(ini: Encuadre, fin: Encuadre): void;
 };
+/** Centro (cx, cy) y ancho (fr) de la tapa en la imagen, en fracciones del ancho y alto del canvas */
+export type Encuadre = { cx: number; cy: number; fr: number };
+export type Modo = 'despiece' | 'inicio';
 
 const W = 30.4, D = 21.2;
 const clamp = (v: number) => Math.min(1, Math.max(0, v));
@@ -27,6 +35,9 @@ const smooth = (t: number) => t * t * (3 - 2 * t);
 /** Fases del recorrido: F1 cerrada (giro lento) · F2 se abre la tapa y se despega la cubierta inferior · F3 despiece completo */
 export const phases = (p: number) => ({ turn: smooth(clamp(p / .18)), f2: smooth(clamp((p - .18) / .3)), f3: smooth(clamp((p - .48) / .37)) });
 export const faseOf = (p: number) => (p < .18 ? 1 : p < .48 ? 2 : 3);
+/** Modo inicio: la tapa se abre y el modelo gira entre p = .08 y p = .5 (después queda de frente) */
+export const abreInicio = (p: number) => smooth(clamp((p - .08) / .42));
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 function roundedRect(w: number, d: number, r: number) {
   const s = new Shape(), x = -w / 2, y = -d / 2;
@@ -57,6 +68,43 @@ function screenTexture() {
   return t;
 }
 
+// Pantalla del inicio: la misma interfaz de seguimiento que la compu HTML (fondo, barra, ventana con la lista de
+// órdenes y el detalle), simplificada, para que el fundido entre el 3D y la compu HTML no se note
+function trackingTexture() {
+  const c = document.createElement('canvas'); c.width = 1024; c.height = 640;
+  const g = c.getContext('2d')!;
+  const rr = (x: number, y: number, w: number, h: number, r: number) => { g.beginPath(); g.roundRect(x, y, w, h, r); g.fill(); };
+  const bg = g.createLinearGradient(0, 0, 1024, 640); bg.addColorStop(0, '#1d3a8a'); bg.addColorStop(.6, '#3b2c86'); bg.addColorStop(1, '#5a2f8f');
+  g.fillStyle = bg; g.fillRect(0, 0, 1024, 640);
+  const blob = (x: number, y: number, r: number, col: string) => { const q = g.createRadialGradient(x, y, 0, x, y, r); q.addColorStop(0, col); q.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = q; g.fillRect(0, 0, 1024, 640); };
+  blob(184, 51, 420, 'rgba(106,168,255,.9)'); blob(900, 590, 440, 'rgba(176,123,255,.85)');
+  g.fillStyle = 'rgba(0,0,0,.14)'; g.fillRect(0, 0, 1024, 32);
+  g.fillStyle = 'rgba(255,255,255,.9)'; [[22, 70], [112, 50], [182, 46], [248, 30]].forEach(([x, w]) => rr(x, 12, w, 9, 4)); rr(930, 12, 72, 9, 4);
+  const L = 92, T = 77, Wn = 840, Hn = 493, side = Wn * .27;
+  g.fillStyle = '#fbfbfd'; rr(L, T, Wn, Hn, 14);
+  g.fillStyle = '#efeff3'; g.save(); g.beginPath(); g.roundRect(L, T, Wn, Hn, 14); g.clip(); g.fillRect(L, T, side, Hn); g.restore();
+  [['#ff5f57', 0], ['#febc2e', 16], ['#28c840', 32]].forEach(([col, dx]) => { g.fillStyle = col as string; g.beginPath(); g.arc(L + 22 + (dx as number), T + 22, 5, 0, 7); g.fill(); });
+  g.fillStyle = '#c7c7cc'; rr(L + 18, T + 50, 60, 8, 4);
+  g.fillStyle = '#0071e3'; rr(L + 12, T + 68, side - 24, 30, 8);
+  g.fillStyle = '#fff'; rr(L + 34, T + 79, side - 70, 8, 4);
+  g.fillStyle = '#c7c7cc'; rr(L + 34, T + 113, side - 80, 8, 4); rr(L + 34, T + 145, side - 76, 8, 4);
+  const mx = L + side + 34, mw = Wn - side - 68;
+  g.fillStyle = '#1d1d1f'; rr(mx, T + 30, 170, 18, 6);
+  g.fillStyle = '#aeaeb2'; rr(mx, T + 56, 230, 8, 4);
+  g.fillStyle = '#d6f5de'; rr(mx + mw - 130, T + 32, 130, 20, 10);
+  g.fillStyle = '#c7c7cc'; g.fillRect(mx + 12, T + 104, mw - 24, 3);
+  g.fillStyle = '#0071e3'; g.fillRect(mx + 12, T + 104, (mw - 24) * .95, 3);
+  for (let i = 0; i < 5; i++) { g.beginPath(); g.arc(mx + 12 + (mw - 24) * i / 4, T + 105, 8, 0, 7); g.fillStyle = i < 4 ? '#0071e3' : '#30d158'; g.fill(); }
+  g.fillStyle = '#f2f2f6'; rr(mx, T + 140, mw, 58, 12);
+  g.fillStyle = '#1d1d1f'; g.beginPath(); g.arc(mx + 26, T + 169, 13, 0, 7); g.fill();
+  g.fillStyle = '#86868b'; rr(mx + 52, T + 158, 150, 8, 4); rr(mx + 52, T + 174, mw - 90, 8, 4);
+  g.fillStyle = '#d1d1d6'; [0, 1, 2].forEach(i => { rr(mx + 18, T + 226 + i * 30, 180 - i * 20, 9, 4); rr(mx + mw - 90, T + 226 + i * 30, 90, 9, 4); });
+  g.fillStyle = '#f2f2f6'; rr(mx, T + Hn - 92, (mw - 14) / 2, 62, 12); rr(mx + (mw + 14) / 2, T + Hn - 92, (mw - 14) / 2, 62, 12);
+  g.fillStyle = '#1d1d1f'; rr(mx + 16, T + Hn - 58, 110, 14, 5); rr(mx + (mw + 14) / 2 + 16, T + Hn - 58, 80, 14, 5);
+  const t = new CanvasTexture(c); t.colorSpace = SRGBColorSpace; t.anisotropy = 4;
+  return t;
+}
+
 function boardTexture() {
   const c = document.createElement('canvas'); c.width = 512; c.height = 180;
   const g = c.getContext('2d')!;
@@ -76,9 +124,10 @@ function contactShadow() {
   return new CanvasTexture(c);
 }
 
-export function mount(canvas: HTMLCanvasElement): Teardown3D {
+export function mount(canvas: HTMLCanvasElement, { modo = 'despiece' }: { modo?: Modo } = {}): Teardown3D {
   const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  // El inicio ocupa toda la pantalla: con 1,5× alcanza y se dibuja más liviano
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, modo === 'inicio' ? 1.5 : 2));
   renderer.toneMapping = ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
   renderer.outputColorSpace = SRGBColorSpace;
 
@@ -90,7 +139,8 @@ export function mount(canvas: HTMLCanvasElement): Teardown3D {
   const key = new DirectionalLight(0xffffff, 1.6); key.position.set(-18, 30, 22); scene.add(key);
   const rim = new DirectionalLight(0x9fb4ff, 1.4); rim.position.set(14, 12, -28); scene.add(rim);
 
-  const camera = new PerspectiveCamera(26, 1, 1, 400);
+  // En el inicio, lente más largo: menos perspectiva, así la notebook de frente se parece a la compu HTML (casi plana)
+  const camera = new PerspectiveCamera(modo === 'inicio' ? 15 : 26, 1, 1, 900);
   const disposables: { dispose(): void }[] = [env, pmrem];
   const geo = <T extends BufferGeometry>(g: T) => { disposables.push(g); return g; };
   const mat = <T extends Material>(m: T) => { disposables.push(m); return m; };
@@ -109,7 +159,7 @@ export function mount(canvas: HTMLCanvasElement): Teardown3D {
   const ram = mat(new MeshStandardMaterial({ color: 0x1d5a44, metalness: .1, roughness: .55 }));
   const ssdLabel = mat(new MeshStandardMaterial({ color: 0x2a6fd8, metalness: .1, roughness: .5 }));
   const fanMat = mat(new MeshStandardMaterial({ color: 0x2b2c31, metalness: .4, roughness: .45 }));
-  const boardMap = boardTexture(), scrMap = screenTexture(), shadowMap = contactShadow();
+  const boardMap = boardTexture(), scrMap = modo === 'inicio' ? trackingTexture() : screenTexture(), shadowMap = contactShadow();
   disposables.push(boardMap, scrMap, shadowMap);
   const pcb = mat(new MeshStandardMaterial({ map: boardMap, metalness: .1, roughness: .55 }));
   const screen = mat(new MeshBasicMaterial({ map: scrMap, toneMapped: false }));
@@ -243,8 +293,56 @@ export function mount(canvas: HTMLCanvasElement): Teardown3D {
     screws.forEach(({ s, x, z }, i) => s.position.set(x * (1 + .1 * f3), .7 - 2.8 * f2 + (5.4 + (i % 3) * .9) * f3, z * (1 + .12 * f3)));
     shadowMat.opacity = .9 - .3 * f3;
   };
+  // Modo inicio: todo en su lugar (sin despiece); solo se abre la tapa y gira el modelo hasta quedar de frente
+  let ini: Encuadre = { cx: .7, cy: .5, fr: .36 }, fin: Encuadre = { cx: .5, cy: .5, fr: .6 };
+  const lidPts = [[-W / 2, 0], [W / 2, 0], [-W / 2, 20.85], [W / 2, 20.85]].map(([x, z]) => new Vector3(x, .18, z));
+  const layoutInicio = () => {
+    const o = abreInicio(p);
+    const keep = p; p = 0; layout(); p = keep; // las piezas en su lugar (pose cerrada del despiece)
+    model.rotation.y = -.62 * (1 - o);
+    model.position.y = 0;
+    lidPivot.rotation.x = -1.7 * o; // ~97°: abierta y casi de frente a la cámara, como la compu HTML
+  };
+  const basePts = [[-W / 2, -D / 2], [W / 2, -D / 2], [-W / 2, D / 2], [W / 2, D / 2]].flatMap(([x, z]) => [new Vector3(x, 0, z), new Vector3(x, 1.3, z)]);
+  // Encuadre: la cámara baja de "arriba y adelante" a la altura de los ojos; la distancia se ajusta para que la tapa mida
+  // el ancho pedido y el corrimiento de la vista (setViewOffset) la lleva al centro pedido, sin mover el modelo.
+  const fitInicio = () => {
+    const o = abreInicio(p), e = { cx: lerp(ini.cx, fin.cx, o), cy: lerp(ini.cy, fin.cy, o), fr: lerp(ini.fr, fin.fr, o) };
+    model.updateMatrixWorld(true);
+    const pts = lidPts.map(v => lid.localToWorld(v.clone()));
+    const all = [...pts, ...basePts.map(v => base.localToWorld(v.clone()))];
+    const center = pts.reduce((a, v) => a.add(v), new Vector3()).multiplyScalar(1 / pts.length);
+    const dir = new Vector3(0, .5 - .53 * o, 1).normalize(); // al final, apenas por debajo del centro de la tapa: la base queda de canto
+    camera.clearViewOffset();
+    const box = (vs: Vector3[]) => {
+      camera.updateMatrixWorld(true);
+      const px = vs.map(v => toPx(v.clone()));
+      const xs = px.map(q => q.x), ys = px.map(q => q.y);
+      const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+      return { w: x1 - x0, h: y1 - y0, x0, x1, y0, y1, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2 };
+    };
+    const at = (d: number) => { camera.position.copy(center).addScaledVector(dir, d); camera.lookAt(center); };
+    // La tapa mide fr del ancho; si así la notebook entera no entra (a mitad de camino la base se acerca), se aleja
+    let dist = 90;
+    for (let i = 0; i < 3; i++) { at(dist); dist *= box(pts).w / w / e.fr; }
+    at(dist);
+    const k = Math.max(1, box(all).h / (.84 * h), box(all).w / (.94 * w));
+    if (k > 1) { dist *= k; at(dist); }
+    // Corrimiento: la tapa al centro pedido, sin que la notebook se salga de la imagen
+    // (cerrada puede quedar en parte fuera de la imagen, debajo del título en pantallas bajas; a medida que se abre, entra)
+    const b = box(pts), a = box(all);
+    const ox0 = b.cx - e.cx * w, oy0 = b.cy - e.cy * h;
+    const oy = lerp(oy0, Math.min(Math.max(oy0, a.y1 - .95 * h), a.y0 - .05 * h), o);
+    const ox = lerp(ox0, Math.min(Math.max(ox0, a.x1 - .97 * w), a.x0 - .03 * w), o);
+    camera.setViewOffset(w, h, ox, oy, w, h);
+    // data-caja: dónde quedó la notebook en el canvas (px), para las pruebas
+    canvas.dataset.caja = [a.x0 - ox, a.y0 - oy, a.x1 - ox, a.y1 - oy].map(Math.round).join(',');
+  };
   // data-tris: triángulos dibujados en el último cuadro (las pruebas verifican que WebGL dibujó)
-  const render = () => { layout(); fit(); renderer.render(scene, camera); canvas.dataset.tris = String(renderer.info.render.triangles); };
+  const render = () => {
+    if (modo === 'inicio') { layoutInicio(); fitInicio(); } else { layout(); fit(); }
+    renderer.render(scene, camera); canvas.dataset.tris = String(renderer.info.render.triangles);
+  };
   const resize = () => {
     const r = canvas.getBoundingClientRect(); w = Math.max(1, r.width); h = Math.max(1, r.height);
     renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); render();
@@ -266,6 +364,7 @@ export function mount(canvas: HTMLCanvasElement): Teardown3D {
     },
     resize,
     dispose() { disposables.forEach(d => d.dispose()); renderer.dispose(); },
+    encuadre(a, b) { ini = a; fin = b; render(); },
   };
 }
 

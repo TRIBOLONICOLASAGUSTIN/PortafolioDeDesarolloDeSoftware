@@ -28,7 +28,7 @@
 
   | Uso | Tamaño | Peso | Tracking |
   |---|---|---|---|
-  | Título del inicio | `clamp(46px, 8.6vw, 104px)` | 600 | −0,045 em |
+  | Título del inicio | `clamp(44px, 5.4vw, 80px)` en la escena (`clamp(44px, 7.6vw, 92px)` sin ella) | 600 | −0,035 em |
   | Título de sección | `clamp(34px, 5.2vw, 56px)` | 600 | −0,035 em |
   | Bajada | `clamp(19px, 2vw, 21px)` | 400–500 | −0,017 em |
   | Cuerpo | 17 px / 1,47 | 400 | −0,011 em |
@@ -116,7 +116,7 @@ Cada fila es un componente de React. El prototipo HTML original se reemplazó po
 | Sección | Qué hace | Regla clave |
 |---|---|---|
 | Barra superior | Logo, secciones, buscador, **tema claro/oscuro junto a la bolsa** | Vidrio translúcido; en el celular, menú a pantalla completa |
-| Inicio | Título, bajada, 2 accesos y notebook que se endereza al hacer scroll | La animación sigue al scroll; no corre sola |
+| Inicio | Fondo negro en los dos temas (idea tomada de Resend, sin su violeta ni su serifa). Título, bajada y 2 accesos al lado de la notebook 3D cerrada; al bajar se abre, gira de frente y se funde con la compu del seguimiento, que se corre y deja lugar a su texto ("Seguí tu reparación desde acá.") | La animación sigue al scroll; no corre sola (el cubo de Resend gira solo: acá no, sin bucles). Con "reducir movimiento", todo quieto y sin 3D; sin WebGL, la compu HTML hace el recorrido |
 | Valores y pagos | 4 promesas honestas + tarjetas de medios de pago | Sin cifras inventadas |
 | Marcas | Carrusel lento | Única excepción de movimiento |
 | Tienda | Encabezado centrado, categorías, tarjetas deslizables, ficha y bolsa | La compra termina en WhatsApp; no se cobra online |
