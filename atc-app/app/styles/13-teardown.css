@@ -1,0 +1,75 @@
+/* =========================================================
+   Despiece de la notebook (banda de servicio)
+   Con el scroll, las capas se separan en 3D (solo transform y opacity).
+   Sin JS o con "reducir movimiento": desarmada y quieta.
+   ========================================================= */
+.td{--e:1;position:relative;margin-top:clamp(24px,3vw,48px)}
+.td-scroll{--e:0;height:260vh}
+.td-stage{display:flex;flex-direction:column;align-items:center;gap:clamp(12px,2vw,24px)}
+.td-scroll .td-stage{position:sticky;top:52px;height:calc(100svh - 52px);justify-content:center}
+.td-copy{text-align:center;max-width:620px}
+.td-copy h3{font-size:clamp(28px,3.4vw,40px);letter-spacing:-.03em;line-height:1.1;text-wrap:balance}
+.td-copy p{margin-top:12px;font-size:clamp(17px,1.6vw,19px);line-height:1.45;color:var(--text-2);text-wrap:balance}
+
+/* El dibujo ocupa su propio espacio (padding); el texto va debajo, salvo en pantallas anchas con JS */
+.td-scene{--s:min(400px,72vw,40vh);position:relative;width:100%;padding-top:calc(var(--s)*1.62);perspective:1800px;perspective-origin:50% 35%}
+.td-rig{position:absolute;left:50%;top:calc(var(--s)*.78);width:var(--s);aspect-ratio:1.45;margin:calc(var(--s)/-2.9) 0 0 calc(var(--s)*-.5);transform-style:preserve-3d;
+  transform:translateY(calc(var(--s)*(.12 + .36*var(--e)))) rotateX(62deg) rotateZ(calc(-34deg + 6deg*var(--e)))}
+.td-l{position:absolute;inset:0;transform-style:preserve-3d;--tt:calc(var(--s)*var(--t,0));transform:translateZ(calc(var(--s)*(var(--z) + var(--e)*var(--dz))))}
+.td-l>svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.l0{--z:0;--dz:0;--t:.026}
+.l1{--z:.006;--dz:.22}
+.l2{--z:.014;--dz:.5}
+.l4{--z:.026;--dz:.86;--t:.006}
+.l5{--z:.032;--dz:1.12;--t:.005}
+.l6{--z:.038;--dz:1.38;--t:.006}
+/* La tapa sube primero y se desvanece: deja ver la pantalla (la opacidad va en sus hijos para no aplanar el 3D) */
+.l6>*{opacity:calc(1 - clamp(0, (var(--e) - .45)/.35, 1))}
+/* Cantos: el frente y el lateral izquierdo son los que mira la cámara. La base levanta paredes; el resto cuelga */
+.td-ef,.td-el{position:absolute}
+.td-ef{left:5.5%;right:5.5%;top:100%;height:var(--tt);transform-origin:top;transform:rotateX(-90deg);background:linear-gradient(#a3a6ad,#7c8087)}
+.td-el{top:8%;bottom:8%;right:100%;width:var(--tt);transform-origin:right;transform:rotateY(-90deg);background:linear-gradient(90deg,#868990,#b7bac0)}
+.td-l.up .td-ef{transform:rotateX(90deg)}
+.td-l.up .td-el{transform:rotateY(90deg)}
+.l5 .td-ef,.l5 .td-el{background:#18181a}
+
+/* Piezas (paleta propia: la banda es oscura en ambos temas) */
+.td .alu{fill:url(#td-alu)} .td .sheen{fill:url(#td-sheen)}
+.td .tray{fill:#c3c6cc} .td .rib{fill:none;stroke:#b3b6bc;stroke-width:2} .td .vent{fill:#9da0a7}
+.td .screw{fill:#b1b4bb} .td .screw-i{fill:#7d8087}
+.td .cell{fill:url(#td-cell);stroke:rgba(255,255,255,.16);stroke-width:.8} .td .cell-hi{fill:rgba(255,255,255,.12)} .td .cell-lb{fill:#5a5d66} .td .conn{fill:#c9ccd2}
+.td .pcb{fill:url(#td-pcb);stroke:rgba(255,255,255,.14);stroke-width:.8} .td .trace{fill:none;stroke:#2f6b5a;stroke-width:1.2}
+.td .cpu{fill:#c9ccd2} .td .die{fill:#8e9198} .td .ram{fill:#2d6b55} .td .chip{fill:#1a1b1f} .td .ssd{fill:#2a2c31} .td .ssd-l{fill:#2997ff} .td .port{fill:#d5d8de}
+.td .pipe{fill:none;stroke:#c98a5a;stroke-width:5;stroke-linecap:round} .td .plate{fill:#d39a6c} .td .fins{fill:#b9bcc2} .td .fin{stroke:#8e9198;stroke-width:1}
+.td .fan-ring{fill:#3a3c42} .td .fan{fill:#26282d} .td .blade{fill:#5b5e66} .td .hub{fill:#6e7179}
+.td .kbd{fill:#1c1d21} .td .key{fill:#3a3c42} .td .tp{fill:#c3c6cc;stroke:#b1b4ba;stroke-width:.8}
+.td .bezel{fill:#0d0d0f;stroke:#2c2c30;stroke-width:1} .td .screen{fill:url(#td-wall)}
+.td .win{fill:#fbfbfd;opacity:.94} .td .win-b{fill:#ececf1} .td .win-l{fill:none;stroke:#c7c7cc;stroke-width:4;stroke-linecap:round} .td .win-btn{fill:#0071e3}
+.td .hinge{fill:#2a2b30} .td .anc{fill:transparent}
+
+/* Etiquetas */
+.td-tags{list-style:none;margin:0 auto;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px 28px;width:min(100%,880px)}
+.td-tags li{opacity:var(--o,1)}
+.td-scroll .td-tags li{opacity:var(--o,0)}
+.td-tags b{display:block;font-size:17px;font-weight:600;letter-spacing:-.02em;line-height:1.3;color:#f5f5f7}
+.td-tags small{display:block;margin-top:2px;font-size:14px;line-height:1.43;color:#a1a1a6}
+.td-tags .dot,.td-tags .ln{display:none}
+/* Pantallas anchas con JS: cada etiqueta se pega a su pieza (la mueve el JS con transform) */
+@media (min-width:1069px){
+  .td-live .td-tags{position:absolute;inset:0;display:block;width:auto;pointer-events:none}
+  .td-live .td-tags .dot,.td-live .td-tags .ln,.td-live .td-tags .tx{position:absolute;left:0;top:0}
+  .td-live .td-tags .dot{display:block;width:10px;height:10px;border-radius:50%;background:#f5f5f7;box-shadow:0 0 0 4px rgba(245,245,247,.18)}
+  .td-live .td-tags .ln{display:block;width:100px;height:1px;transform-origin:0 0;background:rgba(245,245,247,.38)}
+  .td-live .td-tags .tx{width:236px}
+  .td-live .td-tags .l .tx{text-align:right}
+}
+/* Pantallas angostas con scroll: debajo de la escena se lee solo la pieza actual */
+@media (max-width:1068px){
+  .td-scene{--s:min(320px,66vw,38vh)}
+  .td-scroll .td-tags{grid-template-columns:1fr;width:min(100%,420px);min-height:68px;text-align:center}
+  .td-scroll .td-tags li{grid-area:1/1;transition:opacity .3s var(--ease)}
+}
+@media (prefers-reduced-motion:reduce){
+  .td-scroll{height:auto}
+  .td-scroll .td-stage{position:static;height:auto}
+}

@@ -214,6 +214,32 @@ for (const scheme of ['light', 'dark']) {
   await p.close();
 }
 
+// Despiece de la notebook: con el scroll las capas se separan y aparecen las etiquetas; con "reducir movimiento" queda
+// desarmada y quieta (sin recorrido largo). La escena es decorativa (aria-hidden) y las piezas se leen como lista.
+// En celular se lee solo la pieza actual, debajo del dibujo (nunca encima).
+for (const [w, h, rm] of [[1440, 900, 'no-preference'], [1440, 900, 'reduce'], [390, 844, 'no-preference']]) {
+  const ctx = await browser.newContext({ viewport: { width: w, height: h }, reducedMotion: rm });
+  const p = await ctx.newPage(); await p.goto(HTML); await p.waitForTimeout(400);
+  const at = async f => {
+    await p.evaluate(f => { const td = document.getElementById('despiece'); const top = td.getBoundingClientRect().top + scrollY; const stage = td.querySelector('.td-stage').offsetHeight; scrollTo({ top: top - 52 + f * Math.max(0, td.offsetHeight - stage), behavior: 'instant' }); }, f);
+    await p.waitForTimeout(300);
+    return p.evaluate(() => {
+      const td = document.getElementById('despiece'), mid = s => { const r = td.querySelector(s).getBoundingClientRect(); return r.top + r.height / 2; };
+      const vis = [...td.querySelectorAll('.td-tags li')].filter(l => +getComputedStyle(l).opacity > .5);
+      return { gap: Math.round(mid('.td-l.l0') - mid('.td-l.l5')), o: [...td.querySelectorAll('.td-tags li')].map(l => +(+getComputedStyle(l).opacity).toFixed(2)), h: +(td.offsetHeight / innerHeight).toFixed(2),
+        under: vis.every(l => l.getBoundingClientRect().top >= td.querySelector('.td-l.l0').getBoundingClientRect().bottom - 2) };
+    });
+  };
+  const a = await at(0), b = await at(1);
+  const s = await p.evaluate(() => ({ hidden: document.querySelector('.td-rig').getAttribute('aria-hidden'), items: [...document.querySelectorAll('.td-tags li')].filter(l => l.textContent.trim().length > 10).length }));
+  const tag = `${w}px${rm === 'reduce' ? ', reducir movimiento' : ''}`;
+  if (rm === 'reduce') check('despiece', `quieta y desarmada con etiquetas (${tag})`, b.h < 1.5 && Math.abs(a.gap - b.gap) < 2 && a.gap > 150 && b.o.every(o => o === 1), JSON.stringify({ a, b }));
+  else if (w < 1069) check('despiece', `se desarma y la pieza actual se lee debajo del dibujo (${tag})`, b.gap - a.gap > 100 && b.o.filter(o => o > .5).length === 1 && b.under, JSON.stringify({ a, b }));
+  else check('despiece', `con el scroll se desarma y aparecen las etiquetas (${tag})`, b.gap - a.gap > 150 && a.o.every(o => o === 0) && b.o.every(o => o === 1) && b.h > 2, JSON.stringify({ a, b }));
+  check('despiece', `escena decorativa y piezas como lista (${tag})`, s.hidden === 'true' && s.items === 5, JSON.stringify(s));
+  await ctx.close();
+}
+
 // Marcas: logos con nombre accesible, la copia del bucle oculta a lectores de pantalla y, con "reducir movimiento",
 // los logos se ven (la regla que oculta la copia no debe ocultar los SVG de cada logo); nunca "oficial" ni "distribuidor"
 for (const rm of ['no-preference', 'reduce']) {

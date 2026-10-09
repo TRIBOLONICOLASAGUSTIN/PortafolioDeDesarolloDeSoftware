@@ -31,3 +31,14 @@ export const SERVICES: [string, string, string][] = [
   ['wifi', 'Redes y Wi-Fi', 'Cableado, routers y repetidores para casa u oficina.'],
   ['db', 'Recuperación de datos', 'Archivos borrados y backups. Si el disco tiene daño físico, te lo decimos antes.'],
 ];
+
+// Despiece de la notebook (banda de servicio): cada etiqueta sale de un servicio de SERVICES, sin promesas nuevas ni
+// plazos. Ejemplo: confirmar con el dueño. "a" es el ancla dentro del dibujo; "side", de qué lado va la etiqueta;
+// "k", el orden en que aparece mientras la notebook se desarma.
+export const TEARDOWN: { a: string; t: string; d: string; side: 'l' | 'r'; k: number }[] = [
+  { a: 'ssd', t: 'Disco y datos', d: 'Windows con tus archivos a salvo y recuperación de datos.', side: 'r', k: 0 },
+  { a: 'fan', t: 'Ventilador y pasta térmica', d: 'Limpieza y pasta nueva para que no recaliente.', side: 'l', k: 1 },
+  { a: 'port', t: 'Conector de carga', d: 'Si no carga, revisamos y cambiamos el conector.', side: 'r', k: 1 },
+  { a: 'keys', t: 'Teclado', d: 'Reemplazo de teclados.', side: 'r', k: 2 },
+  { a: 'screen', t: 'Pantalla y bisagras', d: 'Cambio de pantallas y arreglo de bisagras.', side: 'l', k: 3 },
+];

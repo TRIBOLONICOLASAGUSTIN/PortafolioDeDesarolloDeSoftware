@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Icon } from './ui';
+import { Teardown } from './teardown';
 import { HIST, SERVICES, STORY } from '@/lib/data/service';
 import { vars } from '@/lib/format';
 
@@ -59,6 +60,7 @@ export function Service() {
           <span className="kicker">Servicio técnico</span>
           <h2 className="h2">Así cuidamos tu equipo. <span className="muted"><br />Sin sorpresas, de principio a fin.</span></h2>
         </div>
+        <Teardown />
         <div className="story-grid">
           <div className="story-media" aria-hidden="true">
             <div className="phone"><div className="phone-scr" id="phoneScr">

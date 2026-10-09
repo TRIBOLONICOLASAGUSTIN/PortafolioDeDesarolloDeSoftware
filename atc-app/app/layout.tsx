@@ -13,6 +13,7 @@ import './styles/09-estimator.css';
 import './styles/10-info.css';
 import './styles/11-overlays.css';
 import './styles/12-responsive.css';
+import './styles/13-teardown.css';
 
 // Inter se sirve desde el propio sitio (next/font): sin pedidos a Google y compatible con la CSP.
 // En Apple se ve SF Pro (-apple-system), que nunca se sirve como fuente web por su licencia.
