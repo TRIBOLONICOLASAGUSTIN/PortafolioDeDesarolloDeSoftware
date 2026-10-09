@@ -65,32 +65,50 @@ body:has(.pn){background:var(--bg-alt)}
 .pn-trend.dn{color:var(--pn-down-t);background:var(--pn-down-bg)}
 .pn-trend.eq{color:var(--text);background:var(--fill)}
 
-/* Gráfico: SVG estirado + textos y guía en HTML encima */
-.pn-chart{position:relative;margin-top:28px}
-.pn-plot{position:relative;height:clamp(170px,24vw,230px)}
-.pn-plot::after{content:'';position:absolute;inset:-6px -2px -2px;z-index:1;background:var(--card);transform-origin:right;animation:pn-wipe .6s var(--ease) .1s both;pointer-events:none}
+/* Gráfico (estilo Bolsa): SVG estirado + leyenda, eje, fechas, puntos y guía en HTML encima.
+   Columnas: el dibujo y, a la derecha, los montos del eje (la columna mide lo que el monto más largo). */
+.pn-chart{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;margin-top:24px}
+.pn-leg{grid-column:1/-1;list-style:none;display:flex;flex-wrap:wrap;gap:4px 16px;margin:0 0 20px;padding:0;font-size:13px;color:var(--text-2)}
+.pn-leg li{display:inline-flex;align-items:center;gap:8px}
+.pn-key{width:16px;border-top:2px solid var(--pn-up);border-radius:1px}
+.pn-key.dn{border-top-color:var(--pn-down)}
+.pn-key.prev{border-top:2px dashed var(--text-3)}
+.pn-plot{position:relative;height:clamp(180px,24vw,250px)}
+.pn-plot::after{content:'';position:absolute;inset:-8px -8px -4px -2px;z-index:1;background:var(--card);transform-origin:right;animation:pn-wipe .6s var(--ease) .1s both;pointer-events:none}
 .pn-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
-.pn-l{fill:none;stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.pn-gl{stroke:var(--line-2);stroke-width:1;vector-effect:non-scaling-stroke}
+.pn-zero{stroke:var(--line);stroke-width:1;vector-effect:non-scaling-stroke}
+.pn-l{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
 .pn-l-up{stroke:var(--pn-up)}
 .pn-l-dn{stroke:var(--pn-down)}
-.pn-zero{stroke:var(--text-3);stroke-width:1;stroke-dasharray:2 5;vector-effect:non-scaling-stroke}
-.pn-gu{stop-color:var(--pn-up);stop-opacity:.2}
-.pn-gd{stop-color:var(--pn-down);stop-opacity:.2}
+.pn-l-prev{fill:none;stroke:var(--text-3);stroke-width:1.5;stroke-dasharray:4 5;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.pn-gu{stop-color:var(--pn-up);stop-opacity:.14}
+.pn-gd{stop-color:var(--pn-down);stop-opacity:.14}
 .pn-g0{stop-opacity:0}
-.pn-zl{position:absolute;right:0;transform:translateY(calc(-100% - 4px));font-size:13px;line-height:1.3;color:var(--text-2);pointer-events:none}
-.pn-zl.below{transform:translateY(4px)}
+/* Montos del eje: cada uno a la altura de su línea de grilla (el renglón de 0 px de alto queda centrado en la línea) */
+.pn-yax{position:relative;font-size:13px;color:var(--text-2);font-variant-numeric:tabular-nums;pointer-events:none}
+.pn-yt{position:relative;display:block;height:0;line-height:0;white-space:nowrap}
+.pn-x{position:relative;height:18px;margin-top:12px;font-size:13px;line-height:18px;color:var(--text-2)}
+.pn-xt{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap}
+.pn-xt.l{transform:none}
+.pn-xt.r{transform:translateX(-100%)}
+@media (max-width:420px){.pn-xt.alt{display:none}}
+/* Último punto (hoy) y, al recorrer, la guía con el punto de cada línea */
+.pn-end,.pn-dot{position:absolute;width:10px;height:10px;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 2px var(--card);pointer-events:none}
+.pn-end{left:100%}
+.pn-end.up,.pn-dot.up{background:var(--pn-up)}
+.pn-end.dn,.pn-dot.dn{background:var(--pn-down)}
+.pn-dot.prev{width:8px;height:8px;background:var(--text-3)}
 .pn-cross{position:absolute;top:0;bottom:0;width:1px;background:var(--line);pointer-events:none}
-.pn-dot{position:absolute;width:12px;height:12px;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 3px var(--card);pointer-events:none}
-.pn-dot.up{background:var(--pn-up)}
-.pn-dot.dn{background:var(--pn-down)}
-.pn-tip{position:absolute;z-index:2;top:-10px;display:grid;gap:1px;padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.35;white-space:nowrap;color:var(--text);background:var(--bg);box-shadow:var(--shadow-h);transform:translate(-50%,-100%);pointer-events:none}
-.pn-tip.l{transform:translate(0,-100%)}
-.pn-tip.r{transform:translate(-100%,-100%)}
+.pn-tip{position:absolute;z-index:2;top:0;display:grid;gap:2px;padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.35;white-space:nowrap;color:var(--text);background:var(--bg);box-shadow:var(--shadow-h);transform:translateX(-50%);pointer-events:none}
+.pn-tip.l{transform:none}
+.pn-tip.r{transform:translateX(-100%)}
+.pn-tip.bt{top:auto;bottom:0}
 .pn-tip span{color:var(--text-2);font-variant-numeric:tabular-nums}
+.pn-tip span b{font-weight:600;color:var(--text)}
 :root[data-theme="dark"] .pn-tip{background:#2c2c2e}
 .pn-hit{position:absolute;inset:0;border-radius:12px;cursor:crosshair;touch-action:pan-y}
 .pn-hit:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
-.pn-x{display:flex;justify-content:space-between;gap:12px;margin-top:8px;font-size:13px;color:var(--text-2)}
 
 /* Píldoras de período (radios nativos ocultos) */
 .pn-chips{display:flex;flex-wrap:wrap;gap:0 6px;margin:12px 0 0;padding:0;border:0;min-width:0}

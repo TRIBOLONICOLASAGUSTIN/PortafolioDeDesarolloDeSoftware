@@ -1,14 +1,40 @@
 // Geometría del gráfico de ganancia (SVG de 1000 × 300, se estira al ancho de la tarjeta).
+import { diaSemana, mesCorto, short } from './dates';
+import type { Bucket, Unit } from './stats';
+
 export const W = 1000, H = 300;
 
-/** Escala: el $0 siempre queda dentro del dibujo, con un margen de 8 % arriba y abajo. */
+/** Marcas del eje: números "lindos" (1 · 2 · 2,5 · 5 × 10ⁿ) que cubren los valores, siempre con el $ 0; de 3 a 6. */
+export function ticks(lo: number, hi: number) {
+  lo = Math.min(0, lo); hi = Math.max(0, hi);
+  if (lo === hi) hi = 1;
+  const raw = (hi - lo) / 4, p = 10 ** Math.floor(Math.log10(raw));
+  for (const step of [1, 2, 2.5, 5, 10, 20, 25, 50].map(k => k * p)) {
+    if (step < raw) continue;
+    const a = Math.floor(lo / step), b = Math.ceil(hi / step);
+    if (b - a <= 5) return Array.from({ length: b - a + 1 }, (_, i) => Math.round((a + i) * step * 1e6) / 1e6);
+  }
+  return [lo, 0, hi];
+}
+
+/** Escala: va de la marca más baja a la más alta, así la grilla coincide con los bordes del dibujo. */
 export function escala(values: number[]) {
-  let lo = Math.min(0, ...values), hi = Math.max(0, ...values);
-  if (lo === hi) { lo = -1; hi = 1; }
-  const pad = (hi - lo) * 0.08;
-  lo -= pad; hi += pad;
+  const t = ticks(Math.min(...values), Math.max(...values));
+  const lo = t[0], hi = t[t.length - 1];
   const y = (v: number) => H - ((v - lo) / (hi - lo)) * H;
-  return { y, y0: y(0) };
+  return { y, y0: y(0), ticks: t };
+}
+
+/**
+ * Fechas del eje X, ancladas al último punto (hoy) y hacia atrás: 7 días → cada día; 30 días → cada 7;
+ * 3 meses → cada 4 semanas; 1 año → cada 3 meses. `alt` marca las que se ocultan en pantallas chicas.
+ */
+export function marcasX(serie: Bucket[], unit: Unit) {
+  const n = serie.length, cada = unit === 'mes' ? 3 : unit === 'semana' ? 4 : n <= 7 ? 1 : 7;
+  const txt = (b: Bucket) => (unit === 'mes' ? mesCorto(b.from) : unit === 'día' && n <= 7 ? diaSemana(b.to) : short(b.to));
+  const idx: number[] = [];
+  for (let i = n - 1; i >= 0; i -= cada) idx.unshift(i);
+  return idx.map((i, k) => ({ i, x: (i + 1) / n, label: txt(serie[i]), alt: idx.length > 4 && (idx.length - 1 - k) % 2 === 1 }));
 }
 
 /** Curva monótona (Fritsch–Carlson): pasa por todos los puntos y nunca se pasa de largo entre dos de ellos. */

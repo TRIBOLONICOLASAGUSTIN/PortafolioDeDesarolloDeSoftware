@@ -22,6 +22,8 @@ export function Resumen() {
   const t = useMemo(() => totales(idx, per.from, per.to), [idx, per]);
   const prev = useMemo(() => totales(idx, per.prevFrom, per.prevTo), [idx, per]);
   const s = useMemo(() => serie(idx, per), [idx, per]);
+  // El mismo armado de tramos, corrido al período anterior (para comparar en el gráfico).
+  const ps = useMemo(() => serie(idx, periodo(range, per.prevTo)), [idx, range, per]);
   const cats = useMemo(() => porCategoria(idx, per), [idx, per]);
   const sparks = useMemo(() => ({
     ventas: serie(idx, per, m => (m.kind === 'venta' ? resultado(m) : 0)).map(b => b.valor),
@@ -42,7 +44,7 @@ export function Resumen() {
     <>
       <div className="pn-grid">
         <Aviso />
-        <Ganancia range={range} onRange={setRange} total={t.ganancia} prev={prev.ganancia} serie={s} />
+        <Ganancia range={range} onRange={setRange} total={t.ganancia} prev={prev.ganancia} serie={s} prevSerie={ps} />
         <Desglose t={t} sparks={sparks} />
         <Acciones />
         <Categorias cats={cats} />

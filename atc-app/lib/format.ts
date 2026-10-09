@@ -11,6 +11,11 @@ export const vars = (v: Record<string, string | number>) => v as React.CSSProper
 
 /** −$ 12.000 si es negativo (signo menos tipográfico), $ 12.000 si no. */
 export const fmtMonto = (n: number) => (Math.round(n) < 0 ? '−' : '') + fmt(Math.abs(n));
+/** Eje del gráfico, compacto y sin Intl: $ 0 · $ 500 mil · $ 1,5 M · −$ 250 mil. */
+export function fmtEje(n: number) {
+  const a = Math.abs(Math.round(n)), dec = (v: number) => String(Math.round(v * 10) / 10).replace('.', ',');
+  return `${n < 0 && a ? '−' : ''}$ ${a >= 1e6 ? `${dec(a / 1e6)} M` : a >= 1e3 ? `${dec(a / 1e3)} mil` : a}`;
+}
 /** +$ 60.000 / −$ 12.000: para variaciones. */
 export const fmtSigned = (n: number) => (Math.round(n) < 0 ? '−' : '+') + fmt(Math.abs(n));
 /** +12 % / −4,1 % (fracción → porcentaje; un decimal por debajo de 10). Sin Intl: igual en el servidor y en el navegador. */

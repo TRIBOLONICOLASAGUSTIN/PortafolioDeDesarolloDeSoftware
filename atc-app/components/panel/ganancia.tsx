@@ -11,7 +11,7 @@ import { fmtMonto, fmtPct, fmtSigned } from '@/lib/format';
 const UNIT_CAP = { 'día': 'día', semana: 'semana', mes: 'mes' } as const;
 
 // Tarjeta principal: ganancia del período, variación, gráfico, período y mejor/peor tramo.
-export function Ganancia({ range, onRange, total, prev, serie }: { range: RangeId; onRange: (r: RangeId) => void; total: number; prev: number; serie: Bucket[] }) {
+export function Ganancia({ range, onRange, total, prev, serie, prevSerie }: { range: RangeId; onRange: (r: RangeId) => void; total: number; prev: number; serie: Bucket[]; prevSerie: Bucket[] }) {
   const R = RANGES[range];
   const d = delta(total, prev);
   const up = d.abs > 0, igual = d.abs === 0;
@@ -30,7 +30,7 @@ export function Ganancia({ range, onRange, total, prev, serie }: { range: RangeI
         )}
         <span className="pn-vs">{d.pct !== null && !igual && <span className="pn-num">{fmtPct(d.pct)} </span>}frente a {R.prev}</span>
       </p>
-      <ProfitChart key={range} serie={serie} label={R.label} unit={R.unit} />
+      <ProfitChart key={range} serie={serie} prev={prevSerie} label={R.label} prevLabel={R.prev} unit={R.unit} />
       <Chips name="pn-rango" legend="Período" value={range} onChange={onRange} options={RANGE_IDS.map(r => [r, RANGES[r].chip])} />
       <dl className="pn-ext">
         <div><dt>Mejor {UNIT_CAP[R.unit]}</dt><dd><span>{mejor.label}</span><b className="pn-num">{fmtMonto(mejor.valor)}</b></dd></div>

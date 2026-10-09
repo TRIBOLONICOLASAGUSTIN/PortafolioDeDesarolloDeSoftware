@@ -45,4 +45,6 @@ export const long = (ymd: string, hm: string) => { const { y, m, d } = parts(ymd
 /** "Jueves 9 de octubre" */
 export const diaLargo = (ymd: string) => { const { m, d } = parts(ymd); return `${cap(DAYS[dow(ymd)])} ${d} de ${MONTHS[m]}`; };
 /** "Sáb 3 oct" */
+export const mesCorto = (ymd: string) => MON[parts(ymd).m];
+export const diaSemana = (ymd: string) => cap(DAYS[dow(ymd)].slice(0, 3));
 export const dayShort = (ymd: string) => `${cap(DAYS[dow(ymd)].slice(0, 3))} ${short(ymd)}`;

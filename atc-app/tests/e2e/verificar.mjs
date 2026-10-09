@@ -534,13 +534,34 @@ for (const [w, h, scheme] of PANEL_VPS) {
     await p.focus('.pn-hit');
     const kv = [];
     for (const k of ['Home', 'End', 'ArrowLeft']) { await p.keyboard.press(k); kv.push(await p.evaluate(() => [document.querySelector('.pn-hit').getAttribute('aria-valuenow'), document.querySelector('.pn-hit').getAttribute('aria-valuetext')])); }
-    const tipKb = await p.evaluate(() => !!document.querySelector('.pn-tip'));
-    check(tag, 'el gráfico se recorre con el teclado', kv[0][0] === '0' && kv[1][0] === '29' && kv[2][0] === '28' && /\$/.test(kv[2][1]) && tipKb, JSON.stringify(kv));
+    const tipKb = await p.evaluate(() => /Acumulado.*Período anterior/.test(document.querySelector('.pn-tip')?.textContent ?? ''));
+    check(tag, 'el gráfico se recorre con el teclado (el detalle compara con el período anterior)', kv[0][0] === '0' && kv[1][0] === '29' && kv[2][0] === '28' && /\$/.test(kv[2][1]) && tipKb, JSON.stringify(kv));
     await p.evaluate(() => document.activeElement.blur());
 
     // Verde arriba del $ 0 y rojo abajo, con los colores del tema; la línea del $ 0 queda dentro del dibujo
     const col = await p.evaluate(() => ({ up: getComputedStyle(document.querySelector('.pn-l-up')).stroke, dn: getComputedStyle(document.querySelector('.pn-l-dn')).stroke, y0: +document.querySelector('.pn-zero').getAttribute('y1') }));
     check(tag, 'gráfico: verde arriba del $ 0, rojo abajo, colores del tema', col.up === PANEL_COLORS[scheme][0] && col.dn === PANEL_COLORS[scheme][1] && col.y0 >= 0 && col.y0 <= 300, JSON.stringify(col));
+    // Estilo Bolsa: montos del eje ordenados (con $ 0), sin pisarse y dentro de la tarjeta; una línea de grilla por monto;
+    // fechas a la vista sin pisarse dentro del dibujo; período anterior punteado con su leyenda; el último punto marcado
+    const ch = await p.evaluate(() => {
+      const R = e => e.getBoundingClientRect(), plot = R(document.querySelector('.pn-plot')), card = R(document.querySelector('.pn-gan'));
+      const over = rs => rs.some((a, i) => rs.slice(i + 1).some(b => a.right > b.left + .5 && b.right > a.left + .5 && a.bottom > b.top + .5 && b.bottom > a.top + .5));
+      const num = s => { const m = s.replace(/\s/g, '').match(/^([−-]?)\$(\d+(?:,\d+)?)(M|mil)?$/); return m ? (m[1] ? -1 : 1) * parseFloat(m[2].replace(',', '.')) * (m[3] === 'M' ? 1e6 : m[3] === 'mil' ? 1e3 : 1) : NaN; };
+      // Cada monto se mide por su texto (el renglón mide 0 px de alto a propósito)
+      const box = e => { const r = document.createRange(); r.selectNodeContents(e); return r.getBoundingClientRect(); };
+      const yt = [...document.querySelectorAll('.pn-yt')], yr = yt.map(box);
+      const byTop = yt.map((e, i) => [yr[i].top, num(e.textContent)]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
+      const xt = [...document.querySelectorAll('.pn-xt')].filter(e => e.getClientRects().length), xr = xt.map(R);
+      const end = document.querySelector('.pn-end'), er = end && R(end), prev = document.querySelector('.pn-l-prev');
+      return { ticks: yt.map(e => e.textContent), yOk: yt.length >= 3 && yt.length <= 6 && yt.some(e => e.textContent === '$ 0') && byTop.every((v, i) => !Number.isNaN(v) && (i === 0 || v < byTop[i - 1])) && !over(yr) && yr.every(r => r.left >= plot.right && r.right <= card.right),
+        grid: document.querySelectorAll('.pn-gl').length === yt.length - 1,
+        xOk: xr.length >= 3 && !over(xr) && xr[0].left >= plot.left - 1 && xr[xr.length - 1].right <= plot.right + 1, xs: xt.map(e => e.textContent),
+        prev: !!prev && getComputedStyle(prev).strokeDasharray !== 'none' && document.querySelectorAll('.pn-leg li').length === 2 && /anteriores|año pasado/.test(document.querySelector('.pn-leg').textContent),
+        end: !!er && Math.abs(er.left + er.width / 2 - plot.right) <= 2 && er.top + er.height / 2 >= plot.top - 1 && er.top + er.height / 2 <= plot.bottom + 1 };
+    });
+    check(tag, 'gráfico: montos del eje ordenados con $ 0, sin pisarse, y una línea de grilla por monto', ch.yOk && ch.grid, JSON.stringify(ch.ticks));
+    check(tag, 'gráfico: fechas a la vista sin pisarse y dentro del dibujo', ch.xOk, JSON.stringify(ch.xs));
+    check(tag, 'gráfico: período anterior punteado con leyenda y el último punto marcado', ch.prev && ch.end, JSON.stringify(ch));
     if (w >= 1069) {
       const hb = await p.locator('.pn-hit').boundingBox();
       await p.mouse.move(hb.x + hb.width * .5, hb.y + hb.height * .5); await p.waitForTimeout(150);
