@@ -214,6 +214,16 @@ for (const scheme of ['light', 'dark']) {
   await p.close();
 }
 
+// Grilla bento: en compu "90 días" ocupa 2×2 y "Tu OK" 2×1; en celular, una sola columna
+for (const w of [1440, 390]) {
+  const p = await browser.newPage({ viewport: { width: w, height: 900 } }); await p.goto(HTML); await p.waitForTimeout(300);
+  const r = await p.evaluate(() => [...document.querySelectorAll('.values .val')].map(v => { const b = v.getBoundingClientRect(); return [Math.round(b.width), Math.round(b.height)]; }));
+  const [big, wide, s1, s2] = r;
+  const ok = w > 1068 ? big[0] > s1[0] * 2 && big[1] > s1[1] * 1.8 && wide[0] > s1[0] * 2 && Math.abs(s1[0] - s2[0]) < 2 : r.every(([x]) => Math.abs(x - big[0]) < 2);
+  check('bento', w > 1068 ? 'mosaico grande 2×2 y ancho 2×1 en compu' : 'una sola columna en celular', ok, JSON.stringify(r));
+  await p.close();
+}
+
 // Despiece de la notebook (3D con WebGL): con el scroll se abre, se desarma y aparecen las etiquetas; con "reducir
 // movimiento" queda desarmada y quieta (sin recorrido largo). La escena es decorativa (aria-hidden) y las piezas se leen
 // como lista. En celular se lee solo la pieza actual, debajo del dibujo. Sin WebGL queda el despiece en CSS.

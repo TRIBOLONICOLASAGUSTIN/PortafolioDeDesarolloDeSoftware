@@ -23,7 +23,7 @@ export function Values() {
       <div className="wrap">
         <div className="values">
           {VALUES.map(([ic, b, p], i) => (
-            <div key={b} className="val rv" style={i ? vars({ '--d': `${(i * .08).toFixed(2)}s` }) : undefined}><Icon n={ic} /><b>{b}</b><p>{p}</p></div>
+            <div key={b} className={`val rv${i === 0 ? ' big' : i === 1 ? ' wide' : ''}`} style={i ? vars({ '--d': `${(i * .08).toFixed(2)}s` }) : undefined}><Icon n={ic} /><b>{b}</b><p>{p}</p></div>
           ))}
         </div>
         <div className="pay rv" role="group" aria-label="Medios de pago">
