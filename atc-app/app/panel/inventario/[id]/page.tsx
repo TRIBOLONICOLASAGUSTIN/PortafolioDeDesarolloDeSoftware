@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { panelAcceso } from '@/lib/server/panel';
-import { PanelHeader } from '@/components/panel/panel-header';
 import { Ficha } from '@/components/panel/ficha';
 import { ITEM_IDS, ITEMS } from '@/lib/panel/inventario';
 
@@ -22,7 +21,6 @@ export default async function PanelFicha({ params }: Props) {
   if (!valido(id)) notFound();
   return (
     <>
-      <PanelHeader />
       <main className="wrap pn-main" id="pn-main" data-item={id}>
         <Ficha id={id} />
       </main>

@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { generar } from '@/lib/data/panel';
 import { BOM } from '@/lib/data/armado';
 import { indexar, type Index } from '@/lib/panel/stats';
@@ -9,6 +9,7 @@ import { historialBase, inventario, movsDeVenta, type Ajuste, type Inventario, t
 import { olvidarProductos, producto, registrarProducto } from '@/lib/panel/labels';
 import type { Movement } from '@/lib/panel/types';
 import { Sheets } from './sheets';
+import { PanelBar, PanelNav } from './panel-nav';
 import { Icon } from '../ui';
 
 /* =========================================================
@@ -18,6 +19,7 @@ import { Icon } from '../ui';
    de ejemplo (sin errores de hidratación).
    Hojas (detalle, formularios): mientras hay una abierta, el panel queda inert (el foco no puede salir),
    Escape la cierra y el foco vuelve al botón que la abrió.
+   Menú: barra lateral fija desde 1024 px; más angosto, un cajón con las mismas reglas que las hojas.
    ========================================================= */
 export type Ahora = { ymd: string; hm: string };
 export type Lista = { codigo: string; equipo: string; presupuesto: number | null };
@@ -101,7 +103,6 @@ export function PanelShell({ ahora, listas: todas, children }: { ahora: Ahora; l
   const closeSheet = useCallback(() => { openRef.current = false; setSheet(null); }, []);
 
   useEffect(() => {
-    document.documentElement.classList.toggle('lock', !!sheet);
     if (sheet) {
       const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeSheet(); };
       document.addEventListener('keydown', onKey);
@@ -115,15 +116,58 @@ export function PanelShell({ ahora, listas: todas, children }: { ahora: Ahora; l
     if (el) requestAnimationFrame(() => { (el.isConnected ? el : document.querySelector<HTMLElement>('#pn-main .pn-t'))?.focus(); opener.current = null; });
   }, [sheet, closeSheet]);
   useEffect(() => () => { document.documentElement.classList.remove('lock'); olvidarProductos(); }, []);
-  // Si se cambia de página (por ejemplo con "Atrás"), la hoja se cierra.
-  const path = usePathname();
-  useEffect(() => { closeSheet(); }, [path, closeSheet]);
+  // Menú: en celular y tablet es un cajón (cerrable); desde 1024 px, una barra fija.
+  const [movil, setMovil] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
+  const cajon = movil && navOpen;
+  useEffect(() => {
+    const mq = matchMedia('(max-width:1023px)');
+    const ver = () => { setMovil(mq.matches); if (!mq.matches) setNavOpen(false); };
+    ver();
+    mq.addEventListener('change', ver);
+    return () => mq.removeEventListener('change', ver);
+  }, []);
+  const menuBtn = useRef<HTMLButtonElement | null>(null);
+  const alTitulo = useRef(false);
+  const cerrarNav = useCallback(() => { setNavOpen(false); requestAnimationFrame(() => menuBtn.current?.focus()); }, []);
+  // Un enlace del menú: si lleva a otra página, el foco va a su título; si es la misma, vuelve al botón "Menú".
+  const onGo = useCallback((actual: boolean) => {
+    if (!movil) return;
+    if (actual) { cerrarNav(); return; }
+    alTitulo.current = true;
+    setNavOpen(false);
+  }, [movil, cerrarNav]);
+  useEffect(() => {
+    if (!cajon) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') cerrarNav(); };
+    document.addEventListener('keydown', onKey);
+    requestAnimationFrame(() => document.querySelector<HTMLElement>('#pn-nav .pn-nav-a[aria-current]')?.focus() ?? document.querySelector<HTMLElement>('#pn-nav .pn-nav-x')?.focus());
+    return () => document.removeEventListener('keydown', onKey);
+  }, [cajon, cerrarNav]);
+  // Sin scroll de fondo mientras hay una hoja o el cajón abierto
+  useEffect(() => { document.documentElement.classList.toggle('lock', !!sheet || cajon); }, [sheet, cajon]);
+
+  // Si se cambia de página (por ejemplo con "Atrás"), la hoja y el cajón se cierran.
+  const path = usePathname(), search = useSearchParams().toString();
+  useEffect(() => {
+    closeSheet();
+    setNavOpen(false);
+    if (alTitulo.current) { alTitulo.current = false; requestAnimationFrame(() => document.querySelector<HTMLElement>('#pn-main .pn-t')?.focus()); }
+  }, [path, search, closeSheet]);
 
   const value = useMemo<Panel>(() => ({ ...data, sheet, openSheet, closeSheet, extra, agregar, nuevoId, toast, listas, inv, moverStock, ajustar, crear }),
     [data, sheet, openSheet, closeSheet, extra, agregar, nuevoId, toast, listas, inv, moverStock, ajustar, crear]);
   return (
     <PanelCtx.Provider value={value}>
-      <div className="pn" inert={!!sheet}>{children}</div>
+      <div className={`pn${cajon ? ' nav-open' : ''}`} inert={!!sheet}>
+        <a className="sr pn-skip" href="#pn-main">Ir al contenido</a>
+        <PanelNav open={navOpen} cerrable={movil} onClose={cerrarNav} onGo={onGo} />
+        <div className="pn-nav-scrim" aria-hidden="true" onClick={cerrarNav} />
+        <div className="pn-body" inert={cajon}>
+          <PanelBar open={navOpen} onMenu={() => setNavOpen(true)} btnRef={menuBtn} />
+          {children}
+        </div>
+      </div>
       <div className="pn-layer">
         <Sheets />
         <div className="toasts pn-toasts" aria-live="polite">

@@ -9,7 +9,7 @@
   --pn-in-bg:#fff;--pn-in-line:var(--field);--pn-well:var(--bg-alt);--pn-well-h:var(--fill);
   --pn-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='m1 1.5 5 5 5-5' fill='none' stroke='%236e6e73' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   --card:var(--tile);--pn-tint:#eaf2fd;--pn-sel:#e8f1fc;--pn-seg:#ffffff;--pn-up:#1d7a35;--pn-down:#d70015;--pn-up-t:#1d7a35;--pn-down-t:#d70015;--pn-up-bg:#e8f3eb;--pn-down-bg:#fdecee}
-.pn{min-height:100svh;background:var(--bg-alt);padding-bottom:max(64px,env(safe-area-inset-bottom))}
+.pn{min-height:100svh;background:var(--bg-alt)}
 body:has(.pn){background:var(--bg-alt)}
 :root[data-theme="dark"] body:has(.pn){background:var(--bg)}
 :root[data-theme="dark"] :is(.pn,.pn-layer){--pn-in-bg:#2c2c2e;--pn-in-line:#7c7c80;--pn-well:#2c2c2e;--pn-well-h:#3a3a3c;
@@ -18,41 +18,59 @@ body:has(.pn){background:var(--bg-alt)}
 :root[data-theme="dark"] .pn{background:var(--bg)}
 .pn .ib,.pn-layer .ib{width:44px;height:44px}
 
-/* Barra fija */
-.pn-h{position:sticky;top:0;z-index:40;height:52px}
-/* El vidrio va en una capa aparte: si lo llevara la barra, la barra de pestañas del celular (fija) quedaría atrapada en ella */
-.pn-h::before{content:'';position:absolute;inset:0;z-index:-1;background:var(--nav);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);box-shadow:inset 0 -1px 0 var(--line-2)}
-.pn-h-in{display:flex;align-items:center;gap:8px;height:100%}
-.pn-h-r{display:flex;align-items:center;gap:8px;margin-left:auto}
+/* Menú del panel: barra lateral como en las apps de Apple (Música, Configuración). Desde 1024 px queda fija a la
+   izquierda; más angosto es un cajón que se abre con "Menú" (cerrado: oculto e inert, como las hojas). */
+.pn,.pn-layer{--pn-nav-w:264px;--pn-side:var(--bg)}
+:root[data-theme="dark"] :is(.pn,.pn-layer){--pn-side:var(--tile-alt)}
+.pn-body{min-width:0;padding-bottom:max(64px,env(safe-area-inset-bottom))}
 .pn-brand{display:flex;align-items:center;gap:10px;min-height:44px;font-family:var(--font-d);font-size:17px;font-weight:600;letter-spacing:-.02em}
 .pn .mark{font-size:13px}
-/* En celulares angostos la marca queda solo con el "AT" (el enlace mantiene su nombre accesible) */
-.pn-h-r>.ib,.pn-salir,.pn-ej{flex:none;white-space:nowrap}
-@media (max-width:420px){.pn-brand>span:not(.mark){display:none}.pn-brand{min-width:44px}.pn-h-in,.pn-h-r{gap:4px}.pn-salir{padding:0 4px 0 8px}}
-/* Secciones: en la barra de arriba (centradas en compu); en el celular, barra de pestañas abajo */
-.pn-tabs{display:flex;align-items:center;gap:2px;margin-left:12px}
-.pn-tab{display:flex;align-items:center;justify-content:center;min-height:44px;padding:0 2px;font-size:15px;font-weight:500;white-space:nowrap;color:var(--text-2);transition:color .15s}
-.pn-tab span{padding:6px 12px;border-radius:999px;transition:background-color .15s}
-.pn-tab .i{display:none}
-.pn-tab[aria-current]{font-weight:600;color:var(--text)}
-.pn-tab[aria-current] span{background:var(--fill-2)}
-.pn-tab:focus-visible{outline:none}
-.pn-tab:focus-visible span{outline:2px solid var(--accent);outline-offset:2px}
-@media (hover:hover){.pn-tab:hover{color:var(--text)}}
-@media (min-width:1069px){.pn-h-in{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}.pn-brand{justify-self:start}.pn-tabs{margin:0}.pn-h-r{justify-self:end}}
-@media (max-width:734px){
-  .pn-tabs{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin:0;padding:2px 8px max(2px,env(safe-area-inset-bottom));background:var(--nav);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);box-shadow:inset 0 1px 0 var(--line-2)}
-  .pn-tab{flex-direction:column;gap:2px;min-height:54px;padding:4px 0;font-size:13px;line-height:1.2}
-  .pn-tab span{padding:0;background:none!important}
-  .pn-tab .i{display:block;width:24px;height:24px}
-  .pn-tab[aria-current]{color:var(--link)}
-  .pn{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+/* "Ir al contenido": invisible hasta que llega el foco del teclado */
+.pn-skip:focus{position:fixed;left:16px;top:12px;z-index:95;width:auto;height:auto;overflow:visible;clip:auto;display:flex;align-items:center;min-height:44px;padding:0 18px;border-radius:999px;font-size:15px;font-weight:600;color:var(--link);background:var(--card);box-shadow:var(--e3)}
+.pn-nav{display:flex;flex-direction:column;gap:8px;padding:12px 12px max(16px,env(safe-area-inset-bottom));background:var(--pn-side)}
+.pn-nav-h{display:flex;align-items:center;gap:8px;min-height:52px;padding-left:8px}
+.pn-nav-h .pn-ej{margin-left:auto}
+.pn-nav-g{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;padding:4px 0 8px}
+.pn-nav-sec+.pn-nav-sec{margin-top:20px}
+.pn-nav-t{padding:0 12px 6px;font-size:13px;font-weight:600;color:var(--text-2)}
+.pn-nav-g ul{display:grid;gap:2px;list-style:none;margin:0;padding:0}
+.pn-nav-a{display:flex;align-items:center;gap:12px;min-height:44px;padding:0 12px;border-radius:12px;font-size:15px;font-weight:500;color:var(--text);transition:background-color .15s}
+.pn-nav-a>.i{flex:none;width:20px;height:20px;color:var(--link)}
+.pn-nav-a[aria-current]{font-weight:600;color:var(--link);background:var(--pn-sel)}
+@media (hover:hover){.pn-nav-a:not([aria-current]):hover{background:var(--fill-2)}}
+.pn-nav-n{margin-left:auto;min-width:28px;padding:2px 8px;border-radius:999px;font-size:13px;font-weight:600;text-align:center;font-variant-numeric:tabular-nums;color:var(--text-2);background:var(--fill-2)}
+.pn-nav-a[aria-current] .pn-nav-n{color:var(--link);background:none}
+/* Pie del menú: el mismo interruptor que en la tienda ("AT"), el tema y salir */
+.pn-nav-f{display:flex;align-items:center;gap:4px;padding-top:12px;box-shadow:inset 0 1px 0 var(--line-2)}
+.pn-sw{display:flex;flex:1;align-items:center;gap:10px;min-width:0;min-height:44px;padding:0 12px 0 6px;border-radius:999px;font-size:15px;font-weight:600;white-space:nowrap;color:var(--text);transition:background-color .15s}
+.pn-sw .mark{flex:none;width:32px;height:32px;border-radius:50%}
+@media (hover:hover){.pn-sw:hover{background:var(--fill-2)}}
+/* Barra de arriba (celular y tablet): menú, marca y la píldora "Ejemplo" siempre a la vista */
+.pn-mbar{position:sticky;top:0;z-index:40;height:52px;background:var(--nav);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);box-shadow:inset 0 -1px 0 var(--line-2)}
+.pn-mbar-in{display:flex;align-items:center;gap:4px;height:100%}
+.pn-mbar-in>.pn-menu{margin-left:-10px}
+.pn-mbar-in>.pn-ej{margin-left:auto}
+@media (min-width:1024px){
+  .pn{display:grid;grid-template-columns:var(--pn-nav-w) minmax(0,1fr);align-items:start}
+  .pn-nav{position:sticky;top:0;height:100svh;box-shadow:inset -1px 0 0 var(--line-2)}
+  :is(.pn-mbar,.pn-nav-scrim,.pn-nav-x){display:none}
+  /* Los avisos, centrados en el contenido (no en la ventana) */
+  .pn-toasts{left:calc(50% + var(--pn-nav-w) / 2)}
 }
-.pn-salir{min-height:44px;padding:0 6px 0 10px;font-size:15px;font-weight:500;color:var(--link)}
-.pn-ej{padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600;color:var(--text);background:var(--fill)}
+@media (max-width:1023px){
+  .pn-nav{position:fixed;inset:0 auto 0 0;z-index:70;width:min(320px,100% - 56px);border-radius:0 24px 24px 0;box-shadow:var(--e3);transform:translateX(-102%);visibility:hidden;transition:transform .3s var(--ease),visibility 0s .3s}
+  .pn-nav.open{transform:none;visibility:visible;transition:transform .3s var(--ease)}
+  :root[data-theme="dark"] .pn-nav{box-shadow:inset 0 0 0 .5px rgba(255,255,255,.08)}
+  .pn-nav-scrim{position:fixed;inset:0;z-index:69;background:var(--overlay);opacity:0;visibility:hidden;transition:opacity .3s var(--ease),visibility 0s .3s}
+  .nav-open>.pn-nav-scrim{opacity:1;visibility:visible;transition:opacity .3s var(--ease)}
+}
+@media (max-width:420px){.pn-mbar .pn-brand>span:not(.mark){display:none}.pn-mbar .pn-brand{min-width:44px}}
+.pn-salir{flex:none;min-height:44px;padding:0 10px;font-size:15px;font-weight:500;white-space:nowrap;color:var(--link)}
+.pn-ej{flex:none;white-space:nowrap;padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600;color:var(--text);background:var(--fill)}
 
 /* Título grande y vuelta */
-.pn-main{padding-top:8px}
+/* Las grillas responden al ancho del contenido (la barra lateral lo achica), no al de la ventana */
+.pn-main{padding-top:8px;container:pn-main/inline-size}
 .pn-eyebrow{margin-top:28px;font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text-2)}
 .pn-eyebrow+.pn-t{margin-top:2px}
 .pn-t{font-size:clamp(34px,5vw,48px);letter-spacing:-.03em;margin:24px 0 16px;outline:none}
@@ -77,7 +95,7 @@ body:has(.pn){background:var(--bg-alt)}
 }
 /* Compu: ganancia a la izquierda con desglose y acciones a la derecha; abajo últimos y más vendidos, y categorías a lo ancho.
    Las tarjetas de una misma fila se estiran juntas: los bordes de abajo coinciden */
-@media (min-width:1069px){.pn-grid{grid-template-columns:minmax(0,7fr) minmax(0,5fr);grid-template-areas:"aviso aviso" "gan des" "gan acc" "ult top" "cat cat"}}
+@container pn-main (min-width:900px){.pn-grid{grid-template-columns:minmax(0,7fr) minmax(0,5fr);grid-template-areas:"aviso aviso" "gan des" "gan acc" "ult top" "cat cat"}}
 .pn-des{display:flex;flex-direction:column}
 .pn-des .pn-how{margin-top:auto}
 .pn-acc{display:flex;flex-direction:column;justify-content:center}
@@ -233,7 +251,7 @@ body:has(.pn){background:var(--bg-alt)}
 /* Movimientos */
 .pn-movs{list-style:none;margin:4px 0 0;padding:0}
 .pn-movs>li+li{box-shadow:inset 0 1px 0 var(--line-2)}
-@media (max-width:1068px){.pn-ult .pn-movs>li:nth-child(n+6){display:none}}
+@container pn-main (max-width:899.98px){.pn-ult .pn-movs>li:nth-child(n+6){display:none}}
 .pn-mov{display:grid;grid-template-columns:44px minmax(0,1fr) auto;grid-template-areas:"ic t a" "ic s x";align-items:baseline;column-gap:12px;row-gap:2px;width:calc(100% + 16px);min-height:64px;margin-inline:-8px;padding:10px 8px;border-radius:12px;text-align:left;transition:background-color .15s}
 .pn-mov>.pn-mic{grid-area:ic;align-self:center}
 .pn-mov>:is(.pn-rt,.pn-mamt){display:contents}
@@ -367,7 +385,7 @@ body:has(.pn){background:var(--bg-alt)}
 @media (max-width:420px){.pn-k4>div{padding:14px 12px}.pn-k4 dd b{font-size:19px;white-space:normal}}
 .pn-fgrid{display:grid;gap:16px;margin-top:16px}
 .pn-fcol{display:grid;gap:16px;align-content:start;min-width:0}
-@media (min-width:1069px){.pn-fgrid{grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:24px}.pn-fcol{gap:24px}}
+@container pn-main (min-width:900px){.pn-fgrid{grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:24px}.pn-fcol{gap:24px}}
 .pn-fnote{margin-top:8px;font-size:14px;line-height:1.43;color:var(--text-2)}
 /* Cómo se compone el precio */
 .pn-crows{list-style:none;margin:8px 0 0;padding:0}
@@ -446,7 +464,6 @@ select.pn-in{appearance:none;padding-right:40px;text-overflow:ellipsis;backgroun
 
 /* Avisos del panel: abajo al centro (sin botón flotante de WhatsApp en el panel) */
 .pn-toasts{bottom:max(24px,env(safe-area-inset-bottom))}
-@media (max-width:734px){.pn-toasts{bottom:calc(76px + env(safe-area-inset-bottom))}}
 
 /* Encabezado de cada tarjeta con gráfico: título y, en la misma línea, el monto que representa */
 .pn-ch{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px}
@@ -464,7 +481,7 @@ select.pn-in{appearance:none;padding-right:40px;text-overflow:ellipsis;backgroun
 .pn-share{display:flex;gap:2px;height:10px;margin:18px 0 6px;border-radius:999px;overflow:hidden;transform-origin:left;animation:pn-grow-x .6s var(--ease) .2s backwards}
 .pn-share i{flex-basis:0;min-width:3px}
 .pn-cdot{position:absolute;right:-3px;bottom:-3px;width:12px;height:12px;border-radius:50%;box-shadow:0 0 0 2px var(--card)}
-@media (min-width:1069px){
+@container pn-main (min-width:900px){
   .pn-cat .pn-rows{display:grid;grid-auto-flow:column;grid-template-rows:repeat(var(--rows),auto);grid-template-columns:repeat(2,minmax(0,1fr));column-gap:48px}
   .pn-cat .pn-rows>li{box-shadow:inset 0 1px 0 var(--line-2)}
 }

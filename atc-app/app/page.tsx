@@ -13,12 +13,16 @@ import { Estimator } from '@/components/estimator';
 import { Contact, Faq, Footer, Reviews } from '@/components/info';
 import { WhatsAppWidget } from '@/components/whatsapp-widget';
 import { Layers } from '@/components/layers';
+import { OwnerSwitch } from '@/components/owner-switch';
+import { esSuperadmin } from '@/lib/server/admin';
 
 // Página dinámica: cada pedido trae su nonce (CSP) y el estado "abierto/cerrado" del momento.
 export default async function Home() {
   const nonce = (await headers()).get('x-nonce') ?? undefined;
   // Botones "Probá la demo": solo con ATC_DEMO=1 (nunca en el sitio real con clientes).
   const demo = process.env.ATC_DEMO === '1';
+  // Solo el dueño con sesión ve el acceso al panel (lo decide el servidor con la cookie firmada).
+  const owner = await esSuperadmin();
   return (
     <AppShell>
       <Sprites />
@@ -38,6 +42,7 @@ export default async function Home() {
       </main>
       <Footer />
       <WhatsAppWidget />
+      {owner && <OwnerSwitch />}
       <Layers />
     </AppShell>
   );

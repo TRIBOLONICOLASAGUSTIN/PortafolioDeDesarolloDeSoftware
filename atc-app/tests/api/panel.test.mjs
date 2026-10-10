@@ -81,7 +81,7 @@ test('API-8 · Sin sesión de superadmin el panel no existe (404 sin contenido d
   assert.equal((await get(adm, '/panel', `atc_s=${valid}`)).status, 200);
 });
 
-test('API-9 · Con sesión: el panel (resumen, movimientos, inventario y fichas) responde 200, noindex (meta y X-Robots-Tag) aunque ATC_INDEXAR=1, sin caché y con CSP con nonce; filtros e ids desconocidos no pasan; la tienda no enlaza al panel ni al ingreso', async () => {
+test('API-9 · Con sesión: el panel (resumen, movimientos, inventario y fichas) responde 200, noindex (meta y X-Robots-Tag) aunque ATC_INDEXAR=1, sin caché y con CSP con nonce; filtros e ids desconocidos no pasan; sin sesión la tienda no enlaza al panel ni al ingreso, y con la del dueño solo muestra su botón al panel', async () => {
   const cookie = await sesion();
   for (const p of PATHS) {
     const r = await get(adm, p, cookie);
@@ -103,6 +103,12 @@ test('API-9 · Con sesión: el panel (resumen, movimientos, inventario y fichas)
   for (const p of ['/panel/inventario/no-existe', '/panel/inventario/%3Cscript%3E', '/panel/inventario/nuevo-x']) assert.equal((await get(adm, p, cookie)).status, 404, `${p} no dio 404`);
   const home = await (await get(adm, '/')).text();
   assert.doesNotMatch(home, /href="\/(panel|ingresar)/);
+  // Una cookie inventada (F12) no hace aparecer el botón: lo decide el servidor verificando la firma
+  assert.doesNotMatch(await (await get(adm, '/', 'atc_s=admin; role=admin')).text(), /own-sw|href="\/(panel|ingresar)/);
+  // Con la sesión del dueño, el servidor dibuja el botón al panel (abajo a la izquierda) y nunca enlaza al ingreso
+  const dueno = await (await get(adm, '/', cookie)).text();
+  assert.match(dueno, /<a\b[^>]*\bclass="own-sw"[^>]*\bhref="\/panel"/);
+  assert.doesNotMatch(dueno, /href="\/ingresar/);
 });
 
 test('API-10 · Ingreso: usuario, contraseña o código incorrectos responden exactamente lo mismo; con los tres correctos, cookie HttpOnly, SameSite=Strict, 8 h', async () => {

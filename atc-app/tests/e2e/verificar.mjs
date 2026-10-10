@@ -610,9 +610,11 @@ for (const [w, scheme] of [[390, 'light'], [1440, 'dark']]) {
     for (const [k, v] of [['role', 'admin'], ['user', 'admin'], ['isAdmin', 'true'], ['atc-admin', '1']]) { try { localStorage.setItem(k, v); sessionStorage.setItem(k, v); } catch {} }
     for (const c of ['role=admin', 'user=admin', 'admin=true', 'atc_s=admin']) document.cookie = `${c}; path=/`;
   });
+  await p.reload(); await p.waitForTimeout(300);
+  const boton = await p.evaluate(() => !!document.querySelector('.own-sw, a[href="/panel"]'));
   const r = await p.goto(PANEL);
   const txt = await p.evaluate(() => document.body.textContent);
-  check('seguridad', 'F12: un "admin" inventado en el navegador (localStorage y cookies) no abre el panel', r.status() === 404 && /No encontramos esta página/.test(txt) && !/datos de ejemplo|ganancia/i.test(txt), String(r.status()));
+  check('seguridad', 'F12: un "admin" inventado en el navegador (localStorage y cookies) no muestra el botón del dueño ni abre el panel', !boton && r.status() === 404 && /No encontramos esta página/.test(txt) && !/datos de ejemplo|ganancia/i.test(txt), JSON.stringify({ boton, st: r.status() }));
   await ctx.close();
 }
 // "Salir" cierra la sesión de verdad: vuelve a la tienda y en ese navegador el panel deja de existir.
@@ -623,6 +625,94 @@ for (const [w, scheme] of [[390, 'light'], [1440, 'dark']]) {
   const queda = (await ctx.cookies()).some(c => /atc_s$/.test(c.name) && c.value);
   const r = await p.goto(PANEL);
   check('seguridad', '"Salir" borra la sesión, vuelve a la tienda y el panel da 404', !queda && r.status() === 404, JSON.stringify({ queda, st: r.status() }));
+  await ctx.close();
+}
+
+// Menú del panel: barra lateral fija desde 1024 px; más angosto, un cajón que se abre con "Menú". Cerrado: oculto e inert.
+// Abierto: el resto queda inert, sin scroll de fondo; Escape o el fondo lo cierran y el foco vuelve al botón.
+// Un enlace lleva a su página, la marca, y (en el cajón) el foco va al título. "Ir al contenido" aparece con el teclado.
+for (const [w, h, scheme] of [[320, 568, 'light'], [390, 844, 'dark'], [820, 1180, 'light'], [1024, 768, 'dark'], [1440, 900, 'light']]) {
+  const tag = `panel-menu-${w}-${scheme === 'dark' ? 'oscuro' : 'claro'}`;
+  const { ctx, p, errs } = await panelPage(w, h, scheme);
+  const st = () => p.evaluate(() => {
+    const nav = document.querySelector('#pn-nav'), r = nav.getBoundingClientRect(), menu = document.querySelector('.pn-menu');
+    return { vis: getComputedStyle(nav).visibility === 'visible' && r.right > 1, inert: nav.inert, body: document.querySelector('.pn-body').inert,
+      lock: document.documentElement.classList.contains('lock'), menu: getComputedStyle(menu).display !== 'none' && menu.getBoundingClientRect().width > 0,
+      focus: document.activeElement?.className?.toString() ?? '', inNav: nav.contains(document.activeElement), left: Math.round(r.left), right: Math.round(r.right),
+      main: Math.round(document.querySelector('#pn-main').getBoundingClientRect().left), ow: document.documentElement.scrollWidth - innerWidth };
+  });
+  try {
+    await p.goto(PANEL); await p.waitForTimeout(700);
+    await p.keyboard.press('Tab');
+    const skip = await p.evaluate(() => { const e = document.activeElement, r = e.getBoundingClientRect(); return { cls: e.className, txt: e.textContent, h: Math.round(r.height), top: Math.round(r.top) }; });
+    check(tag, '"Ir al contenido" es lo primero con el teclado y se ve al enfocarlo', /pn-skip/.test(skip.cls) && skip.txt === 'Ir al contenido' && skip.h >= 44 && skip.top >= 0, JSON.stringify(skip));
+    await p.keyboard.press('Shift+Tab');
+    const s0 = await st();
+    if (w >= 1024) {
+      await p.evaluate(() => scrollTo(0, 600)); await p.waitForTimeout(150);
+      const top = await p.evaluate(() => Math.round(document.querySelector('#pn-nav').getBoundingClientRect().top));
+      check(tag, 'barra lateral fija a la izquierda, sin botón "Menú", el contenido a su derecha y quieta al bajar', s0.vis && !s0.inert && !s0.menu && s0.left === 0 && s0.main >= s0.right && top === 0 && s0.ow <= 0, JSON.stringify({ ...s0, top }));
+    } else {
+      check(tag, 'cerrado: el menú oculto e inert, el botón "Menú" a la vista y sin scroll horizontal', !s0.vis && s0.inert && s0.menu && !s0.body && s0.ow <= 0, JSON.stringify(s0));
+      await p.click('.pn-menu'); await p.waitForTimeout(450);
+      const s1 = await st();
+      check(tag, 'abierto: a la vista con el foco adentro, el resto inert y sin scroll de fondo', s1.vis && !s1.inert && s1.body && s1.lock && s1.inNav && s1.ow <= 0, JSON.stringify(s1));
+      await p.keyboard.press('Escape'); await p.waitForTimeout(450);
+      const s2 = await st();
+      check(tag, 'Escape lo cierra y el foco vuelve al botón "Menú"', !s2.vis && s2.inert && !s2.body && !s2.lock && /pn-menu/.test(s2.focus), JSON.stringify(s2));
+      await p.click('.pn-menu'); await p.waitForTimeout(450);
+      await p.mouse.click(w - 12, Math.round(h / 2)); await p.waitForTimeout(450);
+      const s3 = await st();
+      check(tag, 'tocar el fondo lo cierra', !s3.vis && s3.inert && !s3.lock && !s3.body, JSON.stringify(s3));
+      await p.click('.pn-menu'); await p.waitForTimeout(450);
+    }
+    const c = await p.evaluate(panelContrast, '.pn-nav *'), a = await p.evaluate(panelA11y, '.pn-nav');
+    check(tag, 'menú: contraste AA, letra ≥ 13 px y 44 px', c.length === 0 && a.tiny.length === 0 && a.small.length === 0, JSON.stringify({ c, tiny: a.tiny, small: a.small }));
+    if (WANT_SHOTS) await p.screenshot({ path: `${SHOTS}${tag}.png` });
+    await Promise.all([p.waitForURL(/\/panel\/inventario$/), p.click('.pn-nav-a[href="/panel/inventario"]')]); await p.waitForTimeout(700);
+    const s4 = await p.evaluate(() => ({ h1: document.querySelector('h1')?.textContent, cur: document.querySelector('.pn-nav-a[aria-current]')?.getAttribute('href'), focus: document.activeElement?.tagName,
+      inert: document.querySelector('#pn-nav').inert, lock: document.documentElement.classList.contains('lock') }));
+    check(tag, `un enlace del menú lleva a su página y la marca${w < 1024 ? '; el cajón se cierra y el foco va al título' : ''}`, s4.h1 === 'Inventario' && s4.cur === '/panel/inventario' && !s4.lock && (w >= 1024 || (s4.focus === 'H1' && s4.inert)), JSON.stringify(s4));
+    check(tag, 'sin errores de consola', errs.length === 0, errs.slice(0, 3).join(' | '));
+  } catch (e) {
+    check(tag, 'menú del panel sin excepciones', false, e.message.split('\n')[0]);
+  }
+  await ctx.close();
+}
+
+// Del cliente al panel en un toque: el botón "AT · Panel" (abajo a la izquierda) lo dibuja el servidor solo con la
+// sesión del dueño. Un cliente no lo ve. Del panel se vuelve a la tienda con "Ver la tienda" (pie del menú).
+{
+  const { ctx, p } = await panelPage(390, 844, 'light', { anon: true });
+  await p.goto(HTML); await p.waitForTimeout(300);
+  const cliente = await p.evaluate(() => ({ sw: !!document.querySelector('.own-sw'), links: [...document.querySelectorAll('a')].filter(a => /^\/(panel|ingresar)/.test(a.getAttribute('href') ?? '')).length }));
+  check('dueño', 'un cliente no ve el botón del panel ni enlaces al panel o al ingreso', !cliente.sw && cliente.links === 0, JSON.stringify(cliente));
+  await ctx.close();
+}
+for (const [w, h, scheme] of [[390, 844, 'dark'], [1440, 900, 'light']]) {
+  const tag = `dueño-${w}`;
+  const { ctx, p, errs } = await panelPage(w, h, scheme);
+  try {
+    await p.goto(HTML); await p.waitForTimeout(500);
+    const sw = await p.evaluate(() => {
+      const e = document.querySelector('.own-sw'); if (!e) return null;
+      const r = e.getBoundingClientRect(), f = document.querySelector('.wa-fab')?.getBoundingClientRect();
+      return { left: Math.round(r.left), gap: Math.round(innerHeight - r.bottom), w: Math.round(r.width), h: Math.round(r.height), label: e.getAttribute('aria-label'), href: e.getAttribute('href'),
+        lejos: !f || r.right < f.left, ingresar: !!document.querySelector('a[href^="/ingresar"]') };
+    });
+    check(tag, 'con sesión: el botón "Panel" abajo a la izquierda, de 44 px o más, lejos del de WhatsApp y sin enlace al ingreso', !!sw && sw.left <= 20 && sw.gap >= 12 && sw.gap <= 40 && sw.w >= 44 && sw.h >= 44 && sw.href === '/panel' && /panel/i.test(sw.label) && sw.lejos && !sw.ingresar, JSON.stringify(sw));
+    await Promise.all([p.waitForURL(/\/panel$/), p.click('.own-sw')]); await p.waitForTimeout(700);
+    const h1 = await p.evaluate(() => document.querySelector('h1')?.textContent);
+    if (await p.locator('.pn-menu').isVisible()) { await p.click('.pn-menu'); await p.waitForTimeout(450); }
+    await Promise.all([p.waitForURL(HTML), p.click('.pn-sw')]); await p.waitForTimeout(500);
+    const vuelta = await p.evaluate(() => !!document.querySelector('.own-sw') && !!document.querySelector('#tienda'));
+    check(tag, 'de la tienda al panel con el botón y de vuelta con "Ver la tienda"', h1 === 'Resumen' && vuelta, JSON.stringify({ h1, vuelta }));
+    const c = await p.evaluate(panelContrast, '.own-sw *');
+    check(tag, 'el botón cumple contraste AA', c.length === 0, JSON.stringify(c));
+    check(tag, 'sin errores de consola', errs.length === 0, errs.slice(0, 3).join(' | '));
+  } catch (e) {
+    check(tag, 'ida y vuelta entre tienda y panel sin excepciones', false, e.message.split('\n')[0]);
+  }
   await ctx.close();
 }
 
@@ -640,7 +730,7 @@ for (const [w, h, scheme] of PANEL_VPS) {
     await p.goto(PANEL); await quieto(p);
     const top = await p.evaluate(() => {
       const vis = s => { const e = document.querySelector(s); if (!e) return false; const r = e.getBoundingClientRect(), cs = getComputedStyle(e); return r.width > 0 && r.height > 0 && cs.visibility === 'visible' && +cs.opacity > 0; };
-      return { h1: document.querySelector('h1')?.textContent, banner: vis('#pn-demo') && /datos de ejemplo/i.test(document.querySelector('#pn-demo').textContent), pill: vis('.pn-ej'), theme: document.documentElement.dataset.theme };
+      return { h1: document.querySelector('h1')?.textContent, banner: vis('#pn-demo') && /datos de ejemplo/i.test(document.querySelector('#pn-demo').textContent), pill: [...document.querySelectorAll('.pn-ej')].some(e => { const r = e.getBoundingClientRect(); return getComputedStyle(e).visibility === 'visible' && r.width > 0 && r.left >= 0 && r.right <= innerWidth; }), theme: document.documentElement.dataset.theme };
     });
     check(tag, 'carga la maqueta con el aviso "Datos de ejemplo" y la píldora "Ejemplo"', top.h1 === 'Resumen' && top.banner && top.pill && top.theme === scheme, JSON.stringify(top));
 
@@ -862,20 +952,21 @@ for (const [w, h, scheme] of PANEL_VPS) {
     const lines = csvTxt.trim().split(/\r\n/);
     check(tag, 'exportar: planilla CSV con datos de ejemplo y fórmulas escapadas', /EJEMPLO/.test(dl.suggestedFilename()) && csvTxt.startsWith('﻿Fecha;Hora;N.º;Tipo') && lines.length > 20 && lines.filter(l => /Sin guardar/.test(l)).length === 3 && csvTxt.includes(`"'=HYPERLINK(""x"")"`) && !/;=/.test(csvTxt), JSON.stringify({ name: dl.suggestedFilename(), n: lines.length, first: lines[1] }));
     await p.evaluate(() => scrollTo(0, document.documentElement.scrollHeight)); await p.waitForTimeout(150);
-    const pillStill = await p.evaluate(() => { const r = document.querySelector('.pn-ej').getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; });
+    const pillStill = await p.evaluate(() => [...document.querySelectorAll('.pn-ej')].some(e => { const r = e.getBoundingClientRect(); return getComputedStyle(e).visibility === 'visible' && r.width > 0 && r.top >= 0 && r.bottom <= innerHeight && r.left >= 0 && r.right <= innerWidth; }));
     check(tag, 'la píldora "Ejemplo" queda a la vista al bajar', pillStill);
     const ow = await p.evaluate(() => document.documentElement.scrollWidth - innerWidth);
     check(tag, 'sin scroll horizontal', ow <= 0, `${ow}px`);
     if (WANT_SHOTS) await p.screenshot({ path: `${SHOTS}${tag}--resumen.png`, fullPage: true });
     await p.goto(PANEL + '/movimientos'); await p.waitForTimeout(400);
     const mv = await p.evaluate(() => {
-      const tabs = [...document.querySelectorAll('.pn-tab')], cur = document.querySelector('.pn-tab[aria-current="page"]'), r = cur?.getBoundingClientRect();
-      return { h1: document.querySelector('h1')?.textContent, n: tabs.length, cur: cur?.getAttribute('href'), seen: !!r && r.bottom > 0 && r.top < innerHeight, banner: !!document.querySelector('#pn-demo') };
+      const links = [...document.querySelectorAll('.pn-nav-a')], cur = document.querySelector('.pn-nav-a[aria-current="page"]'), r = cur?.getBoundingClientRect(), m = document.querySelector('.pn-menu').getBoundingClientRect();
+      // En la compu, la sección marcada a la vista en la barra lateral; más angosto, el botón "Menú" a la vista arriba
+      return { h1: document.querySelector('h1')?.textContent, n: links.length, cur: cur?.getAttribute('href'), seen: innerWidth >= 1024 ? !!r && r.left >= 0 && r.bottom > 0 && r.top < innerHeight : m.width > 0 && m.top >= 0 && m.bottom <= 60, banner: !!document.querySelector('#pn-demo') };
     });
-    check(tag, 'movimientos carga con su pestaña marcada (Resumen · Movimientos · Inventario a la vista)', mv.h1 === 'Movimientos' && mv.n === 3 && mv.cur === '/panel/movimientos' && mv.seen && mv.banner, JSON.stringify(mv));
+    check(tag, 'movimientos carga con su sección marcada en el menú (a la vista en la compu; en el celular, el botón "Menú")', mv.h1 === 'Movimientos' && mv.n >= 3 && mv.cur === '/panel/movimientos' && mv.seen && mv.banner, JSON.stringify(mv));
     if (w >= 1069) {
-      const col = await p.evaluate(() => { const r = document.querySelector('main[data-tipo]').getBoundingClientRect(); return { w: Math.round(r.width), c: Math.round(r.left + r.width / 2 - innerWidth / 2) }; });
-      check(tag, 'movimientos en una columna centrada de 760 px como máximo', col.w <= 760 && Math.abs(col.c) <= 1, JSON.stringify(col));
+      const col = await p.evaluate(() => { const r = document.querySelector('main[data-tipo]').getBoundingClientRect(), b = document.querySelector('.pn-body').getBoundingClientRect(); return { w: Math.round(r.width), c: Math.round(r.left + r.width / 2 - (b.left + b.width / 2)) }; });
+      check(tag, 'movimientos en una columna centrada en el contenido, de 760 px como máximo', col.w <= 760 && Math.abs(col.c) <= 1, JSON.stringify(col));
     }
 
     // Pestañas: cada una muestra solo su tipo, "Todos" es la suma y la dirección refleja el filtro
@@ -936,6 +1027,7 @@ for (const [w, h, scheme] of [[320, 640, 'light'], [390, 844, 'dark'], [1440, 90
   const tag = `panel-inventario-${w}-${scheme === 'dark' ? 'oscuro' : 'claro'}`;
   const { ctx, p, errs } = await panelPage(w, h, scheme);
   const go = async sel => { await p.click(sel); await p.waitForTimeout(700); };
+  const menu = async href => { if (await p.locator('.pn-menu').isVisible()) { await p.click('.pn-menu'); await p.waitForTimeout(450); } await go(`.pn-nav-a[href="${href}"]`); };
   const sheet = async (sel, fill) => {
     await go(sel);
     for (const [k, v] of fill) await p.fill(k, v);
@@ -948,15 +1040,15 @@ for (const [w, h, scheme] of [[320, 640, 'light'], [390, 844, 'dark'], [1440, 90
   const ow = () => p.evaluate(() => document.documentElement.scrollWidth - innerWidth);
   try {
     await p.goto(PANEL); await quieto(p);
-    await go('.pn-tab[href="/panel/inventario"]');
+    await menu('/panel/inventario');
     const list = await p.evaluate(() => {
-      const rows = [...document.querySelectorAll('.pn-inv')], bar = document.querySelector('.pn-tabs').getBoundingClientRect();
-      return { h1: document.querySelector('h1')?.textContent, cur: document.querySelector('.pn-tab[aria-current]')?.getAttribute('href'), n: rows.length,
+      const rows = [...document.querySelectorAll('.pn-inv')], bar = document.querySelector(innerWidth < 1024 ? '.pn-mbar' : '#pn-nav').getBoundingClientRect();
+      return { h1: document.querySelector('h1')?.textContent, cur: document.querySelector('.pn-nav-a[aria-current]')?.getAttribute('href'), n: rows.length,
         bajo: +document.querySelector('#pn-inv-bajo').textContent, sin: +document.querySelector('#pn-inv-sin').textContent,
         nb: rows.filter(r => r.dataset.nivel === 'bajo').length, ns: rows.filter(r => r.dataset.nivel === 'sin').length,
         pc: rows.find(r => r.dataset.id === 'pc-office')?.dataset.stock, valor: document.querySelector('#pn-inv-valor').textContent,
-        // En el celular la barra de pestañas va abajo; en la compu, en la barra de arriba
-        bar: innerWidth < 735 ? Math.round(innerHeight - bar.bottom) : Math.round(bar.top) };
+        // En la compu, la barra lateral arriba de todo; en el celular, la barra de arriba (con "Menú")
+        bar: Math.round(Math.abs(bar.top)) };
     });
     check(tag, 'inventario: 17 artículos con su estado, valor del stock y pestaña marcada; la PC tiene el stock de sus piezas', list.h1 === 'Inventario' && list.cur === '/panel/inventario' && list.n === 17 && list.bajo === list.nb && list.sin === list.ns && list.bajo > 0 && list.pc === '3' && PARSE_ARS(list.valor) > 0 && list.bar <= 4, JSON.stringify(list));
     const c = await p.evaluate(panelContrast), a = await p.evaluate(panelA11y);

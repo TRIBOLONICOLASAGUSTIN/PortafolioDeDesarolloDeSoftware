@@ -107,6 +107,11 @@
   .wa-panel{right:16px;bottom:84px}
   .wa-greet{right:80px;max-width:calc(100vw - 100px)}
   .has-bar .wa-fab{bottom:90px}
+  .own-sw{left:16px;padding:6px;min-height:48px}
+  .own-sw .own-t{display:none}
+  .has-bar .own-sw{bottom:90px}
+  /* El saludo de WhatsApp no tapa el botón del dueño */
+  body:has(.own-sw) .wa-greet{max-width:calc(100vw - 160px)}
   .toasts{bottom:96px}
 }
 @media (max-width:420px){
