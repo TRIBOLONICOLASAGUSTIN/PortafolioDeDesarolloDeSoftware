@@ -1,7 +1,10 @@
 // Configura el superadmin del panel: usuario, contraseña (se guarda solo su hash scrypt), clave del código
 // del celular (TOTP) y el secreto de las sesiones. Escribe atc-app/.env.local (git lo ignora: nunca se sube).
 // Uso:  npm run admin:setup     (en Windows PowerShell: npm.cmd run admin:setup)
-// Para producción, copiá las mismas 4 variables en la configuración de entorno del hosting.
+// Producción: claves PROPIAS, nunca las de la compu (una sesión o un código de desarrollo no deben servir en el sitio):
+//        npm run admin:setup -- --prod
+// genera otra contraseña, otra cuenta en la app del celular y otro secreto, y solo los muestra en la pantalla para
+// copiarlos en el entorno del hosting (no escribe .env.local).
 import { createHmac, randomBytes, scrypt } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -31,8 +34,10 @@ const ask = (q, hidden = false) => new Promise(res => {
 const base32 = buf => { let bits = 0, val = 0, out = ''; for (const b of buf) { val = (val << 8) | b; bits += 8; while (bits >= 5) { out += B32[(val >>> (bits - 5)) & 31]; bits -= 5; } } return bits ? out + B32[(val << (5 - bits)) & 31] : out; };
 const totp = (key, step) => { const m = Buffer.alloc(8); m.writeBigUInt64BE(BigInt(step)); const h = createHmac('sha1', key).update(m).digest(); const o = h[19] & 15; return String((((h[o] & 127) << 24) | (h[o + 1] << 16) | (h[o + 2] << 8) | h[o + 3]) % 1e6).padStart(6, '0'); };
 
+const PROD = process.argv.includes('--prod');
 const current = existsSync(ENV) ? readFileSync(ENV, 'utf8') : '';
-if (/^ATC_ADMIN_PASS_HASH=/m.test(current)) {
+if (PROD) console.log('Claves para PRODUCCIÓN: usá otra contraseña que la de la compu. Nada se guarda en este equipo.\n');
+if (!PROD && /^ATC_ADMIN_PASS_HASH=/m.test(current)) {
   const r = (await ask('Ya hay un superadmin en .env.local. ¿Reemplazarlo? Se cierran sus sesiones abiertas (s/N): ')).trim().toLowerCase();
   if (r !== 's' && r !== 'si' && r !== 'sí') { console.log('Sin cambios.'); rl.close(); process.exit(0); }
 }
@@ -53,16 +58,20 @@ const values = {
   ATC_ADMIN_TOTP_SECRET: base32(totpKey),
   ATC_SESSION_SECRET: randomBytes(32).toString('base64url'),
 };
-const kept = current.split(/\r?\n/).filter(l => l.trim() && !KEYS.some(k => l.startsWith(`${k}=`)));
-writeFileSync(ENV, [...kept, '# Superadmin del panel (generado con npm run admin:setup). NUNCA subir este archivo.', ...KEYS.map(k => `${k}=${values[k]}`), ''].join('\n'), { mode: 0o600 });
-
-const issuer = encodeURIComponent('AT Computación');
-console.log(`\nListo: se guardó en ${ENV}`);
+const issuer = encodeURIComponent(PROD ? 'AT Computación (prod)' : 'AT Computación');
+if (PROD) {
+  console.log('\nCopiá estas 4 variables en la configuración de entorno del hosting (nunca en el repo ni en un chat):\n');
+  for (const k of KEYS) console.log(`${k}=${values[k]}`);
+} else {
+  const kept = current.split(/\r?\n/).filter(l => l.trim() && !KEYS.some(k => l.startsWith(`${k}=`)));
+  writeFileSync(ENV, [...kept, '# Superadmin del panel (generado con npm run admin:setup). NUNCA subir este archivo.', ...KEYS.map(k => `${k}=${values[k]}`), ''].join('\n'), { mode: 0o600 });
+  console.log(`\nListo: se guardó en ${ENV}`);
+}
 console.log('\nAhora agregá la cuenta en tu app de autenticación (Google Authenticator, Microsoft Authenticator…):');
 console.log('  "Agregar código" → "Ingresar una clave de configuración" → tipo "Basado en tiempo".');
-console.log(`  Nombre: AT Computación (${user})`);
+console.log(`  Nombre: AT Computación${PROD ? ' (prod)' : ''} (${user})`);
 console.log(`  Clave:  ${values.ATC_ADMIN_TOTP_SECRET.match(/.{1,4}/g).join(' ')}`);
 console.log(`\n  (o este enlace, si tu app lo acepta: otpauth://totp/${issuer}:${encodeURIComponent(user)}?secret=${values.ATC_ADMIN_TOTP_SECRET}&issuer=${issuer}&digits=6&period=30)`);
 console.log(`\nPara comprobar: ahora mismo tu app debería mostrar ${totp(totpKey, Math.floor(Date.now() / 30000))}.`);
-console.log('\nDespués: reiniciá el servidor (npm run dev) y entrá por /ingresar. Guardá la clave del celular en un lugar seguro:');
+console.log(PROD ? '\nDespués: volvé a desplegar el sitio y entrá por /ingresar. Guardá la clave del celular en un lugar seguro:' : '\nDespués: reiniciá el servidor (npm run dev) y entrá por http://localhost:3000/ingresar. Guardá la clave del celular en un lugar seguro:');
 console.log('si perdés el celular, volvé a correr este comando (genera una clave nueva y cierra las sesiones).');

@@ -33,7 +33,7 @@ npm run dev          # entrar por http://localhost:3000/ingresar
 **Con la base real local** (necesita `brew install postgresql@16`):
 ```bash
 npm run db:reset
-ATC_TRACKER_DATABASE_URL=postgres://atc_tracker@127.0.0.1:54329/atc_test ATC_DEMO=1 npm run dev
+ATC_TRACKER_DATABASE_URL="postgres://atc_tracker:$(cat /tmp/atc-pgdata/.atc-pass)@127.0.0.1:54329/atc_test" ATC_DEMO=1 npm run dev
 npm run db:stop      # al terminar: apaga y borra la base temporal
 ```
 

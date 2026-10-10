@@ -55,7 +55,7 @@ export async function POST(req: Request) {
   if (cfg.mode === 'demo') return json(demoTrack(codigo, telefono3));
   try {
     // La base también limita por IP: en IPv6, por su /64.
-    const r = await trackOrder(cfg.dbUrl, codigo, telefono3, redLimite(ip));
+    const r = await trackOrder(cfg.dbUrl, cfg.mode, codigo, telefono3, redLimite(ip));
     return json(r, !r.ok && r.motivo === 'demasiados_intentos' ? 429 : 200);
   } catch (e) {
     // Nunca se registra el código ni el teléfono.

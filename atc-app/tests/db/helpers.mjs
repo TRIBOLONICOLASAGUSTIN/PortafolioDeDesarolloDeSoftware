@@ -1,10 +1,15 @@
 // Utilidades para las pruebas de seguridad de la base (node:test + pg).
 // La base la prepara `bash scripts/db-local.sh reset` (shim de Supabase + migraciones + seed).
 import pg from 'pg';
+import { readFileSync } from 'node:fs';
 
 const port = process.env.ATC_PGPORT ?? '54329';
 const db = process.env.ATC_DB ?? 'atc_test';
-export const DB_URL = process.env.ATC_DB_URL ?? `postgres://postgres@127.0.0.1:${port}/${db}`;
+/** Contraseña al azar del cluster de pruebas (la escribe db-local.sh; solo la lee el dueño de la carpeta). */
+export function clusterPass() {
+  try { return encodeURIComponent(readFileSync(`${process.env.ATC_PGDATA ?? '/tmp/atc-pgdata'}/.atc-pass`, 'utf8').trim()); } catch { return ''; }
+}
+export const DB_URL = process.env.ATC_DB_URL ?? `postgres://postgres:${clusterPass()}@127.0.0.1:${port}/${db}`;
 
 // Solo estos roles se pueden asumir en las pruebas (evita interpolar texto arbitrario).
 const ROLES = new Set(['anon', 'authenticated', 'atc_tracker', 'service_role']);

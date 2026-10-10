@@ -8,12 +8,17 @@ import { DEMO_ORDERS } from '@/lib/data/demo-orders';
 // El pool se cachea una vez por proceso con la PRIMERA url. En producción hay una sola
 // ATC_TRACKER_DATABASE_URL por proceso, así que es correcto; si alguna vez conviviera más de una,
 // habría que cachear por url.
+// En producción, siempre por TLS verificado con la CA de Supabase (ATC_DB_CA): nunca en claro ni sin verificar.
+// En local (base en 127.0.0.1) no hace falta.
 const g = globalThis as unknown as { atcTrackerPool?: pg.Pool };
-const pool = (url: string) =>
-  (g.atcTrackerPool ??= new pg.Pool({ connectionString: url, max: 3, idleTimeoutMillis: 10_000, connectionTimeoutMillis: 3_000, application_name: 'atc-web-seguimiento' }));
+const pool = (url: string, mode: 'local' | 'prod') =>
+  (g.atcTrackerPool ??= new pg.Pool({
+    connectionString: url, max: 3, idleTimeoutMillis: 10_000, connectionTimeoutMillis: 3_000, application_name: 'atc-web-seguimiento',
+    ssl: mode === 'prod' ? { ca: process.env.ATC_DB_CA, rejectUnauthorized: true } : false,
+  }));
 
-export async function trackOrder(url: string, code: string, phone3: string, ip: string): Promise<TrackResult> {
-  const { rows } = await pool(url).query('select public.track_order($1, $2, $3) as r', [code, phone3, ip]);
+export async function trackOrder(url: string, mode: 'local' | 'prod', code: string, phone3: string, ip: string): Promise<TrackResult> {
+  const { rows } = await pool(url, mode).query('select public.track_order($1, $2, $3) as r', [code, phone3, ip]);
   return rows[0].r as TrackResult;
 }
 

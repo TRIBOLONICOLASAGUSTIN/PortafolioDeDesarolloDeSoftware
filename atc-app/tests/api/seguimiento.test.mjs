@@ -3,6 +3,8 @@
 // Corren contra `next start` (app compilada) y la base local de pruebas. Correr con: npm run test:api
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { createServer } from 'node:http';
 import { startServer, LOCAL_ENV } from '../helpers/server.mjs';
 import { connect } from '../db/helpers.mjs';
 
@@ -119,4 +121,62 @@ test('API-7 · El sitio manda CSP con nonce por pedido y los encabezados de segu
   assert.equal(a.headers.get('referrer-policy'), 'strict-origin-when-cross-origin');
   assert.equal(a.headers.get('x-powered-by'), null);
   await b.text();
+});
+
+// Upstash falso (solo pruebas): cuenta cada comando y guarda las claves que recibe.
+function fakeUpstash() {
+  const kv = new Map(), cmds = [];
+  const srv = createServer((req, res) => {
+    let b = ''; req.on('data', c => { b += c; }); req.on('end', () => {
+      const list = JSON.parse(b || '[]');
+      const out = list.map(([op, key]) => {
+        cmds.push([op, key]);
+        if (op === 'INCR') { kv.set(key, (kv.get(key) ?? 0) + 1); return { result: kv.get(key) }; }
+        if (op === 'GET') return { result: kv.has(key) ? String(kv.get(key)) : null };
+        if (op === 'SET') { if (kv.has(key)) return { result: null }; kv.set(key, 1); return { result: 'OK' }; }
+        return { result: 1 };
+      });
+      res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(out));
+    });
+  });
+  return new Promise(r => srv.listen(0, '127.0.0.1', () => r({ url: `http://127.0.0.1:${srv.address().port}`, cmds, close: () => srv.close() })));
+}
+// "Producción" completa con datos falsos: base remota (nunca se llega a usar), Upstash falso y CA de prueba.
+const PEM = '-----BEGIN CERTIFICATE-----\nMIIBprueba\n-----END CERTIFICATE-----';
+const prodEnv = up => ({ ATC_TRACKER_DATABASE_URL: 'postgres://atc_tracker:x@db.invalid:6543/postgres', TURNSTILE_SECRET_KEY: 'prueba', NEXT_PUBLIC_TURNSTILE_SITE_KEY: 'prueba',
+  UPSTASH_REDIS_REST_URL: up.url, UPSTASH_REDIS_REST_TOKEN: 'prueba', ATC_IP_HEADER: 'cf-connecting-ip', ATC_DB_CA: PEM, ATC_RL_MAX: '3' });
+
+test('API-22 · Límite en producción: una IP que ya pasó el límite no sigue consumiendo Upstash, y la clave guarda un HMAC de la red (nunca un hash reversible de la IP)', async () => {
+  const up = await fakeUpstash();
+  const srv = await startServer({ port: 3126, env: prodEnv(up) });
+  try {
+    const ip = '203.0.113.7', st = [];
+    // Sin token de Turnstile: el límite corre antes y la verificación corta sin salir a internet (403).
+    for (let i = 0; i < 9; i++) st.push((await post(srv, { codigo: 'AT-3FJ8-WX', telefono3: '548' }, { ip })).status);
+    assert.deepEqual(st, [403, 403, 403, 429, 429, 429, 429, 429, 429]);
+    const incr = up.cmds.filter(([op]) => op === 'INCR'), exp = up.cmds.filter(([op]) => op === 'EXPIRE');
+    assert.equal(incr.length, 4, `INCR por pedido hasta pasar el límite y después ninguno (hubo ${incr.length})`);
+    assert.equal(exp.length, 1, 'el vencimiento se fija una sola vez');
+    const sha = createHash('sha256').update(ip).digest('hex').slice(0, 32);
+    for (const [, key] of up.cmds) {
+      assert.match(key, /^atc:trk:[0-9a-f]{32}:\d+$/);
+      assert.ok(!key.includes(sha) && !key.includes(ip), 'la clave del límite se puede revertir a la IP');
+    }
+  } finally { await srv.stop(); up.close(); }
+});
+
+test('API-23 · En producción la base va siempre por TLS verificado: sin el certificado de la CA, con uno inválido o con sslmode en la URL, responde 503 antes de tocar Upstash', async () => {
+  const up = await fakeUpstash();
+  const casos = [{ ATC_DB_CA: '' }, { ATC_DB_CA: 'no es un certificado' }, { ATC_TRACKER_DATABASE_URL: 'postgres://atc_tracker:x@db.invalid:6543/postgres?sslmode=disable' }];
+  try {
+    for (const [i, extra] of casos.entries()) {
+      const srv = await startServer({ port: 3131 + i, env: { ...prodEnv(up), ...extra } });
+      try {
+        const r = await post(srv, { codigo: 'AT-3FJ8-WX', telefono3: '548' });
+        assert.equal(r.status, 503, `caso ${i}: respondió ${r.status}`);
+        assert.deepEqual(r.json, { ok: false, motivo: 'no_disponible' });
+      } finally { await srv.stop(); }
+    }
+    assert.equal(up.cmds.length, 0, 'con la configuración incompleta no se llega a Upstash');
+  } finally { up.close(); }
 });

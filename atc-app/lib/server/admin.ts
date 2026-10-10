@@ -53,8 +53,12 @@ export async function credencialesOk(cfg: Extract<AdminConfig, { ok: true }>, us
 
 /* ---------- Sesión ---------- */
 // La firma incluye una huella de la contraseña y de la clave del celular: si cambian, las sesiones viejas dejan de valer.
+// También el modo (local o prod): una sesión abierta en `npm run dev` (por HTTP) no sirve en producción aunque alguien
+// haya copiado las mismas claves (seguridad.md §5, fila 18).
 const huella = (cfg: Extract<AdminConfig, { ok: true }>) => createHash('sha256').update(`${cfg.user}\n${cfg.passHash}\n${cfg.totp.toString('hex')}`).digest('base64url').slice(0, 22);
-const firma = (cfg: Extract<AdminConfig, { ok: true }>, exp: number, n: string) => createHmac('sha256', cfg.secret).update(`v1.${exp}.${n}.${huella(cfg)}`).digest('base64url');
+const firma = (cfg: Extract<AdminConfig, { ok: true }>, exp: number, n: string) => createHmac('sha256', cfg.secret).update(`v1.${cfg.mode}.${exp}.${n}.${huella(cfg)}`).digest('base64url');
+/** Identificador de la cuenta para contar códigos fallidos (cambia con admin:setup, y el bloqueo se levanta solo). */
+export const cuentaId = (cfg: Extract<AdminConfig, { ok: true }>) => createHmac('sha256', cfg.secret).update(`2fa.${cfg.mode}.${huella(cfg)}`).digest('hex').slice(0, 32);
 
 /** Nombre y atributos de la cookie. En producción con https, prefijo __Host- (solo este sitio, solo https). */
 export function cookieSpec(cfg: Extract<AdminConfig, { ok: true }>) {

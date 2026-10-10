@@ -2,7 +2,7 @@
 
 import Script from 'next/script';
 import Link from 'next/link';
-import { useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 
 declare global { interface Window { turnstile?: { reset: (el?: string | HTMLElement) => void } } }
 
@@ -13,6 +13,7 @@ const MOTIVOS: Record<string, string> = {
   solicitud_invalida: 'Revisá los datos: el código tiene 6 números.',
   origen: 'No se pudo ingresar desde esta página.',
   no_disponible: 'El ingreso no está disponible en este momento.',
+  solo_local: 'En modo de prueba, el panel solo se abre desde esta compu (localhost).',
 };
 
 // Ingreso del superadmin: usuario, contraseña y el código de 6 números de la app del celular.
@@ -21,6 +22,9 @@ export function AdminLogin({ turnstileKey, nonce }: { turnstileKey?: string; non
   const form = useRef<HTMLFormElement>(null);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+  // Hasta que la página termina de cargar, el botón espera: así el navegador nunca manda el formulario por su cuenta.
+  const [listo, setListo] = useState(false);
+  useEffect(() => setListo(true), []);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -51,7 +55,9 @@ export function AdminLogin({ turnstileKey, nonce }: { turnstileKey?: string; non
         <span className="mark" aria-hidden="true">AT</span>
         <h1 id="in-h">Ingresar</h1>
         <p className="in-sub">Acceso privado del dueño.</p>
-        <form className="in-form" ref={form} onSubmit={submit} noValidate>
+        {/* method="post": si algo enviara el formulario sin JavaScript, las credenciales nunca quedan en la URL
+            (la ruta solo acepta JSON y lo rechaza). Con JavaScript, el envío lo hace submit(). */}
+        <form className="in-form" ref={form} onSubmit={submit} method="post" action="/api/ingresar" noValidate>
           <div className="in-fld">
             <label htmlFor="in-user">Usuario</label>
             <input className="in-in" id="in-user" name="usuario" autoComplete="username" autoCapitalize="none" spellCheck={false} required maxLength={80} />
@@ -67,7 +73,7 @@ export function AdminLogin({ turnstileKey, nonce }: { turnstileKey?: string; non
           </div>
           {turnstileKey && <div className="cf-turnstile" data-sitekey={turnstileKey} data-action="ingresar" data-size="flexible" data-language="es"></div>}
           <p className="in-err" role="alert">{err}</p>
-          <button className="btn btn-full" type="submit" disabled={busy}>{busy ? 'Ingresando…' : 'Ingresar'}</button>
+          <button className="btn btn-full" type="submit" disabled={busy || !listo}>{busy ? 'Ingresando…' : 'Ingresar'}</button>
         </form>
         <Link className="in-back" href="/" prefetch={false}>Volver a la tienda</Link>
       </section>

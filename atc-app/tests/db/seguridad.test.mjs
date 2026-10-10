@@ -198,6 +198,12 @@ test('FN-3 · atc_tracker no lee tablas ni ejecuta otras funciones; anon no ejec
   });
 });
 
+test('FN-4 · atc_tracker tiene tope de conexiones: con su contraseña filtrada no se agota la base', async () => {
+  const { rows: [r] } = await c.query(`select rolconnlimit, rolsuper from pg_roles where rolname = 'atc_tracker'`);
+  assert.equal(r.rolsuper, false);
+  assert.ok(r.rolconnlimit > 0 && r.rolconnlimit <= 20, `atc_tracker sin tope razonable (rolconnlimit = ${r.rolconnlimit})`);
+});
+
 // ---------------------------------------------------------------------------
 // Seguimiento (track_order)
 // ---------------------------------------------------------------------------

@@ -3,7 +3,7 @@
 // Corren contra `next start` (app compilada). Correr con: npm run test:api
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { createServer } from 'node:http';
+import { createServer, request } from 'node:http';
 import { startServer, LOCAL_ENV } from '../helpers/server.mjs';
 import { ADMIN, adminEnv, forgeSession, login, stableNow, totpCode } from '../helpers/admin.mjs';
 
@@ -257,4 +257,59 @@ test('API-18 · El límite de ingresos cuenta la red IPv6 entera (/64): cambiar 
   assert.deepEqual(st, [401, 401, 401, 401, 401, 429]);
   assert.equal((await login(adm.base, body, { 'cf-connecting-ip': '2001:db8:77:1:ffff:eeee:dddd:cccc' })).status, 429);
   assert.equal((await login(adm.base, body, { 'cf-connecting-ip': '2001:db8:77:2::1' })).status, 401, 'otra red /64 no debería estar limitada');
+});
+
+// Un código de 6 dígitos que seguro no sirve ahora (ni el paso anterior, ni el actual, ni el siguiente).
+const codigoMalo = now => { const ok = new Set([-1, 0, 1].map(o => totpCode(o, now))); for (let i = 0; ; i++) { const c = String(123456 + i * 7919).slice(-6); if (!ok.has(c)) return c; } };
+
+test('API-19 · Con la contraseña correcta, 10 códigos del celular fallidos (cada uno desde otra red) bloquean el ingreso 24 h; las contraseñas incorrectas no bloquean al dueño', async () => {
+  // Servidor propio: el bloqueo no afecta a las otras pruebas.
+  const srv = await startServer({ port: 3125, env: { ...adminEnv(), ATC_LOCAL: '1', ATC_IP_HEADER: 'cf-connecting-ip' } });
+  try {
+    let now = await stableNow();
+    // 15 contraseñas incorrectas (desde redes distintas) no cuentan: alguien sin la contraseña no puede bloquear al dueño
+    for (let i = 0; i < 15; i++) assert.equal((await login(srv.base, { usuario: ADMIN.user, clave: `mala-${i}`, codigo: codigoMalo(now) }, nextIp())).status, 401);
+    // 10 códigos fallidos con la contraseña correcta, cada uno desde otra red (el límite por IP no los frena)
+    for (let i = 0; i < 10; i++) assert.equal((await login(srv.base, { usuario: ADMIN.user, clave: ADMIN.pass, codigo: codigoMalo(now) }, nextIp())).status, 401);
+    now = await stableNow();
+    const r = await login(srv.base, { usuario: ADMIN.user, clave: ADMIN.pass, codigo: totpCode(0, now) }, nextIp());
+    assert.equal(r.status, 401, 'con el bloqueo, ni el código correcto entra');
+    assert.deepEqual(r.json, { ok: false, motivo: 'credenciales' }, 'la respuesta no delata que la contraseña es correcta');
+    assert.equal(r.cookie, null);
+    await new Promise(res => setTimeout(res, 200));
+    assert.match(srv.log(), /"resultado":"bloqueo_2fa"/);
+    assert.match(srv.log(), /admin:setup/);
+  } finally { await srv.stop(); }
+});
+
+// Pedido con otro Host (como si el dueño entrara desde la red Wi-Fi: http://192.168.x.x:3000)
+const conHost = (base, path, host, body) => new Promise((res, rej) => {
+  const u = new URL(base + path);
+  const req = request({ host: u.hostname, port: u.port, path, method: 'POST', headers: { host, 'content-type': 'application/json', 'cf-connecting-ip': nextIp()['cf-connecting-ip'] } }, r => {
+    let t = ''; r.on('data', c => { t += c; }); r.on('end', () => res({ status: r.statusCode, json: JSON.parse(t || 'null'), cookie: r.headers['set-cookie'] ?? null }));
+  });
+  req.on('error', rej); req.end(JSON.stringify(body));
+});
+
+test('API-20 · La sesión vale solo en el entorno que la emitió (una de `npm run dev` no abre producción), y en modo local el ingreso solo se acepta desde esta compu', async () => {
+  const exp = Math.floor(Date.now() / 1000) + 3600;
+  // Mismas claves, firmada como la firmaría un servidor en modo producción: en el local no sirve (y al revés)
+  assert.equal((await get(adm, '/panel', `atc_s=${forgeSession(ENV, exp, 'prod')}`)).status, 404);
+  assert.equal((await get(adm, '/panel', `atc_s=${forgeSession(ENV, exp, 'local')}`)).status, 200);
+  // Desde la red (Host que no es localhost): 403, sin cookie, aunque los datos sean correctos
+  const lan = await conHost(adm.base, '/api/ingresar', '192.168.1.20:3122', { usuario: ADMIN.user, clave: ADMIN.pass, codigo: '000000' });
+  assert.equal(lan.status, 403);
+  assert.deepEqual(lan.json, { ok: false, motivo: 'solo_local' });
+  assert.equal(lan.cookie, null);
+});
+
+test('API-21 · El formulario de ingreso nunca manda las credenciales en la URL: va por POST, el botón espera a que cargue la página y un envío sin JavaScript se rechaza', async () => {
+  const html = await (await get(adm, '/ingresar')).text();
+  const form = html.match(/<form\b[^>]*class="in-form"[^>]*>/)?.[0] ?? '';
+  assert.match(form, /method="post"/);
+  assert.match(form, /action="\/api\/ingresar"/);
+  assert.match(html, /<button[^>]*type="submit"[^>]*disabled=""/, 'el botón tiene que llegar deshabilitado hasta hidratar');
+  const r = await fetch(adm.base + '/api/ingresar', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', ...nextIp() }, body: `usuario=${ADMIN.user}&clave=${ADMIN.pass}&codigo=000000` });
+  assert.equal(r.status, 400);
+  assert.equal(r.headers.get('set-cookie'), null);
 });

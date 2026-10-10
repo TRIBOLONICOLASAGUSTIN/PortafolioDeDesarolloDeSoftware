@@ -33,12 +33,12 @@ export async function stableNow() {
   return Date.now();
 }
 
-/** Sesión firmada como la del servidor (para probar sesiones vencidas o alteradas). */
-export function forgeSession(env, exp) {
+/** Sesión firmada como la del servidor (para probar sesiones vencidas o alteradas). `mode`: el del servidor que la emite. */
+export function forgeSession(env, exp, mode = 'local') {
   const totpHex = b32(env.ATC_ADMIN_TOTP_SECRET).toString('hex');
   const huella = createHash('sha256').update(`${env.ATC_ADMIN_USER}\n${env.ATC_ADMIN_PASS_HASH}\n${totpHex}`).digest('base64url').slice(0, 22);
   const n = randomBytes(12).toString('base64url');
-  const sig = createHmac('sha256', Buffer.from(env.ATC_SESSION_SECRET, 'base64url')).update(`v1.${exp}.${n}.${huella}`).digest('base64url');
+  const sig = createHmac('sha256', Buffer.from(env.ATC_SESSION_SECRET, 'base64url')).update(`v1.${mode}.${exp}.${n}.${huella}`).digest('base64url');
   return `v1.${exp}.${n}.${sig}`;
 }
 

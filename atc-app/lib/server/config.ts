@@ -11,7 +11,11 @@ export type TrackingConfig =
 
 // NEXT_PUBLIC_TURNSTILE_SITE_KEY es obligatoria: sin ella el widget no se renderiza en el navegador,
 // nunca llega el token y todo seguimiento falla 403. Sin esto, prod se vería sano y el seguimiento muerto.
-const REQUIRED_PROD = ['ATC_TRACKER_DATABASE_URL', 'TURNSTILE_SECRET_KEY', 'NEXT_PUBLIC_TURNSTILE_SITE_KEY', 'UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN', 'ATC_IP_HEADER'];
+// ATC_DB_CA: el certificado (PEM) de la CA de Supabase (Database → Settings → SSL). Con él la conexión a la base va
+// cifrada y verificada; sin él, pg conectaría en claro (seguridad.md §8, punto 4).
+const REQUIRED_PROD = ['ATC_TRACKER_DATABASE_URL', 'TURNSTILE_SECRET_KEY', 'NEXT_PUBLIC_TURNSTILE_SITE_KEY', 'UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN', 'ATC_IP_HEADER', 'ATC_DB_CA'];
+// Parámetros de TLS en la URL: pg-connection-string pisaría la configuración del servidor (por ejemplo sslmode=disable).
+const SSL_PARAMS = ['sslmode', 'ssl', 'sslrootcert', 'sslcert', 'sslkey', 'uselibpqcompat', 'sslnegotiation'];
 
 const isLocalDb = (url: string) => {
   try { return ['127.0.0.1', 'localhost', '[::1]'].includes(new URL(url).hostname); } catch { return false; }
@@ -25,6 +29,13 @@ export function trackingConfig(): TrackingConfig {
   const missing = REQUIRED_PROD.filter(k => !process.env[k]);
   // El primer valor de X-Forwarded-For lo escribe el cliente: no sirve para limitar por IP.
   if ((process.env.ATC_IP_HEADER ?? '').toLowerCase() === 'x-forwarded-for') missing.push('ATC_IP_HEADER (no puede ser x-forwarded-for)');
+  if (process.env.ATC_DB_CA && !process.env.ATC_DB_CA.includes('BEGIN CERTIFICATE')) missing.push('ATC_DB_CA (tiene que ser el certificado en formato PEM)');
+  try {
+    const q = new URL(dbUrl).searchParams;
+    if (SSL_PARAMS.some(k => q.has(k))) missing.push('ATC_TRACKER_DATABASE_URL (sin parámetros ssl: el cifrado lo fija el servidor)');
+  } catch {
+    missing.push('ATC_TRACKER_DATABASE_URL (inválida)');
+  }
   return missing.length ? { ok: false, missing } : { ok: true, mode: 'prod', dbUrl };
 }
 
