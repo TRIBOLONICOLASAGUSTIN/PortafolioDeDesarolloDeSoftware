@@ -5,7 +5,13 @@ import { GASTO_CATS, type Movement } from './types';
 
 export const payLabel = (id: string) => PAYS.find(([p]) => p === id)?.[1] ?? id;
 export const gastoLabel = (id: string) => GASTO_CATS.find(([c]) => c === id)?.[1] ?? id;
-export const productName = (id: string) => byId[id]?.name ?? id;
+/** Productos cargados o editados en esta visita (maqueta: viven solo en el navegador; en la etapa 2 salen de la base).
+    Los registra el panel al crear o editar, y se vacía al salir. */
+const sesion = new Map<string, { name: string; brand: string; cat: string }>();
+export const registrarProducto = (id: string, p: { name: string; brand: string; cat: string }) => { sesion.set(id, p); };
+export const olvidarProductos = () => sesion.clear();
+export const producto = (id: string): { name: string; brand: string; cat: string } | undefined => sesion.get(id) ?? byId[id];
+export const productName = (id: string) => producto(id)?.name ?? id;
 
 /** Qué se vendió, qué equipo se reparó o en qué se gastó (el tipo va aparte, en la línea de abajo). */
 export function titulo(m: Movement) {

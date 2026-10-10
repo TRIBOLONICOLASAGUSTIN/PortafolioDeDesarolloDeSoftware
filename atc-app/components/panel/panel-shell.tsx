@@ -3,13 +3,16 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { generar } from '@/lib/data/panel';
+import { BOM } from '@/lib/data/armado';
 import { indexar, type Index } from '@/lib/panel/stats';
+import { historialBase, inventario, movsDeVenta, type Ajuste, type Inventario, type Item, type StockIn } from '@/lib/panel/inventario';
+import { olvidarProductos, producto, registrarProducto } from '@/lib/panel/labels';
 import type { Movement } from '@/lib/panel/types';
 import { Sheets } from './sheets';
 import { Icon } from '../ui';
 
 /* =========================================================
-   Panel del dueño (maqueta): estado compartido entre Resumen y Movimientos.
+   Panel del dueño (maqueta): estado compartido entre Resumen, Movimientos e Inventario.
    No usa AppShell (sus atajos y ventanas son de la tienda).
    "ahora" llega del servidor en hora del local: el servidor y el navegador generan los mismos datos
    de ejemplo (sin errores de hidratación).
@@ -18,7 +21,8 @@ import { Icon } from '../ui';
    ========================================================= */
 export type Ahora = { ymd: string; hm: string };
 export type Lista = { codigo: string; equipo: string; presupuesto: number | null };
-export type Sheet = { t: 'detalle'; id: string } | { t: 'acciones' } | { t: 'venta' } | { t: 'gasto' } | { t: 'cobro'; code?: string } | { t: 'exportar' } | null;
+export type Sheet = { t: 'detalle'; id: string } | { t: 'acciones' } | { t: 'venta'; productId?: string } | { t: 'gasto' } | { t: 'cobro'; code?: string } | { t: 'exportar' }
+  | { t: 'reponer'; itemId?: string } | { t: 'editar'; itemId: string } | { t: 'nuevo' } | null;
 type Panel = {
   ahora: Ahora; hoy: string; ms: Movement[]; idx: Index; byMov: Map<string, Movement>;
   sheet: Sheet; openSheet: (s: Exclude<Sheet, null>) => void; closeSheet: () => void;
@@ -27,6 +31,11 @@ type Panel = {
   toast: (msg: string) => void;
   /** Órdenes listas para retirar que todavía no se cobraron. */
   listas: Lista[];
+  /** Inventario: el de ejemplo más lo cargado en esta visita (una venta descuenta stock; una PC, sus piezas). */
+  inv: Inventario;
+  moverStock: (e: Omit<StockIn, 'id' | 'status'>) => void;
+  ajustar: (id: string, a: Ajuste) => void;
+  crear: (item: Omit<Item, 'id' | 'base' | 'nuevo'>, stock: number, hm: string) => string;
 };
 const PanelCtx = createContext<Panel | null>(null);
 export const usePanel = () => useContext(PanelCtx)!;
@@ -39,7 +48,32 @@ export function PanelShell({ ahora, listas: todas, children }: { ahora: Ahora; l
     const ms = extra.length ? [...extra, ...base] : base;
     return { ahora: { ymd, hm }, hoy: ymd, ms, idx: indexar(ms), byMov: new Map(ms.map(m => [m.id, m])) };
   }, [ymd, hm, base, extra]);
-  const agregar = useCallback((m: Movement) => setExtra(x => [m, ...x]), []);
+  // Stock: lo cargado en esta visita va en un solo registro, en el orden en que se cargó (ventas, reposiciones y ajustes)
+  const hist = useMemo(() => historialBase(base), [base]);
+  const [log, setLog] = useState<StockIn[]>([]);
+  const [ajustes, setAjustes] = useState<Record<string, Ajuste>>({});
+  const [nuevos, setNuevos] = useState<Item[]>([]);
+  const inv = useMemo(() => inventario(hist, ajustes, nuevos, log), [hist, ajustes, nuevos, log]);
+  const agregar = useCallback((m: Movement) => {
+    setExtra(x => [m, ...x]);
+    if (m.kind === 'venta') setLog(l => [...l, ...movsDeVenta(m, id => BOM[id])]);
+  }, []);
+  const sn = useRef(0);
+  const sid = useCallback((n: number) => `S-${ymd.slice(2).replaceAll('-', '')}-n${n}`, [ymd]);
+  const moverStock = useCallback((e: Omit<StockIn, 'id' | 'status'>) => { const id = sid(++sn.current); setLog(l => [...l, { ...e, id, status: 'sin-guardar' }]); }, [sid]);
+  const ajustar = useCallback((id: string, a: Ajuste) => {
+    // El nombre nuevo se ve también en las ventas, el resumen y la planilla
+    const p = producto(id);
+    if (a.name && p) registrarProducto(id, { name: a.name, brand: p.brand, cat: p.cat });
+    setAjustes(x => ({ ...x, [id]: { ...x[id], ...a } }));
+  }, []);
+  const crear = useCallback((item: Omit<Item, 'id' | 'base' | 'nuevo'>, stock: number, hm: string) => {
+    const n = ++sn.current, id = `nuevo-${n}`;
+    registrarProducto(id, { name: item.name, brand: item.brand, cat: item.cat });
+    setNuevos(x => [...x, { ...item, id, base: 0, nuevo: true }]);
+    if (stock > 0) setLog(l => [...l, { id: sid(n), itemId: id, ymd, hm, tipo: 'alta', qty: stock, status: 'sin-guardar' }]);
+    return id;
+  }, [ymd, sid]);
   // Una vez cobrada (aunque sea en la maqueta), la orden deja de estar lista.
   const listas = useMemo(() => {
     const cobradas = new Set(extra.flatMap(m => (m.kind === 'reparacion' ? [m.orderCode] : [])));
@@ -80,12 +114,13 @@ export function PanelShell({ ahora, listas: todas, children }: { ahora: Ahora; l
     const el = opener.current;
     if (el) requestAnimationFrame(() => { (el.isConnected ? el : document.querySelector<HTMLElement>('#pn-main .pn-t'))?.focus(); opener.current = null; });
   }, [sheet, closeSheet]);
-  useEffect(() => () => document.documentElement.classList.remove('lock'), []);
+  useEffect(() => () => { document.documentElement.classList.remove('lock'); olvidarProductos(); }, []);
   // Si se cambia de página (por ejemplo con "Atrás"), la hoja se cierra.
   const path = usePathname();
   useEffect(() => { closeSheet(); }, [path, closeSheet]);
 
-  const value = useMemo<Panel>(() => ({ ...data, sheet, openSheet, closeSheet, extra, agregar, nuevoId, toast, listas }), [data, sheet, openSheet, closeSheet, extra, agregar, nuevoId, toast, listas]);
+  const value = useMemo<Panel>(() => ({ ...data, sheet, openSheet, closeSheet, extra, agregar, nuevoId, toast, listas, inv, moverStock, ajustar, crear }),
+    [data, sheet, openSheet, closeSheet, extra, agregar, nuevoId, toast, listas, inv, moverStock, ajustar, crear]);
   return (
     <PanelCtx.Provider value={value}>
       <div className="pn" inert={!!sheet}>{children}</div>

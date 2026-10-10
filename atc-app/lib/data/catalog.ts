@@ -1,5 +1,6 @@
 // Catálogo DE EJEMPLO (precios y stock inventados). En producción sale de la tabla products de Supabase
 // (lectura pública solo de productos activos: seguridad.md §4).
+import { armables, BOM, PIEZAS_STOCK } from './armado';
 export type Category = { id: string; t: string; r: string };
 export type Product = {
   id: string; cat: string; r: string; wall?: string; brand: string; name: string; short: string;
@@ -30,7 +31,7 @@ export const PRODUCTS: Product[] = [
     specs: ['Compatible con HP Laser 107 y MFP 135/137', 'Rinde hasta 1.000 páginas al 5%', 'Garantía de calidad de impresión'] },
   { id: 'ins-t544', cat: 'insumos', r: 'ink', brand: 'Epson', name: 'Kit de tintas T544', short: 'Originales · 4 colores', price: 42999, stock: 12,
     specs: ['Tintas originales Epson', 'Cian, magenta, amarillo y negro', 'Para EcoTank L1110, L3110, L3150, L3250'] },
-  { id: 'per-g203', cat: 'perifericos', r: 'mouse', brand: 'Logitech', name: 'G203 Lightsync', short: 'Mouse gamer RGB · 8.000 DPI', price: 32999, stock: 2, tag: 'Últimas unidades',
+  { id: 'per-g203', cat: 'perifericos', r: 'mouse', brand: 'Logitech', name: 'G203 Lightsync', short: 'Mouse gamer RGB · 8.000 DPI', price: 32999, stock: 2,
     specs: ['Sensor de hasta 8.000 DPI', 'Iluminación RGB Lightsync', '6 botones programables'] },
   { id: 'per-k552', cat: 'perifericos', r: 'keyboard', brand: 'Redragon', name: 'Kumara K552', short: 'Teclado mecánico · RGB', price: 59999, stock: 7,
     specs: ['Switches mecánicos', 'Formato compacto TKL', 'Retroiluminación RGB'] },
@@ -41,6 +42,9 @@ export const PRODUCTS: Product[] = [
   { id: 'red-hdmi', cat: 'redes', r: 'cable', brand: 'Ugreen', name: 'Cable HDMI 2.1', short: '8K 60 Hz · 2 metros', price: 12499, stock: 35,
     specs: ['Soporta 8K a 60 Hz y 4K a 120 Hz', 'Conectores bañados en oro', 'Largo de 2 metros'] },
 ];
+
+// La tienda sigue al stock: el de una PC armada es cuántas se pueden armar con sus piezas (lib/data/armado.ts)
+for (const p of PRODUCTS) if (BOM[p.id]) p.stock = armables(BOM[p.id], id => PIEZAS_STOCK[id] ?? 0);
 
 export const byId: Record<string, Product> = Object.fromEntries(PRODUCTS.map(p => [p.id, p]));
 

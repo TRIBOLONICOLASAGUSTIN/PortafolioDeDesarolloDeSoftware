@@ -149,6 +149,7 @@ Cada fila es un componente de React. El prototipo HTML original se reemplazó po
 5. **Panel para una persona** (pensado para el celular).
    - **Qué mostrar:** lista de órdenes activas, crear orden (genera código y ticket), cambiar estado con una nota, botón "Avisar por WhatsApp" con el mensaje armado, y stock de productos.
    - **Ganancias** (pedido del dueño; maqueta en `/panel`, etapa 1): ganancia del período con su variación, gráfico de ganancia acumulada, de dónde sale, por categoría, más vendidos y movimientos.
+   - **Inventario** (pedido del dueño; maqueta en `/panel/inventario`): valor del stock al costo, stock bajo y sin stock, búsqueda y filtro, una tarjeta por categoría y las piezas de las PC armadas. Cada fila abre la ficha: cómo se compone el precio (en una PC, cada pieza), ventas por período, piezas o dónde se usa la pieza, y cada entrada y salida con el stock que quedó. El estado del stock usa los colores de la tienda (naranja = "Últimas unidades", rojo = "Sin stock"). Secciones en pestañas: arriba en la compu, abajo en el celular.
    - **Gráficos:** SVG propios, sin librerías. La línea arranca en $ 0 (punteada): verde arriba, rojo abajo. La variación lleva siempre flecha y signo, no solo color. El verde y el rojo se usan solo para variaciones y el gráfico; el naranja sigue reservado para "Oferta" y "Últimas unidades".
    - **En Figma:** filas densas pero limpias y hojas modales.
 6. **Arquitectura y seguridad.**

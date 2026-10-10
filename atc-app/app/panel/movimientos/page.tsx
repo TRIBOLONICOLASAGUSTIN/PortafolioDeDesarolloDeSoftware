@@ -1,10 +1,8 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { panelAcceso } from '@/lib/server/panel';
 import { PanelHeader } from '@/components/panel/panel-header';
 import { DemoBanner } from '@/components/panel/demo-banner';
-import { Icon } from '@/components/ui';
 import { Movimientos, type Tipo } from '@/components/panel/movimientos';
 
 export async function generateMetadata(): Promise<Metadata> { return (await panelAcceso()) ? { title: 'Movimientos' } : {}; }
@@ -19,8 +17,7 @@ export default async function PanelMovimientos({ searchParams }: { searchParams:
   return (
     <>
       <PanelHeader />
-      <main className="wrap pn-main" id="pn-main" data-tipo={tipo}>
-        <Link className="pn-back" href="/panel" prefetch={false}><Icon n="chev-l" cls="i sm" />Resumen</Link>
+      <main className="wrap pn-main pn-col" id="pn-main" data-tipo={tipo}>
         <h1 className="pn-t" tabIndex={-1}>Movimientos</h1>
         <DemoBanner />
         <Movimientos tipo={tipo} />

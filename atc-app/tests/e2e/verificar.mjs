@@ -782,8 +782,11 @@ for (const [w, h, scheme] of PANEL_VPS) {
     check(tag, 'sin scroll horizontal', ow <= 0, `${ow}px`);
     if (WANT_SHOTS) await p.screenshot({ path: `${SHOTS}${tag}--resumen.png`, fullPage: true });
     await p.goto(PANEL + '/movimientos'); await p.waitForTimeout(400);
-    const mv = await p.evaluate(() => ({ h1: document.querySelector('h1')?.textContent, back: document.querySelector('.pn-back')?.getAttribute('href'), banner: !!document.querySelector('#pn-demo') }));
-    check(tag, 'movimientos carga con la vuelta al resumen', mv.h1 === 'Movimientos' && mv.back === '/panel' && mv.banner, JSON.stringify(mv));
+    const mv = await p.evaluate(() => {
+      const tabs = [...document.querySelectorAll('.pn-tab')], cur = document.querySelector('.pn-tab[aria-current="page"]'), r = cur?.getBoundingClientRect();
+      return { h1: document.querySelector('h1')?.textContent, n: tabs.length, cur: cur?.getAttribute('href'), seen: !!r && r.bottom > 0 && r.top < innerHeight, banner: !!document.querySelector('#pn-demo') };
+    });
+    check(tag, 'movimientos carga con su pestaña marcada (Resumen · Movimientos · Inventario a la vista)', mv.h1 === 'Movimientos' && mv.n === 3 && mv.cur === '/panel/movimientos' && mv.seen && mv.banner, JSON.stringify(mv));
     if (w >= 1069) {
       const col = await p.evaluate(() => { const r = document.querySelector('main[data-tipo]').getBoundingClientRect(); return { w: Math.round(r.width), c: Math.round(r.left + r.width / 2 - innerWidth / 2) }; });
       check(tag, 'movimientos en una columna centrada de 760 px como máximo', col.w <= 760 && Math.abs(col.c) <= 1, JSON.stringify(col));
@@ -837,6 +840,114 @@ for (const [w, h, scheme] of PANEL_VPS) {
   } catch (e) {
     check(tag, 'flujo del panel sin excepciones', false, e.message.split('\n')[0]);
   }
+  await ctx.close();
+}
+
+// Inventario: lista con filtros y búsqueda; la ficha se abre desde la fila; vender, reponer, contar, editar y pausar
+// cambian lo que se ve (sin guardar); vender una PC descuenta sus piezas; un producto nuevo tiene su ficha.
+// Todo con navegación dentro del panel: lo cargado vive en la visita.
+for (const [w, h, scheme] of [[320, 640, 'light'], [390, 844, 'dark'], [1440, 900, 'light']]) {
+  const tag = `panel-inventario-${w}-${scheme === 'dark' ? 'oscuro' : 'claro'}`;
+  const { ctx, p, errs } = await panelPage(w, h, scheme);
+  const go = async sel => { await p.click(sel); await p.waitForTimeout(700); };
+  const sheet = async (sel, fill) => {
+    await go(sel);
+    for (const [k, v] of fill) await p.fill(k, v);
+    await p.click('.pn-sheet button[type="submit"]'); await p.waitForTimeout(600);
+  };
+  const ficha = () => p.evaluate(() => ({
+    url: location.pathname, h1: document.querySelector('h1')?.textContent, stock: document.querySelector('#pn-f-stock')?.textContent,
+    first: (r => r && { tipo: r.dataset.tipo, qty: +r.dataset.qty, despues: +r.dataset.despues, txt: r.textContent })(document.querySelector('.pn-sm')),
+  }));
+  const ow = () => p.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+  try {
+    await p.goto(PANEL); await quieto(p);
+    await go('.pn-tab[href="/panel/inventario"]');
+    const list = await p.evaluate(() => {
+      const rows = [...document.querySelectorAll('.pn-inv')], bar = document.querySelector('.pn-tabs').getBoundingClientRect();
+      return { h1: document.querySelector('h1')?.textContent, cur: document.querySelector('.pn-tab[aria-current]')?.getAttribute('href'), n: rows.length,
+        bajo: +document.querySelector('#pn-inv-bajo').textContent, sin: +document.querySelector('#pn-inv-sin').textContent,
+        nb: rows.filter(r => r.dataset.nivel === 'bajo').length, ns: rows.filter(r => r.dataset.nivel === 'sin').length,
+        pc: rows.find(r => r.dataset.id === 'pc-office')?.dataset.stock, valor: document.querySelector('#pn-inv-valor').textContent,
+        // En el celular la barra de pestañas va abajo; en la compu, en la barra de arriba
+        bar: innerWidth < 735 ? Math.round(innerHeight - bar.bottom) : Math.round(bar.top) };
+    });
+    check(tag, 'inventario: 17 artículos con su estado, valor del stock y pestaña marcada; la PC tiene el stock de sus piezas', list.h1 === 'Inventario' && list.cur === '/panel/inventario' && list.n === 17 && list.bajo === list.nb && list.sin === list.ns && list.bajo > 0 && list.pc === '3' && PARSE_ARS(list.valor) > 0 && list.bar <= 4, JSON.stringify(list));
+    const c = await p.evaluate(panelContrast), a = await p.evaluate(panelA11y);
+    check(tag, 'inventario: contraste AA, letra ≥ 13 px, 44 px y títulos sin saltos', c.length === 0 && a.tiny.length === 0 && a.small.length === 0 && a.h1 === 1 && !a.jump, JSON.stringify({ c: c.slice(0, 4), tiny: a.tiny, small: a.small, hs: a.hs }));
+    // Filtros (la dirección refleja el filtro) y búsqueda sin acentos
+    const filt = {};
+    for (const f of ['bajo', 'sin', 'piezas', 'todos']) {
+      await p.click(`label.pn-chip:has(input[value="${f}"])`); await p.waitForTimeout(200);
+      filt[f] = await p.evaluate(f => { const r = [...document.querySelectorAll('.pn-inv')]; return { n: r.length, ok: r.every(x => f === 'todos' || (f === 'piezas' ? x.dataset.id.startsWith('pz-') : x.dataset.nivel === f)), url: location.search }; }, f);
+    }
+    await p.fill('#pn-buscar', 'toner'); await p.waitForTimeout(200);
+    const busca = await p.evaluate(() => [...document.querySelectorAll('.pn-inv')].map(r => r.dataset.id).join());
+    await p.fill('#pn-buscar', '');
+    check(tag, 'inventario: filtros (bajo, sin stock, piezas) y búsqueda sin acentos', filt.bajo.ok && filt.bajo.n === list.bajo && filt.sin.ok && filt.sin.n === list.sin && filt.piezas.ok && filt.piezas.n === 6 && filt.todos.n === 17 && filt.bajo.url === '?filtro=bajo' && filt.todos.url === '' && busca === 'ins-105a', JSON.stringify({ filt, busca }));
+    check(tag, 'inventario: sin scroll horizontal (lista)', await ow() <= 0, `${await ow()}px`);
+    if (WANT_SHOTS) await p.screenshot({ path: `${SHOTS}${tag}--lista.png`, fullPage: true });
+
+    // Ficha del tóner: vender baja el stock (y no deja vender más de lo que hay)
+    await go('.pn-inv[data-id="ins-105a"]');
+    const f0 = await ficha();
+    await go('.pn-facts [data-act="venta"]');
+    const pre = await p.evaluate(() => ({ prod: document.querySelector('#f-prod').value, focus: document.activeElement?.id }));
+    await p.fill('#f-qty', '99'); await p.click('.pn-sheet button[type="submit"]'); await p.waitForTimeout(150);
+    const tope = await p.evaluate(() => document.querySelector('#f-qty-e')?.textContent);
+    await p.fill('#f-qty', '2'); await p.click('.pn-sheet button[type="submit"]'); await p.waitForTimeout(600);
+    const f1 = await ficha();
+    check(tag, 'ficha: se abre desde la fila; vender 2 baja el stock de 18 a 16 y no deja vender más de lo que hay', f0.url === '/panel/inventario/ins-105a' && f0.h1 === 'Tóner 105A compatible' && f0.stock === '18 u.' && pre.prod === 'ins-105a' && pre.focus === 'f-qty' && tope === 'Hay 18 en stock' && f1.stock === '16 u.' && f1.first?.tipo === 'venta' && f1.first.qty === -2 && f1.first.despues === 16 && /Sin guardar/.test(f1.first.txt), JSON.stringify({ f0: f0.stock, pre, tope, f1 }));
+    const fc = await p.evaluate(panelContrast), fa = await p.evaluate(panelA11y);
+    check(tag, 'ficha: contraste AA, letra ≥ 13 px, 44 px y títulos sin saltos', fc.length === 0 && fa.tiny.length === 0 && fa.small.length === 0 && fa.h1 === 1 && !fa.jump, JSON.stringify({ c: fc.slice(0, 4), tiny: fa.tiny, small: fa.small, hs: fa.hs }));
+    // Reponer suma; contar otra cantidad deja un ajuste; editar el precio cambia la ganancia; pausar la marca
+    await sheet('.pn-facts [data-act="reponer"]', [['#f-rqty', '5']]);
+    const f2 = await ficha();
+    await sheet('.pn-facts [data-act="editar"]', [['#f-eprice', '30.000'], ['#f-estock', '20']]);
+    const f3 = await p.evaluate(() => ({ stock: document.querySelector('#pn-f-stock').textContent, precio: document.querySelector('#pn-f-precio').textContent, gan: document.querySelector('#pn-f-gan').textContent, margen: document.querySelector('#pn-f-margen').textContent, tipo: document.querySelector('.pn-sm').dataset.tipo, qty: +document.querySelector('.pn-sm').dataset.qty }));
+    await go('.pn-facts [data-act="pausar"]');
+    const pausa = await p.evaluate(() => ({ tag: !!document.querySelector('#pn-f-pausa'), btn: document.querySelector('[data-act="pausar"]').textContent }));
+    check(tag, 'ficha: reponer 5 suma (16 → 21), contar 20 deja un ajuste de −1, el precio nuevo cambia la ganancia y pausar la marca', f2.stock === '21 u.' && f2.first?.tipo === 'repo' && f2.first.qty === 5 && f3.stock === '20 u.' && f3.tipo === 'ajuste' && f3.qty === -1 && PARSE_ARS(f3.precio) === 30000 && PARSE_ARS(f3.gan) === 30000 - 16200 && /46/.test(f3.margen) && pausa.tag && pausa.btn === 'Mostrar en la tienda', JSON.stringify({ f2: f2.stock, f3, pausa }));
+    await go('.pn-back');
+    const vuelta = await p.evaluate(() => { const r = document.querySelector('.pn-inv[data-id="ins-105a"]'); return { stock: r?.dataset.stock, txt: r?.textContent }; });
+    check(tag, 'la lista sigue a la ficha (stock 20, precio nuevo y "Pausado")', vuelta.stock === '20' && /30\.000/.test(vuelta.txt) && /Pausado/.test(vuelta.txt), JSON.stringify(vuelta));
+
+    // PC armada: vender una descuenta una pieza de cada una
+    await go('.pn-inv[data-id="pc-office"]');
+    const pz0 = await p.evaluate(() => Object.fromEntries([...document.querySelectorAll('.pn-pz .pn-inv')].map(r => [r.dataset.id, +r.dataset.stock])));
+    await go('.pn-facts [data-act="venta"]');
+    await p.click('.pn-sheet button[type="submit"]'); await p.waitForTimeout(600);
+    const pc = await p.evaluate(() => ({ stock: document.querySelector('#pn-f-stock').textContent, pz: Object.fromEntries([...document.querySelectorAll('.pn-pz .pn-inv')].map(r => [r.dataset.id, +r.dataset.stock])) }));
+    await go('.pn-pz .pn-inv[data-id="pz-cpu-8600g"]');
+    const cpu = await ficha();
+    check(tag, 'vender una PC: baja a 2 y descuenta una pieza de cada una (la pieza lo registra como armado)', pc.stock === '2 u.' && Object.keys(pz0).length === 6 && Object.entries(pz0).every(([k, v]) => pc.pz[k] === v - 1) && cpu.stock === `${pz0['pz-cpu-8600g'] - 1} u.` && /Armado de PC Oficina AT/.test(cpu.first?.txt) && /Sin guardar/.test(cpu.first?.txt), JSON.stringify({ pz0, pc, cpu: cpu.stock }));
+    check(tag, 'inventario: sin scroll horizontal (ficha)', await ow() <= 0, `${await ow()}px`);
+    if (WANT_SHOTS) await p.screenshot({ path: `${SHOTS}${tag}--ficha.png`, fullPage: true });
+
+    // Producto nuevo: valida, se agrega y abre su ficha; queda en la lista y se puede vender
+    await go('.pn-back');
+    await go('.pn-head [data-act="nuevo"]');
+    await p.click('.pn-sheet button[type="submit"]'); await p.waitForTimeout(150);
+    const nInv = await p.evaluate(() => ['#f-ncat', '#f-nbrand', '#f-nname', '#f-nprice', '#f-ncost'].every(s => document.querySelector(s).getAttribute('aria-invalid') === 'true') && document.activeElement?.id === 'f-ncat');
+    await p.selectOption('#f-ncat', 'perifericos');
+    for (const [k, v] of [['#f-nbrand', 'Genius'], ['#f-nname', 'Mouse DX-110'], ['#f-nprice', '9.999'], ['#f-ncost', '6.000'], ['#f-nstock', '4']]) await p.fill(k, v);
+    await Promise.all([p.waitForURL(/\/panel\/inventario\/nuevo-/, { timeout: 15000 }), p.click('.pn-sheet button[type="submit"]')]);
+    await p.waitForTimeout(800);
+    const nuevo = await ficha();
+    await go('.pn-back');
+    const enLista = await p.evaluate(() => { const r = [...document.querySelectorAll('.pn-inv')].find(x => /Mouse DX-110/.test(x.textContent)); return r && { stock: r.dataset.stock, txt: r.textContent }; });
+    check(tag, 'producto nuevo: valida, abre su ficha con su stock y queda en la lista como "Sin guardar"', nInv && /^\/panel\/inventario\/nuevo-\d+$/.test(nuevo.url) && nuevo.h1 === 'Mouse DX-110' && nuevo.stock === '4 u.' && nuevo.first?.tipo === 'alta' && enLista?.stock === '4' && /Sin guardar/.test(enLista.txt), JSON.stringify({ nInv, nuevo, enLista }));
+    check(tag, 'sin errores de consola (incluidas CSP e hidratación)', errs.length === 0, errs.slice(0, 3).join(' | '));
+  } catch (e) {
+    check(tag, 'flujo del inventario sin excepciones', false, e.message.split('\n')[0]);
+  }
+  await ctx.close();
+}
+{
+  // Con sesión, un artículo que no existe da 404 (los ids se validan en el servidor)
+  const { ctx, p } = await panelPage(390, 844, 'light');
+  const r = await p.goto(PANEL + '/inventario/no-existe');
+  check('panel-inventario', 'un artículo que no existe responde 404', r.status() === 404 && /No encontramos esta página/.test(await p.evaluate(() => document.body.textContent)), String(r.status()));
   await ctx.close();
 }
 

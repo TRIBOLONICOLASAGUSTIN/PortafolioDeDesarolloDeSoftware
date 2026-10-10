@@ -5,8 +5,7 @@ import { Chips } from './chips';
 import { CardHead } from './card-head';
 import { usePanel } from './panel-shell';
 import { top, type Metric, type Periodo, type Totales } from '@/lib/panel/stats';
-import { productName } from '@/lib/panel/labels';
-import { byId } from '@/lib/data/catalog';
+import { producto, productName } from '@/lib/panel/labels';
 import { fmtMonto, vars } from '@/lib/format';
 
 const METRICS: [Metric, string][] = [['unidades', 'Unidades'], ['ventas', 'Ventas'], ['ganancia', 'Ganancia']];
@@ -31,7 +30,7 @@ export function MasVendidos({ per, t }: { per: Periodo; t: Totales }) {
           {list.map((t, i) => (
             <li key={t.productId} data-v={t[metric]} style={vars({ '--s': (Math.max(0, t[metric]) / max).toFixed(4), '--i': i })}>
               <span className="pn-rk pn-num">{i + 1}</span>
-              <span className="pn-rt"><b>{productName(t.productId)}</b><small>{byId[t.productId]?.brand}</small></span>
+              <span className="pn-rt"><b>{productName(t.productId)}</b><small>{producto(t.productId)?.brand}</small></span>
               <b className="pn-rv pn-num">{val(t[metric])}</b>
               <i className="pn-bar" aria-hidden="true" />
             </li>

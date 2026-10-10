@@ -1,5 +1,5 @@
 // Cálculos del panel (funciones puras): los usa la maqueta con datos de ejemplo y, en la etapa 2, los datos reales.
-import { byId } from '@/lib/data/catalog';
+import { producto } from './labels';
 import { addDays, addMonths, dayShort, monthShort, monthStart, short } from './dates';
 import { costo, ingreso, resultado, type Kind, type Movement } from './types';
 
@@ -102,7 +102,7 @@ export function porCategoria(idx: Index, p: Periodo): Cat[] {
   };
   for (const [from, to, prev] of [[p.from, p.to, false], [p.prevFrom, p.prevTo, true]] as const) {
     for (const m of entre(idx, from, to)) {
-      if (m.kind === 'venta') for (const i of m.items) add(byId[i.productId]?.cat ?? 'otros', i.qty * (i.unit - i.unitCost), i.qty * i.unit, i.qty, prev);
+      if (m.kind === 'venta') for (const i of m.items) add(producto(i.productId)?.cat ?? 'otros', i.qty * (i.unit - i.unitCost), i.qty * i.unit, i.qty, prev);
       else if (m.kind === 'reparacion') add('servicio', m.amount - m.partsCost, m.amount, 1, prev);
     }
   }
@@ -122,7 +122,7 @@ export function top(idx: Index, from: string, to: string, metric: Metric, n = 5)
       acc.set(i.productId, t);
     }
   }
-  const name = (id: string) => byId[id]?.name ?? id;
+  const name = (id: string) => producto(id)?.name ?? id;
   return [...acc.values()].sort((a, b) => b[metric] - a[metric] || name(a.productId).localeCompare(name(b.productId))).slice(0, n);
 }
 

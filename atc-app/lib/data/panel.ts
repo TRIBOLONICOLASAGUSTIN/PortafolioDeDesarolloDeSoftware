@@ -22,6 +22,8 @@ const SVC_PESO: [string, number][] = [['nb', 35], ['pc', 20], ['imp', 20], ['man
 const CROCKFORD = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 // Precios de referencia: octubre de 2026 (los del catálogo). Antes, un 2,5 % menos por mes (inflación de ejemplo).
 const REF = '2026-10-01';
+/** Precio (o costo) de ejemplo en otra fecha: 2,5 % menos por cada mes antes de octubre de 2026. */
+export const precioEn = (v: number, ymd: string) => Math.max(100, Math.round((v * 1.025 ** monthsBetween(REF, ymd)) / 100) * 100);
 
 const fnv = (s: string) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
 function mulberry(a: number) {
@@ -58,7 +60,7 @@ function dia(ymd: string): Movement[] {
   const rnd = mulberry(fnv('atc:' + ymd));
   const k = TEMPORADA[monthIndex(ymd)] * (dow(ymd) === 6 ? .55 : 1);
   const idx = 1.025 ** monthsBetween(REF, ymd);
-  const precio = (v: number) => Math.max(100, Math.round((v * idx) / 100) * 100);
+  const precio = (v: number) => precioEn(v, ymd);
   const tag = ymd.slice(2).replaceAll('-', '');
   const out: Movement[] = [];
 

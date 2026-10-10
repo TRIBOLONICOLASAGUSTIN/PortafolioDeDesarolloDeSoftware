@@ -18,7 +18,7 @@ before(async () => {
 });
 after(async () => { await Promise.all([adm?.stop(), prod?.stop()]); });
 
-const PATHS = ['/panel', '/panel/movimientos', '/panel/movimientos?tipo=gastos'];
+const PATHS = ['/panel', '/panel/movimientos', '/panel/movimientos?tipo=gastos', '/panel/inventario', '/panel/inventario?filtro=bajo', '/panel/inventario/ins-105a', '/panel/inventario/pc-office'];
 const PANEL_TEXT = /datos de ejemplo|maqueta|ganancia|registrar venta/i;
 let ipSeq = 20;
 const nextIp = () => ({ 'cf-connecting-ip': `198.51.100.${ipSeq++}` });
@@ -64,7 +64,7 @@ test('API-8 · Sin sesión de superadmin el panel no existe (404 sin contenido d
   assert.equal((await get(adm, '/panel', `atc_s=${valid}`)).status, 200);
 });
 
-test('API-9 · Con sesión: el panel responde 200, noindex (meta y X-Robots-Tag) aunque ATC_INDEXAR=1, sin caché y con CSP con nonce; la tienda no enlaza al panel ni al ingreso', async () => {
+test('API-9 · Con sesión: el panel (resumen, movimientos, inventario y fichas) responde 200, noindex (meta y X-Robots-Tag) aunque ATC_INDEXAR=1, sin caché y con CSP con nonce; filtros e ids desconocidos no pasan; la tienda no enlaza al panel ni al ingreso', async () => {
   const cookie = await sesion();
   for (const p of PATHS) {
     const r = await get(adm, p, cookie);
@@ -81,6 +81,9 @@ test('API-9 · Con sesión: el panel responde 200, noindex (meta y X-Robots-Tag)
   }
   const bad = await (await get(adm, '/panel/movimientos?tipo=%3Cscript%3E', cookie)).text();
   assert.match(bad, /data-tipo="todos"/);
+  assert.match(await (await get(adm, '/panel/inventario?filtro=%3Cscript%3E', cookie)).text(), /data-filtro="todos"/);
+  // Solo artículos conocidos (o los cargados en la visita, nuevo-N): cualquier otro id da 404
+  for (const p of ['/panel/inventario/no-existe', '/panel/inventario/%3Cscript%3E', '/panel/inventario/nuevo-x']) assert.equal((await get(adm, p, cookie)).status, 404, `${p} no dio 404`);
   const home = await (await get(adm, '/')).text();
   assert.doesNotMatch(home, /href="\/(panel|ingresar)/);
 });
