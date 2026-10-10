@@ -1,5 +1,6 @@
 import 'server-only';
 import { createHash } from 'node:crypto';
+import { redLimite } from './config';
 
 // Límite del servidor por IP, ANTES de tocar la base (la base tiene además sus propios bloqueos).
 // Ventana fija. Producción: Upstash Redis por REST (contador compartido entre instancias).
@@ -10,7 +11,8 @@ const maxTrk = () => { const m = Number(process.env.ATC_RL_MAX); return Number.i
 const keyFor = (ip: string, ns: string, win: number) => {
   const bucket = Math.floor(Date.now() / 1000 / win);
   // La IP se guarda como hash: el contador no necesita la IP en crudo.
-  return { key: `atc:${ns}:${createHash('sha256').update(ip).digest('hex').slice(0, 32)}:${bucket}`, retry: win - (Math.floor(Date.now() / 1000) % win) };
+  // En IPv6 cuenta el /64 entero (redLimite).
+  return { key: `atc:${ns}:${createHash('sha256').update(redLimite(ip)).digest('hex').slice(0, 32)}:${bucket}`, retry: win - (Math.floor(Date.now() / 1000) % win) };
 };
 type Opts = { ns?: string; max?: number; window?: number };
 

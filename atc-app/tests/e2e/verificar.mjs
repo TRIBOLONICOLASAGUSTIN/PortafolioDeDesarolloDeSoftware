@@ -540,6 +540,30 @@ const panelA11y = (root = '.pn') => {
   }
 }
 
+// F12: inventar un "admin" en el navegador (localStorage, sessionStorage, cookies) no abre el panel.
+{
+  const { ctx, p } = await panelPage(390, 844, 'light', { anon: true });
+  await p.goto(HTML); await p.waitForTimeout(300);
+  await p.evaluate(() => {
+    for (const [k, v] of [['role', 'admin'], ['user', 'admin'], ['isAdmin', 'true'], ['atc-admin', '1']]) { try { localStorage.setItem(k, v); sessionStorage.setItem(k, v); } catch {} }
+    for (const c of ['role=admin', 'user=admin', 'admin=true', 'atc_s=admin']) document.cookie = `${c}; path=/`;
+  });
+  const r = await p.goto(PANEL);
+  const txt = await p.evaluate(() => document.body.textContent);
+  check('seguridad', 'F12: un "admin" inventado en el navegador (localStorage y cookies) no abre el panel', r.status() === 404 && /No encontramos esta página/.test(txt) && !/datos de ejemplo|ganancia/i.test(txt), String(r.status()));
+  await ctx.close();
+}
+// "Salir" cierra la sesión de verdad: vuelve a la tienda y en ese navegador el panel deja de existir.
+{
+  const { ctx, p } = await panelPage(1440, 900, 'light');
+  await p.goto(PANEL); await p.waitForTimeout(500);
+  await Promise.all([p.waitForURL(HTML, { timeout: 15000 }), p.click('.pn-salir')]);
+  const queda = (await ctx.cookies()).some(c => /atc_s$/.test(c.name) && c.value);
+  const r = await p.goto(PANEL);
+  check('seguridad', '"Salir" borra la sesión, vuelve a la tienda y el panel da 404', !queda && r.status() === 404, JSON.stringify({ queda, st: r.status() }));
+  await ctx.close();
+}
+
 // Espera a que el panel quede quieto: animaciones y transiciones de CSS terminadas y el monto grande ya contado.
 const quieto = p => p.evaluate(async () => {
   await Promise.race([Promise.all(document.getAnimations().map(a => a.finished.catch(() => {}))), new Promise(r => setTimeout(r, 2500))]);

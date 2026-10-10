@@ -130,7 +130,7 @@ export function Tracker({ demo, turnstileKey, nonce }: { demo: boolean; turnstil
             <label className="field"><span>Últimos 3 dígitos del teléfono</span><span className="inp"><Icon n="phone" cls="i sm" />
               <input id="tTel" ref={telRef} inputMode="numeric" autoComplete="off" maxLength={3} placeholder="321"
                 value={tel} onChange={e => setTel(e.target.value.replace(/\D/g, '').slice(0, 3))} /></span></label>
-            {turnstileKey && <div className="cf-turnstile" data-sitekey={turnstileKey} data-size="flexible" data-language="es"></div>}
+            {turnstileKey && <div className="cf-turnstile" data-sitekey={turnstileKey} data-action="seguimiento" data-size="flexible" data-language="es"></div>}
             <button className="btn" id="tBtn" type="submit" disabled={busy}>{busy ? <><span className="spin"></span><span>Buscando…</span></> : <span>Rastrear</span>}</button>
           </form>
           {demo && (

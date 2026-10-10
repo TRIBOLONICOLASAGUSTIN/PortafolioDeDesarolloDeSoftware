@@ -1,10 +1,20 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { adminConfig, cookieSpec, sesionValida } from '@/lib/server/admin';
 
 // CSP con nonce por pedido (guía de Next 16: node_modules/next/dist/docs/01-app/02-guides/content-security-policy.md).
 // - Scripts: solo los que llevan el nonce de este pedido ('strict-dynamic' deja que esos carguen los suyos).
 // - Estilos: hojas propias o con nonce; los atributos style="--d:.1s" necesitan 'unsafe-inline' SOLO en style-src-attr.
 //   En desarrollo (solo ahí) se permiten estilos en línea: los inyecta Next (avisos de error), como indica la guía.
 // - Turnstile: se habilita su iframe solo si hay clave configurada.
+// Panel del dueño: solo con sesión válida se agregan noindex y sin caché (un 404 del panel no lleva nada distinto a
+// cualquier otro 404). Sin la cookie de sesión, next.config.ts reescribe /panel a una ruta inexistente (mismo 404 y mismo
+// armado que cualquier dirección inventada). El layout y cada página del panel controlan la sesión (defensa en capas).
+const esPanel = (path: string) => path === '/panel' || path.startsWith('/panel/');
+function sesionDelPedido(request: NextRequest) {
+  const cfg = adminConfig();
+  return cfg.ok && sesionValida(cfg, request.cookies.get(cookieSpec(cfg).name)?.value);
+}
+
 export function proxy(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
   const dev = process.env.NODE_ENV === 'development';
@@ -31,6 +41,10 @@ export function proxy(request: NextRequest) {
   requestHeaders.set('Content-Security-Policy', csp);
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set('Content-Security-Policy', csp);
+  if (esPanel(request.nextUrl.pathname) && sesionDelPedido(request)) {
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+    response.headers.set('Cache-Control', 'private, no-store, max-age=0');
+  }
   return response;
 }
 

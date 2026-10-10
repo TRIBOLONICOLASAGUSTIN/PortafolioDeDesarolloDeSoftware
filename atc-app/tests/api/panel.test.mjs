@@ -3,20 +3,37 @@
 // Corren contra `next start` (app compilada). Correr con: npm run test:api
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { startServer } from '../helpers/server.mjs';
+import { createServer } from 'node:http';
+import { startServer, LOCAL_ENV } from '../helpers/server.mjs';
 import { ADMIN, adminEnv, forgeSession, login, stableNow, totpCode } from '../helpers/admin.mjs';
 
 const ENV = adminEnv();
-let adm, prod;
+let adm, prod, ts, fakeTs;
+// Verificador de Turnstile falso (solo pruebas, ATC_LOCAL=1): el token dice qué contestar.
+const TS_PORT = 3129;
+const TOKENS = {
+  'ok-ingresar': { success: true, action: 'ingresar', hostname: '127.0.0.1' },
+  'ok-seguimiento': { success: true, action: 'seguimiento', hostname: '127.0.0.1' },
+  'otro-sitio': { success: true, action: 'ingresar', hostname: 'otro-sitio.example' },
+  'fallido': { success: false },
+};
 before(async () => {
-  [adm, prod] = await Promise.all([
+  fakeTs = createServer((req, res) => {
+    let b = ''; req.on('data', c => { b += c; }); req.on('end', () => {
+      const tok = new URLSearchParams(b).get('response') ?? '';
+      res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(TOKENS[tok] ?? { success: false }));
+    });
+  }).listen(TS_PORT, '127.0.0.1');
+  [adm, prod, ts] = await Promise.all([
     // Superadmin configurado (modo local: límite en memoria, sin Turnstile); ATC_INDEXAR=1 para comprobar que el panel igual no se indexa.
     startServer({ port: 3122, env: { ...ENV, ATC_LOCAL: '1', ATC_IP_HEADER: 'cf-connecting-ip', ATC_INDEXAR: '1' } }),
     // "Producción" sin configuración: no hay ingreso posible y el panel no existe.
     startServer({ port: 3123, env: {} }),
+    // Con Turnstile exigido (verificador falso) y la base local para el seguimiento.
+    startServer({ port: 3124, env: { ...adminEnv(), ...LOCAL_ENV, TURNSTILE_SECRET_KEY: 'prueba', ATC_TURNSTILE_URL: `http://127.0.0.1:${TS_PORT}/` } }),
   ]);
 });
-after(async () => { await Promise.all([adm?.stop(), prod?.stop()]); });
+after(async () => { await Promise.all([adm?.stop(), prod?.stop(), ts?.stop()]); fakeTs?.close(); });
 
 const PATHS = ['/panel', '/panel/movimientos', '/panel/movimientos?tipo=gastos', '/panel/inventario', '/panel/inventario?filtro=bajo', '/panel/inventario/ins-105a', '/panel/inventario/pc-office'];
 const PANEL_TEXT = /datos de ejemplo|maqueta|ganancia|registrar venta/i;
@@ -166,4 +183,72 @@ test('API-14 · Salir borra la cookie (solo desde el mismo sitio); /ingresar lle
   assert.doesNotMatch(html, PANEL_TEXT);
   const logged = await get(adm, '/ingresar', cookie);
   assert.ok([303, 307, 308].includes(logged.status) && /\/panel$/.test(logged.headers.get('location') ?? ''), `con sesión /ingresar respondió ${logged.status}`);
+});
+
+// Un 404 del panel tiene que ser igual al de cualquier dirección inventada: se comparan encabezados y página
+// (sin el nonce ni los identificadores al azar de cada pedido, y con la ruta reemplazada).
+const SIN_VARIAR = ['date', 'content-security-policy', 'content-length', 'etag', 'connection', 'keep-alive', 'transfer-encoding'];
+// En un pedido armado a mano como navegación interna del router (encabezado rsc), Next agrega x-nextjs-rewritten-path:
+// aceptado y documentado (seguridad.md §10; el código del sitio es público de todos modos).
+const encabezados = (r, rsc) => Object.fromEntries([...r.headers].filter(([k]) => !SIN_VARIAR.includes(k) && !(rsc && k === 'x-nextjs-rewritten-path')));
+const pagina = (html, ruta) => ruta.slice(1).split('/').reduce((h, seg, i) => h.replaceAll(`"${seg}"`, `"T${i}"`).replaceAll(`\\"${seg}\\"`, `\\"T${i}\\"`),
+  html.replace(/\\?"[A-Za-z0-9_-]{20,24}\\?"/g, 'ID').replace(/nonce="[^"]*"/g, 'nonce=""').replace(/"nonce":"[^"]*"/g, '"nonce":""').replace(/nonce\\":\\"[^\\]*\\"/g, 'nonce\\":\\"\\"').replaceAll(ruta.slice(1), 'RUTA'));
+
+test('API-15 · Manipular el navegador (F12) no da acceso: cookies, encabezados y parámetros inventados dan el mismo 404 que una dirección cualquiera', async () => {
+  const intentos = [
+    ['/panel', {}],
+    ['/panel', { cookie: 'role=admin; admin=true; user=admin; isAdmin=1' }],
+    ['/panel', { cookie: 'atc_s=admin' }],
+    ['/panel', { cookie: `__Host-atc_s=v1.9999999999.AAAAAAAAAAAAAAAA.${'A'.repeat(43)}` }],
+    ['/panel', { 'x-user': 'admin', 'x-role': 'admin', 'x-admin': '1', 'x-forwarded-user': 'admin', authorization: 'Bearer admin' }],
+    ['/panel', { 'x-middleware-subrequest': 'proxy:proxy:proxy:proxy:proxy' }],
+    ['/panel', { 'x-middleware-subrequest': 'middleware:middleware:middleware:middleware:middleware' }],
+    ['/panel?admin=1&role=admin', {}],
+    ['/panel/inventario/ins-105a', { cookie: 'role=admin' }],
+  ];
+  for (const [p, headers] of intentos) {
+    const r = await fetch(adm.base + p, { headers, redirect: 'manual' });
+    const html = await r.text();
+    assert.equal(r.status, 404, `${p} ${JSON.stringify(headers)} respondió ${r.status}`);
+    assert.doesNotMatch(html, PANEL_TEXT, `${p} muestra contenido del panel`);
+  }
+  // Sin cookie de sesión: idéntico a cualquier 404 (encabezados y página), también en una navegación del router (rsc).
+  for (const [p, q, extra] of [['/panel', '/zzzzz', {}], ['/panel/inventario/ins-105a', '/zzzzz/aaaaaaaaa/bbbbbbbb', {}], ['/panel', '/zzzzz', { rsc: '1' }]]) {
+    const [a, b] = await Promise.all([fetch(adm.base + p, { headers: extra }), fetch(adm.base + q, { headers: extra })]);
+    assert.deepEqual(encabezados(a, !!extra.rsc), encabezados(b, !!extra.rsc), `encabezados distintos entre ${p} y ${q}`);
+    assert.equal(pagina(await a.text(), p), pagina(await b.text(), q), `la página de ${p} se distingue de la de ${q}`);
+  }
+});
+
+test('API-16 · Cada intento de ingreso queda registrado sin datos personales (ni usuario, ni clave, ni IP)', async () => {
+  const ip = '198.51.100.201', clave = 'clave-equivocada-registro';
+  const r = await login(adm.base, { usuario: ADMIN.user, clave, codigo: '000000' }, { 'cf-connecting-ip': ip });
+  assert.equal(r.status, 401);
+  await new Promise(res => setTimeout(res, 200));
+  const lineas = adm.log().split('\n').filter(l => l.includes('"evento":"ingreso"'));
+  const ultima = lineas.at(-1) ?? '';
+  assert.match(ultima, /"resultado":"credenciales"/);
+  assert.match(ultima, /"red":"[0-9a-f]{16}"/);
+  for (const dato of [ip, clave, ADMIN.user, '000000']) assert.ok(!ultima.includes(dato), `el registro incluye ${dato}`);
+});
+
+test('API-17 · Turnstile: un token de otro formulario o resuelto en otro sitio no sirve (ingreso y seguimiento)', async () => {
+  const body = t => ({ usuario: ADMIN.user, clave: 'clave-equivocada-123', codigo: '000000', turnstileToken: t });
+  const h = () => ({ 'cf-connecting-ip': `198.51.100.${ipSeq++}` });
+  assert.equal((await login(ts.base, body('ok-seguimiento'), h())).status, 403, 'el token del seguimiento entró al ingreso');
+  assert.equal((await login(ts.base, body('otro-sitio'), h())).status, 403, 'un token de otro sitio entró al ingreso');
+  assert.equal((await login(ts.base, body('fallido'), h())).status, 403);
+  assert.equal((await login(ts.base, body('ok-ingresar'), h())).status, 401, 'con el token correcto se llega a las credenciales');
+  const seg = t => fetch(`${ts.base}/api/seguimiento`, { method: 'POST', headers: { 'content-type': 'application/json', ...h() }, body: JSON.stringify({ codigo: 'AT-0000-00', telefono3: '123', turnstileToken: t }) });
+  assert.equal((await seg('ok-ingresar')).status, 403, 'el token del ingreso sirvió en el seguimiento');
+  assert.equal((await seg('ok-seguimiento')).status, 200);
+});
+
+test('API-18 · El límite de ingresos cuenta la red IPv6 entera (/64): cambiar los últimos bits no lo esquiva', async () => {
+  const body = { usuario: ADMIN.user, clave: 'clave-equivocada-123', codigo: '000000' };
+  const st = [];
+  for (let i = 1; i <= 6; i++) st.push((await login(adm.base, body, { 'cf-connecting-ip': `2001:db8:77:1::${i.toString(16)}` })).status);
+  assert.deepEqual(st, [401, 401, 401, 401, 401, 429]);
+  assert.equal((await login(adm.base, body, { 'cf-connecting-ip': '2001:db8:77:1:ffff:eeee:dddd:cccc' })).status, 429);
+  assert.equal((await login(adm.base, body, { 'cf-connecting-ip': '2001:db8:77:2::1' })).status, 401, 'otra red /64 no debería estar limitada');
 });

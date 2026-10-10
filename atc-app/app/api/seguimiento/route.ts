@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { clientIp, trackingConfig } from '@/lib/server/config';
+import { clientIp, redLimite, trackingConfig } from '@/lib/server/config';
 import { limit } from '@/lib/server/ratelimit';
 import { verifyTurnstile } from '@/lib/server/turnstile';
 import { readLimited, sameSite } from '@/lib/server/http';
@@ -49,12 +49,13 @@ export async function POST(req: Request) {
   if (!rl.allowed) return json({ ok: false, motivo: 'demasiados_intentos' }, 429, { 'Retry-After': String(rl.retry) });
 
   if (cfg.mode === 'prod' || process.env.TURNSTILE_SECRET_KEY) {
-    if (!turnstileToken || !(await verifyTurnstile(turnstileToken, ip))) return json({ ok: false, motivo: 'verificacion' }, 403);
+    if (!turnstileToken || !(await verifyTurnstile(turnstileToken, ip, 'seguimiento', req))) return json({ ok: false, motivo: 'verificacion' }, 403);
   }
 
   if (cfg.mode === 'demo') return json(demoTrack(codigo, telefono3));
   try {
-    const r = await trackOrder(cfg.dbUrl, codigo, telefono3, ip);
+    // La base también limita por IP: en IPv6, por su /64.
+    const r = await trackOrder(cfg.dbUrl, codigo, telefono3, redLimite(ip));
     return json(r, !r.ok && r.motivo === 'demasiados_intentos' ? 429 : 200);
   } catch (e) {
     // Nunca se registra el código ni el teléfono.

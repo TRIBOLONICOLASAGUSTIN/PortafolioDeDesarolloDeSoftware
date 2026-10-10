@@ -7,8 +7,11 @@ const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=()' },
+  // Nada de cámara, micrófono, ubicación, pagos ni sensores: el sitio no los usa (y un script ajeno tampoco podría).
+  { key: 'Permissions-Policy', value: ['accelerometer', 'autoplay', 'browsing-topics', 'camera', 'display-capture', 'encrypted-media', 'fullscreen', 'geolocation', 'gyroscope', 'hid', 'idle-detection', 'magnetometer', 'microphone', 'midi', 'payment', 'picture-in-picture', 'publickey-credentials-get', 'screen-wake-lock', 'serial', 'usb', 'xr-spatial-tracking'].map(f => `${f}=()`).join(', ') },
   { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+  // Los archivos del sitio no se pueden incrustar desde otros sitios.
+  { key: 'Cross-Origin-Resource-Policy', value: 'same-origin' },
 ];
 
 const nextConfig: NextConfig = {
@@ -20,14 +23,22 @@ const nextConfig: NextConfig = {
   // y con acceso desde la red local, para probar en el celular por Wi-Fi (http://192.168.x.x:3000).
   devIndicators: false,
   allowedDevOrigins: ['192.168.*.*'],
+  // Sin cookie de sesión, /panel se atiende como una dirección inexistente: el 404 es idéntico al de cualquier otra
+  // (encabezados y armado). Con una cookie (válida o no) decide el panel, que controla la firma en el servidor.
+  async rewrites() {
+    const missing = [{ type: 'cookie' as const, key: 'atc_s' }, { type: 'cookie' as const, key: '__Host-atc_s' }];
+    // El destino usa :path* (si no, Next agrega los tramos como ?path=… y el 404 se distinguiría).
+    return { beforeFiles: [{ source: '/panel', missing, destination: '/_no-existe' }, { source: '/panel/:path*', missing, destination: '/_no-existe/:path*' }], afterFiles: [], fallback: [] };
+  },
   async headers() {
     return [
       { source: '/:path*', headers: securityHeaders },
-      // Panel del dueño e ingreso del superadmin: nunca se indexan ni quedan en caché (también cubre /panel).
-      ...['/panel/:path*', '/ingresar'].map(source => ({ source, headers: [
+      // Ingreso del superadmin: nunca se indexa ni queda en caché. El panel recibe lo mismo desde proxy.ts, y solo con
+      // sesión: sin sesión su 404 tiene que ser igual al de cualquier dirección inventada.
+      { source: '/ingresar', headers: [
         { key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' },
         { key: 'Cache-Control', value: 'private, no-store, max-age=0' },
-      ] })),
+      ] },
     ];
   },
 };

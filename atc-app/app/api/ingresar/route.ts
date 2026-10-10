@@ -1,6 +1,7 @@
+import { createHmac } from 'node:crypto';
 import { z } from 'zod';
 import { adminConfig, cookieSpec, credencialesOk, nuevaSesion, SESSION_HOURS } from '@/lib/server/admin';
-import { clientIp } from '@/lib/server/config';
+import { clientIp, redLimite } from '@/lib/server/config';
 import { readLimited, sameSite } from '@/lib/server/http';
 import { limit, primeraVez } from '@/lib/server/ratelimit';
 import { verifyTurnstile } from '@/lib/server/turnstile';
@@ -28,6 +29,11 @@ const denied = () => json({ ok: false, motivo: 'credenciales' }, 401);
 
 let warned = false;
 
+// Registro de cada intento (para ver si alguien está probando claves): resultado y la red de origen como HMAC.
+// Nunca el usuario, la clave, el código ni la IP en crudo.
+const registrar = (secret: Buffer, ip: string, resultado: 'ok' | 'limite' | 'verificacion' | 'credenciales' | 'codigo_usado') =>
+  console.info(JSON.stringify({ evento: 'ingreso', resultado, red: createHmac('sha256', secret).update(redLimite(ip)).digest('hex').slice(0, 16) }));
+
 export async function POST(req: Request) {
   if (!sameSite(req)) return json({ ok: false, motivo: 'origen' }, 403);
   if (!(req.headers.get('content-type') ?? '').toLowerCase().startsWith('application/json')) return invalid();
@@ -49,18 +55,19 @@ export async function POST(req: Request) {
 
   const rl = await limit(ip, cfg.mode, { ns: 'adm', max: 5, window: 900 });
   if (rl === 'error') return unavailable();
-  if (!rl.allowed) return json({ ok: false, motivo: 'demasiados_intentos' }, 429, { 'Retry-After': String(rl.retry) });
+  if (!rl.allowed) { registrar(cfg.secret, ip, 'limite'); return json({ ok: false, motivo: 'demasiados_intentos' }, 429, { 'Retry-After': String(rl.retry) }); }
 
   if (cfg.mode === 'prod' || process.env.TURNSTILE_SECRET_KEY) {
-    if (!turnstileToken || !(await verifyTurnstile(turnstileToken, ip))) return json({ ok: false, motivo: 'verificacion' }, 403);
+    if (!turnstileToken || !(await verifyTurnstile(turnstileToken, ip, 'ingresar', req))) { registrar(cfg.secret, ip, 'verificacion'); return json({ ok: false, motivo: 'verificacion' }, 403); }
   }
 
   // Se calculan las dos cosas siempre (tiempo parejo) y recién después se decide.
   const step = verificar(cfg.totp, codigo);
   const ok = await credencialesOk(cfg, usuario, clave);
-  if (!ok || step === null) return denied();
+  if (!ok || step === null) { registrar(cfg.secret, ip, 'credenciales'); return denied(); }
   // Un código del celular sirve una sola vez (si alguien lo ve por encima del hombro, ya no le sirve).
-  if (!(await primeraVez(`adm:totp:${step}`, 120, cfg.mode))) return denied();
+  if (!(await primeraVez(`adm:totp:${step}`, 120, cfg.mode))) { registrar(cfg.secret, ip, 'codigo_usado'); return denied(); }
+  registrar(cfg.secret, ip, 'ok');
 
   const { name, secure } = cookieSpec(cfg);
   const cookie = [`${name}=${nuevaSesion(cfg)}`, 'Path=/', 'HttpOnly', 'SameSite=Strict', `Max-Age=${SESSION_HOURS * 3600}`, ...(secure ? ['Secure'] : [])].join('; ');

@@ -28,6 +28,20 @@ export function trackingConfig(): TrackingConfig {
   return missing.length ? { ok: false, missing } : { ok: true, mode: 'prod', dbUrl };
 }
 
+/**
+ * Red que se usa para limitar: la IPv4 tal cual; en IPv6, el /64 (una conexión hogareña o un servidor recibe un /64
+ * entero, así que limitar por dirección exacta se esquiva cambiando los últimos 64 bits).
+ */
+export function redLimite(ip: string): string {
+  const v4 = /^(?:::ffff:)?(\d{1,3}(?:\.\d{1,3}){3})$/i.exec(ip);
+  if (v4) return v4[1];
+  if (!ip.includes(':')) return ip;
+  const [a, b = ''] = ip.toLowerCase().split('::');
+  const izq = a ? a.split(':') : [], der = b ? b.split(':') : [];
+  const full = [...izq, ...Array(Math.max(0, 8 - izq.length - der.length)).fill('0'), ...der];
+  return `${full.slice(0, 4).map(h => (h || '0').replace(/^0+(?=.)/, '')).join(':')}::/64`;
+}
+
 /** IP del visitante desde el encabezado que fija la plataforma de hosting. Nunca del primer valor de X-Forwarded-For. */
 export function clientIp(req: Request, mode: 'demo' | 'local' | 'prod'): string | null {
   const h = process.env.ATC_IP_HEADER?.toLowerCase();

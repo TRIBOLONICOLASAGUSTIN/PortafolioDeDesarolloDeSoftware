@@ -65,7 +65,7 @@ export function AdminLogin({ turnstileKey, nonce }: { turnstileKey?: string; non
             <input className="in-in in-code" id="in-code" name="codigo" inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6} required aria-describedby="in-code-h" />
             <p className="in-hint" id="in-code-h">Los 6 números de tu app de autenticación.</p>
           </div>
-          {turnstileKey && <div className="cf-turnstile" data-sitekey={turnstileKey} data-size="flexible" data-language="es"></div>}
+          {turnstileKey && <div className="cf-turnstile" data-sitekey={turnstileKey} data-action="ingresar" data-size="flexible" data-language="es"></div>}
           <p className="in-err" role="alert">{err}</p>
           <button className="btn btn-full" type="submit" disabled={busy}>{busy ? 'Ingresando…' : 'Ingresar'}</button>
         </form>
