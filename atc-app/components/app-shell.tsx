@@ -16,13 +16,17 @@ type UI = {
   menuOpen: boolean; setMenu: (open: boolean) => void;
   waOpen: boolean; setWa: (open: boolean) => void;
   cat: string; setCat: (id: string) => void;
+  /** Marca elegida en el carrusel (null: todas). Se combina con la categoría. */
+  brand: string | null; setBrand: (b: string | null) => void;
   toasts: ToastT[]; toast: (msg: ReactNode, action?: ToastT['action']) => void; endToast: (id: number) => void;
 };
 const UICtx = createContext<UI | null>(null);
 export const useUI = () => useContext(UICtx)!;
 
 /* =========================================================
-   Bolsa: se guarda en el navegador (localStorage); se compra por WhatsApp
+   Bolsa: se guarda en el navegador (localStorage); se compra por WhatsApp.
+   Nombre y dirección NO se guardan (solo viven mientras la página está abierta y viajan en el mensaje de WhatsApp):
+   en una compu compartida no quedan a la vista de otra persona (/privacidad).
    ========================================================= */
 type BagApi = {
   bag: BagState; count: number; bump: number;
@@ -47,6 +51,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [menuOpen, setMenu] = useState(false);
   const [waOpen, setWa] = useState(false);
   const [cat, setCatState] = useState('todo');
+  const [brand, setBrand] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastT[]>([]);
   const lastFocus = useRef<HTMLElement | null>(null);
   const layerRef = useRef<Layer>(null);
@@ -80,12 +85,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [bump, setBump] = useState(0);
   const loaded = useRef(false);
   useEffect(() => {
-    const saved = { ...EMPTY, ...store.get<Partial<BagState>>('atc-bag', {}) };
+    // Lo que haya quedado guardado de antes (nombre, dirección) se descarta y se vuelve a guardar sin eso.
+    const { items, entrega, pago } = store.get<Partial<BagState>>('atc-bag', {});
+    const saved: BagState = { ...EMPTY, ...(items && { items }), ...(entrega && { entrega }), ...(pago && { pago }) };
     // Se descartan productos que ya no existen o no tienen stock.
     saved.items = Object.fromEntries(Object.entries(saved.items ?? {}).filter(([id]) => byId[id] && byId[id].stock > 0));
     setBag(saved); loaded.current = true;
   }, []);
-  useEffect(() => { if (loaded.current) store.set('atc-bag', bag); }, [bag]);
+  useEffect(() => { if (loaded.current) store.set('atc-bag', { items: bag.items, entrega: bag.entrega, pago: bag.pago }); }, [bag.items, bag.entrega, bag.pago]);
 
   const add = useCallback((id: string, q = 1) => {
     const p = byId[id]; if (!p || p.stock <= 0) return;
@@ -143,8 +150,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     return () => { io.disconnect(); document.removeEventListener('toggle', onToggle, true); };
   }, []);
 
-  const ui = useMemo<UI>(() => ({ layer, qvId, openQV, openBag, openSpot, closeLayer, menuOpen, setMenu, waOpen, setWa, cat, setCat, toasts, toast, endToast }),
-    [layer, qvId, openQV, openBag, openSpot, closeLayer, menuOpen, waOpen, cat, setCat, toasts, toast, endToast]);
+  const ui = useMemo<UI>(() => ({ layer, qvId, openQV, openBag, openSpot, closeLayer, menuOpen, setMenu, waOpen, setWa, cat, setCat, brand, setBrand, toasts, toast, endToast }),
+    [layer, qvId, openQV, openBag, openSpot, closeLayer, menuOpen, waOpen, cat, setCat, brand, toasts, toast, endToast]);
   const bagApi = useMemo<BagApi>(() => ({ bag, count: bagCount(bag), bump, add, setQty, remove, patch }), [bag, bump, add, setQty, remove, patch]);
 
   return <UICtx.Provider value={ui}><BagCtx.Provider value={bagApi}>{children}</BagCtx.Provider></UICtx.Provider>;

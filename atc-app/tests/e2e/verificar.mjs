@@ -68,6 +68,8 @@ for (const v of VIEWPORTS) {
     await p.click('[data-pay="mp"]'); await p.fill('#bName', 'Nico');
     const msg = decodeURIComponent((await p.getAttribute('#checkout', 'href')).split('text=')[1] || '');
     check(v.id, 'mensaje de compra completo', /Envío a domicilio \(Barrio Centro\)/.test(msg) && /Pago: Mercado Pago/.test(msg) && /Nombre: Nico/.test(msg));
+    const guardada = await p.evaluate(() => localStorage.getItem('atc-bag') ?? '');
+    check(v.id, 'la bolsa no guarda nombre ni dirección en el navegador (privacidad)', /"items"/.test(guardada) && !/Nico|Barrio Centro|"nombre"|"dir"/.test(guardada), guardada.slice(0, 120));
     await p.keyboard.press('Escape'); await p.waitForTimeout(400);
 
     // Búsqueda (Ctrl+K)
@@ -401,13 +403,63 @@ for (const rm of ['no-preference', 'reduce']) {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: rm });
   const p = await ctx.newPage(); await p.goto(HTML); await p.waitForTimeout(400);
   const m = await p.evaluate(() => {
-    const own = [...document.querySelectorAll('.mq-track>.bl[role="img"]')];
-    return { n: own.length, named: own.every(b => b.getAttribute('aria-label')), visible: own.filter(b => b.querySelector('svg').getBoundingClientRect().width > 0).length,
-      copies: [...document.querySelectorAll('.mq-track>.bl:not([role])')].every(b => b.getAttribute('aria-hidden') === 'true'),
+    const own = [...document.querySelectorAll('.mq-track>a.bl-a:not([aria-hidden])')];
+    return { n: own.length, named: own.every(b => /^Ver productos /.test(b.getAttribute('aria-label') ?? '')), visible: own.filter(b => b.querySelector('svg').getBoundingClientRect().width > 0).length,
+      copies: [...document.querySelectorAll('.mq-track>a.bl-a[aria-hidden]')].every(b => b.getAttribute('aria-hidden') === 'true' && b.tabIndex === -1),
       claim: /oficial|distribuidor|autorizado/i.test(document.querySelector('.brands').textContent) };
   });
   check('marcas', `logos visibles y con nombre${rm === 'reduce' ? ' (reducir movimiento)' : ''}`, m.n >= 10 && m.named && m.visible === m.n && m.copies && !m.claim, JSON.stringify(m));
   await ctx.close();
+}
+
+// Marcas que llevan a sus productos: el logo filtra la tienda (con píldora para quitarlo) y una marca sin productos
+// muestra un vacío honesto. Con "reducir movimiento" el carrusel está quieto y se toca igual.
+for (const [w, rm] of [[1440, 'no-preference'], [390, 'reduce']]) {
+  const ctx = await browser.newContext({ viewport: { width: w, height: 900 }, reducedMotion: rm, hasTouch: w < 900 });
+  const p = await ctx.newPage(); await p.goto(HTML); await p.waitForTimeout(400);
+  // El carrusel se mueve: el clic se hace sobre el enlace (como un toque), sin esperar a que quede quieto.
+  const tocar = b => p.evaluate(b => document.querySelector(`.mq-track>a.bl-a[data-brand="${b}"]:not([aria-hidden])`).click(), b);
+  // Con movimiento, el salto a #tienda es suave: se espera a que llegue (hasta 3 s) en vez de un tiempo fijo.
+  const llego = () => p.waitForFunction(() => Math.abs(document.querySelector('#tienda').getBoundingClientRect().top) < 120, null, { timeout: 3000 }).catch(() => {});
+  await tocar('HP'); await llego(); await p.waitForTimeout(150);
+  const hp = await p.evaluate(() => ({ brands: [...document.querySelectorAll('#shelf .pcard .p-brand')].map(e => e.textContent), pill: document.querySelector('.brand-pill')?.textContent ?? '', hash: location.hash,
+    top: Math.round(document.querySelector('#tienda').getBoundingClientRect().top) }));
+  await p.click('.brand-x'); await p.waitForTimeout(300);
+  const todos = await p.evaluate(() => ({ n: document.querySelectorAll('#shelf .pcard').length, pill: !!document.querySelector('.brand-pill') }));
+  await tocar('Samsung'); await p.waitForTimeout(700);
+  const vacio = await p.evaluate(() => document.querySelector('#shelf .p-empty')?.textContent ?? '');
+  check(`marcas-${w}`, 'tocar un logo lleva a la tienda con solo esa marca; la píldora lo quita; sin productos, vacío honesto', hp.brands.length === 2 && hp.brands.every(b => b === 'HP') && /HP/.test(hp.pill) && hp.hash === '#tienda' && Math.abs(hp.top) < 120 && todos.n === 11 && !todos.pill && /Samsung/.test(vacio) && /Consultanos/.test(vacio), JSON.stringify({ hp, todos, vacio: vacio.slice(0, 60) }));
+  await ctx.close();
+}
+
+// Estante con barra de scroll visible (como en Windows): la primera tarjeta alineada con el título y las flechas en el
+// eje de la sección (antes el relleno usaba 100vw, que incluye la barra, y las tarjetas quedaban corridas).
+{
+  const b2 = await chromium.launch({ ignoreDefaultArgs: ['--hide-scrollbars'] });
+  for (const [w, h] of [[1366, 768], [1440, 900], [1920, 1080]]) {
+    const p = await b2.newPage({ viewport: { width: w, height: h } }); await p.goto(HTML); await p.waitForTimeout(400);
+    const r = await p.evaluate(() => {
+      const mid = el => { const b = el.getBoundingClientRect(); return b.left + b.width / 2; };
+      const head = document.querySelector('#tienda .head'), wrap = document.querySelector('#tienda .wrap').getBoundingClientRect();
+      const card = document.querySelector('#shelf .pcard').getBoundingClientRect(), bb = [...document.querySelectorAll('.shelf-nav .round')].map(b => b.getBoundingClientRect());
+      return { barra: innerWidth - document.documentElement.clientWidth, card: Math.round(card.left - wrap.left), flechas: Math.round((bb[0].left + bb[1].right) / 2 - mid(head)) };
+    });
+    check('estante-barra', `con barra de scroll a ${w}px: primera tarjeta alineada con el título y flechas centradas (±1 px)`, r.barra > 0 && Math.abs(r.card) <= 1 && Math.abs(r.flechas) <= 1, JSON.stringify(r));
+    await p.close();
+  }
+  await b2.close();
+}
+
+// Pie: en compu se estira más allá del contenido (más ancho que la columna de 1120 px) y queda centrado; en celular no desborda
+for (const w of [1440, 1920, 390]) {
+  const p = await browser.newPage({ viewport: { width: w, height: 900 } }); await p.goto(HTML); await p.waitForTimeout(300);
+  const r = await p.evaluate(() => {
+    const f = document.querySelector('footer .f-wrap').getBoundingClientRect(), c = document.querySelector('#tienda .wrap').getBoundingClientRect();
+    return { pie: Math.round(f.width), contenido: Math.round(c.width), centro: Math.round(f.left + f.width / 2 - innerWidth / 2), ow: document.documentElement.scrollWidth - innerWidth, priv: !!document.querySelector('footer a[href="/privacidad"]') };
+  });
+  const ok = w >= 1069 ? r.pie > r.contenido + 100 && Math.abs(r.centro) <= 1 : r.ow <= 0;
+  check('pie', `a ${w}px el pie ${w >= 1069 ? 'es más ancho que el contenido y está centrado' : 'no desborda'}, con enlace a Privacidad y cookies`, ok && r.priv, JSON.stringify(r));
+  await p.close();
 }
 
 // Modo oscuro: la barra del navegador sigue al botón de la luna, el cambio se aplica sin transiciones a destiempo,
@@ -538,6 +590,16 @@ const panelA11y = (root = '.pn') => {
     check('ingreso', `/ingresar en ${scheme === 'dark' ? 'oscuro' : 'claro'}: contraste AA, letra ≥ 13 px y 44 px`, c.length === 0 && a.tiny.length === 0 && a.small.length === 0 && a.h1 === 1, [...c, ...a.tiny, ...a.small].slice(0, 5).join(' | '));
     await v.ctx.close();
   }
+}
+
+// Privacidad y cookies: página propia, enlazada en el pie, legible (AA, letra ≥ 13 px, 44 px) y sin scroll horizontal
+for (const [w, scheme] of [[390, 'light'], [1440, 'dark']]) {
+  const { ctx, p, errs } = await panelPage(w, 900, scheme, { anon: true });
+  const r = await p.goto(server.base + '/privacidad'); await p.waitForTimeout(400);
+  const d = await p.evaluate(() => ({ h1: document.querySelector('h1')?.textContent, claves: ['atc-theme', 'atc-bag', 'atc-greet'].every(k => document.body.textContent.includes(k)), ley: /25\.326/.test(document.body.textContent), ow: document.documentElement.scrollWidth - innerWidth }));
+  const c = await p.evaluate(panelContrast, '.lg *'), a = await p.evaluate(panelA11y, '.lg');
+  check(`privacidad-${w}`, '/privacidad explica qué se guarda (sin cartel), con la Ley 25.326, AA, letra ≥ 13 px y 44 px', r.status() === 200 && d.h1 === 'Privacidad y cookies' && d.claves && d.ley && d.ow <= 0 && c.length === 0 && a.tiny.length === 0 && a.small.length === 0 && a.h1 === 1 && !a.jump && errs.length === 0, JSON.stringify({ d, c: c.slice(0, 3), a: [...a.tiny, ...a.small].slice(0, 4), errs: errs.slice(0, 2) }));
+  await ctx.close();
 }
 
 // F12: inventar un "admin" en el navegador (localStorage, sessionStorage, cookies) no abre el panel.

@@ -13,7 +13,9 @@
 .cat:hover{color:var(--text)}
 .cat[aria-pressed="true"]{color:var(--text);font-weight:600}
 .cat[aria-pressed="true"] span::after{width:24px}
-.shelf{display:flex;gap:20px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:28px max(22px,calc((100vw - 1120px) / 2)) 44px;scroll-padding-inline:max(22px,calc((100vw - 1120px) / 2))}
+/* El relleno usa el ancho de la sección (100 %), no el de la ventana (100vw): con barra de scroll visible (Windows)
+   100vw la incluye y las tarjetas quedaban corridas respecto del título y de las flechas */
+.shelf{display:flex;gap:20px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:28px max(22px,calc((100% - 1120px) / 2)) 44px;scroll-padding-inline:max(22px,calc((100% - 1120px) / 2))}
 .shelf::-webkit-scrollbar{display:none}
 /* En pantallas muy anchas el estante no pasa de 1760 px: la primera tarjeta sigue alineada con .wrap
    (padding = (1760 − 1120) / 2), entran cuatro tarjetas enteras y la quinta asoma dentro del fundido del borde. */
@@ -43,8 +45,17 @@
 .shelf-nav.off{visibility:hidden}
 .round{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--fill);color:var(--text);transition:background-color .15s,color .15s}
 .round:hover{background:var(--line)}
-/* Desactivada: el círculo sigue a la vista (el par queda centrado) y solo se apaga la flecha */
-.round[disabled],.round[disabled]:hover{background:var(--fill);color:var(--text-3);cursor:default}
+/* Desactivada: el círculo sigue a la vista (el par queda centrado) y la flecha baja de intensidad sin cambiar de tono,
+   así las dos pesan parecido */
+.round[disabled],.round[disabled]:hover{background:var(--fill);color:var(--text);cursor:default}
+.round[disabled] .i{opacity:.35}
+/* Filtro de marca (desde el carrusel de logos) */
+.brand-f{display:flex;justify-content:center;margin-top:16px}
+.brand-pill{display:inline-flex;align-items:center;gap:4px;min-height:44px;padding-left:18px;border-radius:999px;font-size:15px;color:var(--text);background:var(--card);box-shadow:var(--shadow)}
+.brand-pill b{font-weight:600}
+.brand-x{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;color:var(--text-2);transition:color .15s}
+@media (hover:hover){.brand-x:hover{color:var(--text)}}
+:root[data-theme="dark"] .brand-pill{box-shadow:inset 0 0 0 .5px rgba(255,255,255,.08)}
 .p-empty{flex:0 0 min(520px,86vw);display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:16px;padding:36px;border-radius:24px;background:var(--card)}
 .p-empty b{font-size:21px;letter-spacing:-.02em}
 

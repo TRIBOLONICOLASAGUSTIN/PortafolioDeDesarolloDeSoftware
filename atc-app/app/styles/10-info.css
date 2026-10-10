@@ -70,3 +70,8 @@ footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1
 .legal>*:first-child{padding-left:0;border-left:0}
 .legal a:hover{color:var(--text);text-decoration:underline}
 .legal .regret{color:var(--text);font-weight:600}
+/* En compu el pie es más ancho que el contenido (se estira hacia los bordes) y sus columnas se reparten con más aire */
+@media (min-width:1069px){
+  footer .f-wrap{width:min(1440px,100% - 2 * clamp(44px,5vw,80px))}
+  .f-cols{grid-template-columns:minmax(0,1.6fr) repeat(3,minmax(0,1fr));gap:48px}
+}

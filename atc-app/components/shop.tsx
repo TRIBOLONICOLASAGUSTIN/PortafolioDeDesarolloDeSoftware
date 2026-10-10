@@ -29,11 +29,12 @@ function Card({ p }: { p: Product }) {
 }
 
 export function Shop() {
-  const { cat, setCat, openSpot } = useUI();
+  const { cat, setCat, brand, setBrand, openSpot } = useUI();
   const reduce = useReducedMotion();
   const shelf = useRef<HTMLDivElement>(null);
   const prev = useRef<HTMLButtonElement>(null), next = useRef<HTMLButtonElement>(null), navEl = useRef<HTMLDivElement>(null);
-  const list = cat === 'todo' ? PRODUCTS : PRODUCTS.filter(p => p.cat === cat);
+  // Categoría y marca se combinan (la marca llega desde el carrusel de logos).
+  const list = PRODUCTS.filter(p => (cat === 'todo' || p.cat === cat) && (!brand || p.brand === brand));
 
   const arrows = useCallback(() => {
     const s = shelf.current; if (!s || !prev.current || !next.current || !navEl.current) return;
@@ -41,7 +42,7 @@ export function Shop() {
     next.current.disabled = s.scrollLeft + s.clientWidth >= s.scrollWidth - 8;
     navEl.current.classList.toggle('off', s.scrollWidth <= s.clientWidth + 8);
   }, []);
-  useEffect(() => { shelf.current?.scrollTo({ left: 0 }); arrows(); }, [cat, arrows]);
+  useEffect(() => { shelf.current?.scrollTo({ left: 0 }); arrows(); }, [cat, brand, arrows]);
   useEffect(() => { addEventListener('resize', arrows); return () => removeEventListener('resize', arrows); }, [arrows]);
   const step = () => ((shelf.current?.querySelector<HTMLElement>('.pcard')?.offsetWidth) || 300) + 20;
   const scroll = (dir: number) => shelf.current?.scrollBy({ left: dir * step() * 2, behavior: reduce ? 'auto' : 'smooth' });
@@ -62,9 +63,20 @@ export function Shop() {
         <div className="cats rv" id="cats" role="group" aria-label="Categorías">
           {CATS.map(c => <button key={c.id} className="cat" data-cat={c.id} aria-pressed={c.id === cat} onClick={() => setCat(c.id)}><Render r={c.r} /><span>{c.t}</span></button>)}
         </div>
+        {brand && (
+          <div className="brand-f">
+            <span className="brand-pill">Marca: <b>{brand}</b>
+              <button type="button" className="brand-x" aria-label={`Quitar el filtro de ${brand}`} onClick={() => setBrand(null)}><Icon n="x" cls="i xs" /></button>
+            </span>
+          </div>
+        )}
+        <p className="sr" role="status">{brand ? `${list.length === 1 ? '1 producto' : `${list.length} productos`} de ${brand}` : ''}</p>
       </div>
       <div className="shelf" id="shelf" aria-label="Productos" ref={shelf} onScroll={arrows}>
-        {list.length ? list.map(p => <Card key={p.id} p={p} />) : (
+        {list.length ? list.map(p => <Card key={p.id} p={p} />) : brand ? (
+          <div className="p-empty"><b>Por ahora no hay productos {brand} en la tienda online.</b><p className="muted">Consultanos y te decimos qué hay en el local.</p>
+            <Wa className="btn btn-wa btn-sm" text={`¡Hola! Busco productos ${brand}: `}><Icon n="wa" cls="i sm" />Consultar</Wa></div>
+        ) : (
           <div className="p-empty"><b>Tenemos más productos en el local.</b><p className="muted">Consultanos por lo que buscás y te respondemos con stock y precio.</p>
             <Wa className="btn btn-wa btn-sm" text="¡Hola! Estoy buscando: "><Icon n="wa" cls="i sm" />Consultar</Wa></div>
         )}

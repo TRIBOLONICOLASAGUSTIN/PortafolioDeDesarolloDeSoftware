@@ -117,7 +117,7 @@ export function Contact() {
 export function Footer() {
   return (
     <footer>
-      <div className="wrap">
+      <div className="wrap f-wrap">
         <p className="f-note">Precios en pesos argentinos, sujetos a cambios sin previo aviso. Stock sujeto a disponibilidad. Imágenes ilustrativas. El diagnóstico se bonifica si aprobás la reparación.</p>
         <div className="f-cols">
           <div>
@@ -133,6 +133,7 @@ export function Footer() {
             <span>© {storeNow().year} AT Computación</span>
             <Wa className="regret" text="Hola, quiero arrepentirme de una compra (Botón de arrepentimiento). Mi pedido es: ">Botón de arrepentimiento</Wa>
             <a href="https://www.argentina.gob.ar/produccion/defensadelconsumidor" target="_blank" rel="noopener">Defensa del Consumidor</a>
+            <a href="/privacidad">Privacidad y cookies</a>
             <a href="#" title="Reemplazar por el QR de Data Fiscal de ARCA">Data fiscal</a>
           </div>
           <span>Santa Fe, Argentina</span>
