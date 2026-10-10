@@ -93,6 +93,16 @@
 .tot span{color:var(--text-2)}
 .tot b{font-size:24px;letter-spacing:-.03em}
 .bag-note{font-size:12px;color:var(--text-3);text-align:center}
+/* Pedido registrado: confirmación con el código (el stock queda apartado 48 h) */
+.bag-ok{display:grid;grid-template-columns:24px minmax(0,1fr);gap:4px 10px;align-items:start;margin:8px 0 16px;padding:16px;border-radius:18px;background:var(--bg-alt)}
+.bag-ok>.i{color:var(--ok);margin-top:2px}
+.bag-ok b{font-size:17px;letter-spacing:-.01em}
+.bag-ok p{grid-column:2;font-size:14px;line-height:1.43;color:var(--text-2)}
+.bag-ok a{color:var(--link);text-decoration:underline;text-underline-offset:2px}
+.bag-err{font-size:14px;line-height:1.43;font-weight:500;color:var(--danger)}
+.bag-ts:empty{display:none}
+.bag-ts{padding:0 24px 12px}
+#checkout[aria-disabled]{opacity:.7;pointer-events:none}
 .empty{text-align:center;padding:60px 10px;color:var(--text-2)}
 .empty .r{width:160px;height:110px;margin:0 auto 18px;opacity:.85}
 .empty b{display:block;color:var(--text);font-size:21px;letter-spacing:-.02em;margin-bottom:6px}

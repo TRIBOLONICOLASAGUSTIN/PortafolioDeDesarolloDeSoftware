@@ -5,7 +5,21 @@ import { useBag, useReducedMotion, useUI } from './app-shell';
 import { Icon, Render, Wa } from './ui';
 import { byId, CATS, PAGES, PRODUCTS, stockInfo } from '@/lib/data/catalog';
 import { fmt, norm } from '@/lib/format';
-import { bagMessage, bagSubtotal, PAYS, waLink } from '@/lib/whatsapp';
+import { bagMessage, bagSubtotal, PAYS, waLink, type Registrado } from '@/lib/whatsapp';
+
+/* Turnstile del pedido (solo si hay clave): se dibuja al finalizar, invisible salvo que haga falta interactuar. */
+type TS = { render?: (el: HTMLElement, o: Record<string, unknown>) => string; remove?: (id: string) => void };
+const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+function tokenPedido(el: HTMLElement | null): Promise<string | null> {
+  const ts = (window as unknown as { turnstile?: TS }).turnstile;
+  if (!SITE_KEY || !el || !ts?.render) return Promise.resolve(null);
+  return new Promise(res => {
+    const fin = setTimeout(() => res(null), 8000);
+    el.replaceChildren();
+    ts.render!(el, { sitekey: SITE_KEY, action: 'pedido', appearance: 'interaction-only', size: 'flexible', language: 'es',
+      callback: (t: string) => { clearTimeout(fin); res(t); }, 'error-callback': () => { clearTimeout(fin); res(null); } });
+  });
+}
 
 /** Lleva el foco a un elemento de la ventana cuando se abre. */
 function useFocusOnOpen(open: boolean, root: React.RefObject<HTMLElement | null>, sel: string) {
@@ -66,13 +80,53 @@ function Bag() {
   useFocusOnOpen(open, ref, '[data-close]');
   const ids = Object.keys(bag.items);
   const setEntrega = (e: 'retiro' | 'envio') => { patch({ entrega: e }); if (e === 'envio') requestAnimationFrame(() => dirRef.current?.focus()); };
+  // Finalizar: el servidor registra el pedido y aparta el stock 48 h; después se abre WhatsApp con el código.
+  // Si algo falla, WhatsApp se abre igual sin código (el enlace del botón ya lo tiene): nunca se pierde una venta.
+  const tsRef = useRef<HTMLDivElement>(null);
+  const [enviando, setEnviando] = useState(false);
+  const [listo, setListo] = useState<{ codigo: string; url: string } | null>(null);
+  const [aviso, setAviso] = useState('');
+  useEffect(() => { if (ids.length) setListo(null); }, [ids.length]);
+  const finalizar = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    if (enviando) return;
+    // La pestaña se abre ya, en el toque (si se abriera después de esperar, el navegador la bloquearía)
+    const w = window.open('', '_blank');
+    setEnviando(true); setAviso('');
+    let reg: Registrado | null = null, faltan: string[] | null = null;
+    try {
+      const token = await tokenPedido(tsRef.current);
+      const r = await fetch('/api/pedidos', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, signal: AbortSignal.timeout(8000),
+        body: JSON.stringify({ items: Object.entries(bag.items).map(([slug, qty]) => ({ slug, qty })), entrega: bag.entrega, pago: bag.pago,
+          ...(bag.nombre.trim() ? { nombre: bag.nombre.trim().slice(0, 60) } : {}), ...(token ? { turnstileToken: token } : {}) }),
+      });
+      const j = await r.json().catch(() => null);
+      if (j?.ok) reg = j; else if (j?.motivo === 'sin_stock' && Array.isArray(j.productos)) faltan = j.productos;
+    } catch {}
+    setEnviando(false);
+    if (faltan) {
+      w?.close();
+      setAviso(`Ya no alcanza el stock de ${faltan.map(s => byId[s]?.name ?? s).join(', ')}. Ajustá la cantidad o consultanos por WhatsApp.`);
+      return;
+    }
+    const url = waLink(bagMessage(bag, reg));
+    if (w) { w.opener = null; w.location.href = url; } else location.href = url;
+    if (reg) { setListo({ codigo: reg.codigo, url }); patch({ items: {} }); }
+  };
   return (
     <aside className={`bag${open ? ' open' : ''}`} id="bag" role="dialog" aria-modal="true" aria-labelledby="bagTitle" inert={!open} ref={ref}>
       <button className="x-btn" data-close aria-label="Cerrar" onClick={closeLayer}><Icon n="x" /></button>
       <div className="bag-h"><h3 id="bagTitle">Tu bolsa</h3>
         <p id="bagSub">{count ? `${count} producto${count > 1 ? 's' : ''} · lo enviamos por WhatsApp, sin pagar online.` : 'Revisá tu pedido y lo enviamos por WhatsApp.'}</p></div>
       <div className="bag-b" id="bagBody">
-        {!ids.length ? (
+        {listo && (
+          <div className="bag-ok" id="bag-listo" role="status">
+            <Icon n="check-c" /><b>Listo: tu pedido {listo.codigo} quedó registrado.</b>
+            <p>Te lo reservamos hasta coordinar el pago por WhatsApp (48 h). Si WhatsApp no se abrió, <a href={listo.url} target="_blank" rel="noopener">abrilo acá</a>.</p>
+          </div>
+        )}
+        {!ids.length ? (listo ? null :
           <div className="empty"><Render r="all" /><b>Tu bolsa está vacía.</b><p>Agregá productos y te los reservamos por WhatsApp.</p><a className="btn" href="#tienda" onClick={closeLayer}>Ir a la tienda</a></div>
         ) : <>
           {ids.map(id => {
@@ -105,9 +159,11 @@ function Bag() {
       </div>
       <div className="bag-f" id="bagFoot">{ids.length > 0 && <>
         <div className="tot"><span>Subtotal</span><b>{fmt(bagSubtotal(bag))}</b></div>
-        <a className="btn btn-wa btn-full" id="checkout" href={waLink(bagMessage(bag))} target="_blank" rel="noopener"><Icon n="wa" />Finalizar pedido por WhatsApp</a>
-        <p className="bag-note">Te confirmamos stock, envío y total por chat. No se cobra nada online.</p>
+        {aviso && <p className="bag-err" role="alert">{aviso}</p>}
+        <a className="btn btn-wa btn-full" id="checkout" href={waLink(bagMessage(bag))} target="_blank" rel="noopener" onClick={finalizar} aria-disabled={enviando || undefined}><Icon n="wa" />{enviando ? 'Registrando tu pedido…' : 'Finalizar pedido por WhatsApp'}</a>
+        <p className="bag-note">Registramos tu pedido y te lo reservamos 48 h. Envío, pago y total, por chat. No se cobra nada online.</p>
       </>}</div>
+      <div className="bag-ts" ref={tsRef} />
     </aside>
   );
 }

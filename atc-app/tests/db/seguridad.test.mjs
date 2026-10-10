@@ -25,7 +25,7 @@ test('RLS-1 · Todas las tablas tienen RLS activado y ningún rol del API es due
      order by 1`);
   assert.deepEqual(rows.map(r => r.tabla), [
     'private.secrets', 'private.track_attempts',
-    'public.order_events', 'public.orders', 'public.products', 'public.settings',
+    'public.order_events', 'public.orders', 'public.products', 'public.sales_order_items', 'public.sales_orders', 'public.settings',
   ]);
   for (const r of rows) {
     assert.equal(r.rls, true, `${r.tabla} sin RLS`);
@@ -37,7 +37,7 @@ test('RLS-2 · Permisos mínimos aun con los permisos de fábrica de Supabase', 
   const { rows } = await c.query(`
     select grantee || ':' || table_schema || '.' || table_name || ':' || privilege_type as g
       from information_schema.role_table_grants
-     where grantee in ('anon', 'authenticated', 'atc_tracker') and table_schema in ('public', 'private')
+     where grantee in ('anon', 'authenticated', 'atc_tracker', 'atc_tienda') and table_schema in ('public', 'private')
      order by 1`);
   assert.deepEqual(rows.map(r => r.g), [
     'anon:public.products:SELECT',
@@ -51,6 +51,8 @@ test('RLS-2 · Permisos mínimos aun con los permisos de fábrica de Supabase', 
     'authenticated:public.products:INSERT',
     'authenticated:public.products:SELECT',
     'authenticated:public.products:UPDATE',
+    'authenticated:public.sales_order_items:SELECT',
+    'authenticated:public.sales_orders:SELECT',
     'authenticated:public.settings:SELECT',
   ]);
   // settings: authenticated solo puede actualizar business_name (no owner_user_id).
@@ -59,13 +61,13 @@ test('RLS-2 · Permisos mínimos aun con los permisos de fábrica de Supabase', 
      where grantee = 'authenticated' and table_name = 'settings' and privilege_type = 'UPDATE'`);
   assert.deepEqual(cols.rows.map(r => r.column_name), ['business_name']);
   // Nadie del API entra al schema private ni usa secuencias.
-  for (const role of ['anon', 'authenticated', 'atc_tracker']) {
+  for (const role of ['anon', 'authenticated', 'atc_tracker', 'atc_tienda']) {
     const { rows: [u] } = await c.query(`select has_schema_privilege($1, 'private', 'USAGE') as u`, [role]);
     assert.equal(u.u, false, `${role} tiene USAGE sobre private`);
   }
   const seq = await c.query(`
     select grantee from information_schema.role_usage_grants
-     where object_type = 'SEQUENCE' and grantee in ('anon', 'authenticated', 'atc_tracker')`);
+     where object_type = 'SEQUENCE' and grantee in ('anon', 'authenticated', 'atc_tracker', 'atc_tienda')`);
   assert.equal(seq.rowCount, 0);
 });
 
@@ -155,12 +157,12 @@ test('FN-1 · Toda función de public y private fija su search_path (y las SECUR
      where n.nspname in ('public', 'private')
      order by 1`);
   assert.deepEqual(rows.map(r => r.f), [
-    'private.anonymize_closed_orders', 'private.purge_attempts',
-    'public.gen_public_code', 'public.is_owner', 'public.normalize_code',
-    'public.tg_event_updates_order', 'public.tg_set_updated_at', 'public.track_order',
+    'private.anonymize_closed_orders', 'private.autocancelar_pedidos', 'private.gen_pedido_code', 'private.limpiar_pedidos', 'private.purge_attempts',
+    'public.crear_pedido', 'public.gen_public_code', 'public.is_owner', 'public.normalize_code',
+    'public.tg_event_updates_order', 'public.tg_sales_order_status', 'public.tg_set_updated_at', 'public.track_order',
   ]);
   for (const r of rows) assert.match(r.cfg, /search_path=pg_catalog, public, pg_temp/, `${r.f} sin search_path fijo`);
-  assert.deepEqual(rows.filter(r => r.definer).map(r => r.f), ['public.is_owner', 'public.track_order']);
+  assert.deepEqual(rows.filter(r => r.definer).map(r => r.f), ['public.crear_pedido', 'public.is_owner', 'public.tg_sales_order_status', 'public.track_order']);
 });
 
 test('FN-2 · track_order solo la ejecuta atc_tracker (ni PUBLIC, ni anon, ni authenticated)', async () => {

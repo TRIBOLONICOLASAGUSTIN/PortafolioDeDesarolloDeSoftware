@@ -16,7 +16,7 @@ Las reglas de abajo aplican a todo lo de AT Computación.
 - Sin plazos fijos de diagnóstico ni de reparación hasta que el dueño los confirme. Los tiempos del cotizador son de ejemplo y se muestran como orientativos.
 - Datos de ejemplo hasta que el dueño pase los reales: WhatsApp `5493420000000`, dirección, mail, precios, tiempos del cotizador, stock y reseñas.
 - **No mergear a `main`** mientras haya datos de ejemplo: GitHub Pages lo publicaría. Se trabaja en ramas.
-- La compra no cobra online: la bolsa arma un mensaje de WhatsApp (entrega, pago y nombre). Nada de datos de tarjeta.
+- La compra no cobra online. La bolsa registra el pedido (código `P-XXXX-XX`), la base aparta el stock 48 h y se abre WhatsApp con el código (entrega, pago y nombre). Si no se paga, se cancela solo y el stock vuelve. Si el servidor falla, WhatsApp se abre igual sin código. Nada de datos de tarjeta.
 
 ## Estilo (inspirado en apple.com, calmo, que no canse la vista)
 - **Espacio:**
@@ -74,6 +74,7 @@ Las reglas de abajo aplican a todo lo de AT Computación.
 - **Base** (`atc-app/`, Supabase):
   - RLS en todas las tablas, y se revocan los permisos de fábrica: Supabase les da todo a `anon` y `authenticated`, y Postgres les da EXECUTE a todos. Lo nuevo nace cerrado.
   - `track_order(code, phone3, ip)` (SECURITY DEFINER) es la única puerta pública a una orden. **Solo la ejecuta `atc_tracker`**, un rol del servidor sin acceso a tablas. **Nunca `anon`:** la anon key es pública y permitiría saltearse Turnstile y el límite por IP.
+  - `crear_pedido(items, entrega, pago, nombre, ip)` (SECURITY DEFINER) es la única forma de crear un pedido de la bolsa: **solo la ejecuta `atc_tienda`** (mismas reglas que `atc_tracker`), con precios de la base, reserva atómica y 5 pedidos por hora por red.
   - Bloqueos dentro de la base: por código intentado, 5 fallas en 15 min o 10 en 24 h; por IP, 30 en 1 h.
   - Misma respuesta para "no existe", "teléfono incorrecto" y "formato inválido". Los intentos se guardan solo como HMAC.
   - La app **no usa la service_role** (solo las migraciones). La contraseña de `atc_tracker` vive solo en las variables de entorno del servidor: nunca en el repo ni en el chat.

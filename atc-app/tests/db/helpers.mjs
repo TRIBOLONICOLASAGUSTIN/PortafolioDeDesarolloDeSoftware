@@ -12,7 +12,7 @@ export function clusterPass() {
 export const DB_URL = process.env.ATC_DB_URL ?? `postgres://postgres:${clusterPass()}@127.0.0.1:${port}/${db}`;
 
 // Solo estos roles se pueden asumir en las pruebas (evita interpolar texto arbitrario).
-const ROLES = new Set(['anon', 'authenticated', 'atc_tracker', 'service_role']);
+const ROLES = new Set(['anon', 'authenticated', 'atc_tracker', 'atc_tienda', 'service_role']);
 
 export async function connect() {
   const c = new pg.Client({ connectionString: DB_URL });
@@ -71,3 +71,10 @@ export async function makeOwner(c, id = OWNER) {
 }
 
 export const CODE_RE = /^AT-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{2}$/;
+
+// Llama a crear_pedido con el rol que esté activo (atc_tienda en las pruebas).
+export async function pedir(c, items, { entrega = 'retiro', pago = 'transferencia', nombre = 'Lucía Martínez', ip = '203.0.113.50' } = {}) {
+  const { rows } = await c.query('select public.crear_pedido($1::jsonb, $2, $3, $4, $5) as r', [JSON.stringify(items), entrega, pago, nombre, ip]);
+  return rows[0].r;
+}
+export const PEDIDO_RE = /^P-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{2}$/;

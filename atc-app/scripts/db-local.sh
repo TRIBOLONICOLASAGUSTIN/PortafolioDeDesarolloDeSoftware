@@ -65,13 +65,13 @@ reset() {
   start
   "${PSQL[@]}" -d postgres -c "drop database if exists $DB with (force)" -c "create database $DB"
   # Los roles son de todo el cluster: se recrean para partir siempre de cero.
-  "${PSQL[@]}" -d postgres -c "drop role if exists atc_tracker, anon, authenticated, service_role"
+  "${PSQL[@]}" -d postgres -c "drop role if exists atc_tracker, atc_tienda, anon, authenticated, service_role"
   "${PSQL[@]}" -d "$DB" -f tests/db/shim-supabase.sql
   for f in supabase/migrations/*.sql; do "${PSQL[@]}" -d "$DB" -f "$f"; done
   "${PSQL[@]}" -d "$DB" -f supabase/seed.sql
-  # SOLO en este cluster de pruebas (127.0.0.1): atc_tracker inicia sesión con la contraseña al azar del cluster,
-  # para probar /api/seguimiento contra la base real. En producción: seguridad.md §8 punto 4.
-  "${PSQL[@]}" -d postgres -c "alter role atc_tracker login password '$PGPASSWORD'"
+  # SOLO en este cluster de pruebas (127.0.0.1): atc_tracker y atc_tienda inician sesión con la contraseña al azar
+  # del cluster, para probar /api/seguimiento y /api/pedidos contra la base real. En producción: seguridad.md §8 punto 4.
+  "${PSQL[@]}" -d postgres -c "alter role atc_tracker login password '$PGPASSWORD'" -c "alter role atc_tienda login password '$PGPASSWORD'"
   echo "Base $DB lista en 127.0.0.1:$PORT (shim + $(ls supabase/migrations/*.sql | wc -l | tr -d ' ') migraciones + seed)."
 }
 

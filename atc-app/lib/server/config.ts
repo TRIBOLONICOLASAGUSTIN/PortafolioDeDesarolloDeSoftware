@@ -21,23 +21,28 @@ const isLocalDb = (url: string) => {
   try { return ['127.0.0.1', 'localhost', '[::1]'].includes(new URL(url).hostname); } catch { return false; }
 };
 
-export function trackingConfig(): TrackingConfig {
+/** Configuración de una ruta pública que va a la base con su propio rol (seguimiento: atc_tracker; pedidos: atc_tienda). */
+function configDe(urlVar: string): TrackingConfig {
+  const required = REQUIRED_PROD.map(k => (k === 'ATC_TRACKER_DATABASE_URL' ? urlVar : k));
   const prod = process.env.NODE_ENV === 'production';
-  const dbUrl = process.env.ATC_TRACKER_DATABASE_URL;
-  if (!dbUrl) return prod ? { ok: false, missing: REQUIRED_PROD.filter(k => !process.env[k]) } : { ok: true, mode: 'demo' };
+  const dbUrl = process.env[urlVar];
+  if (!dbUrl) return prod ? { ok: false, missing: required.filter(k => !process.env[k]) } : { ok: true, mode: 'demo' };
   if (!prod || (process.env.ATC_LOCAL === '1' && isLocalDb(dbUrl))) return { ok: true, mode: 'local', dbUrl };
-  const missing = REQUIRED_PROD.filter(k => !process.env[k]);
+  const missing = required.filter(k => !process.env[k]);
   // El primer valor de X-Forwarded-For lo escribe el cliente: no sirve para limitar por IP.
   if ((process.env.ATC_IP_HEADER ?? '').toLowerCase() === 'x-forwarded-for') missing.push('ATC_IP_HEADER (no puede ser x-forwarded-for)');
   if (process.env.ATC_DB_CA && !process.env.ATC_DB_CA.includes('BEGIN CERTIFICATE')) missing.push('ATC_DB_CA (tiene que ser el certificado en formato PEM)');
   try {
     const q = new URL(dbUrl).searchParams;
-    if (SSL_PARAMS.some(k => q.has(k))) missing.push('ATC_TRACKER_DATABASE_URL (sin parámetros ssl: el cifrado lo fija el servidor)');
+    if (SSL_PARAMS.some(k => q.has(k))) missing.push(`${urlVar} (sin parámetros ssl: el cifrado lo fija el servidor)`);
   } catch {
-    missing.push('ATC_TRACKER_DATABASE_URL (inválida)');
+    missing.push(`${urlVar} (inválida)`);
   }
   return missing.length ? { ok: false, missing } : { ok: true, mode: 'prod', dbUrl };
 }
+export const trackingConfig = () => configDe('ATC_TRACKER_DATABASE_URL');
+/** Pedidos de la bolsa (POST /api/pedidos): misma exigencia, con la conexión de atc_tienda. */
+export const tiendaConfig = () => configDe('ATC_TIENDA_DATABASE_URL');
 
 /**
  * Red que se usa para limitar: la IPv4 tal cual; en IPv6, el /64 (una conexión hogareña o un servidor recibe un /64

@@ -602,6 +602,53 @@ for (const [w, scheme] of [[390, 'light'], [1440, 'dark']]) {
   await ctx.close();
 }
 
+// La bolsa registra el pedido (la base aparta el stock 48 h) y recién después abre WhatsApp con el código. Si el
+// servidor no responde, WhatsApp se abre igual sin código (nunca se pierde una venta); si falta stock, avisa y no abre.
+{
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
+  await ctx.route('https://wa.me/**', r => r.fulfill({ contentType: 'text/html', body: '<!doctype html><title>WhatsApp</title>' }));
+  const p = await ctx.newPage(); await p.goto(HTML); await p.waitForTimeout(400);
+  const finalizar = async () => {
+    const [w] = await Promise.all([ctx.waitForEvent('page'), p.click('#checkout')]);
+    await w.waitForURL(/wa\.me/, { timeout: 15000 }).catch(() => {});
+    const texto = w.url().includes('wa.me') ? new URL(w.url()).searchParams.get('text') ?? '' : '';
+    await w.close().catch(() => {});
+    return texto;
+  };
+  const llenar = async () => {
+    await p.locator('#shelf [data-add]').first().click(); await p.waitForTimeout(300);
+    await p.click('#bagBtn'); await p.waitForTimeout(600);
+    await p.fill('#bName', 'Nico Pérez');
+  };
+  try {
+    // 1) Sin servidor (503): WhatsApp igual, sin código
+    await p.route('**/api/pedidos', r => r.fulfill({ status: 503, contentType: 'application/json', body: '{"ok":false,"motivo":"no_disponible"}' }));
+    await llenar();
+    const sin = await finalizar();
+    const queda = await p.evaluate(() => document.querySelectorAll('#bag .bi').length);
+    check('bolsa-pedido', 'si el servidor no responde, WhatsApp se abre igual con el pedido (sin código) y la bolsa no se pierde', /Quiero hacer este pedido/.test(sin) && !/P-[0-9A-Z]{4}/.test(sin) && queda === 1, JSON.stringify({ sin: sin.slice(0, 60), queda }));
+    // 2) Sin stock (409): avisa y no abre WhatsApp
+    await p.unroute('**/api/pedidos');
+    await p.route('**/api/pedidos', r => r.fulfill({ status: 409, contentType: 'application/json', body: '{"ok":false,"motivo":"sin_stock","productos":["nb-ideapad"]}' }));
+    const [w2] = await Promise.all([ctx.waitForEvent('page'), p.click('#checkout')]);
+    await p.waitForTimeout(600);
+    const err = await p.evaluate(() => document.querySelector('#bag .bag-err')?.textContent ?? '');
+    check('bolsa-pedido', 'si falta stock, avisa en la bolsa y no manda el pedido', /Ya no alcanza el stock de IdeaPad/.test(err) && w2.isClosed(), err);
+    // 3) Con la base: el pedido queda registrado y WhatsApp lleva su código
+    await p.unroute('**/api/pedidos');
+    const con = await finalizar();
+    const codigo = con.match(/P-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{2}/)?.[0] ?? '';
+    const listo = await p.evaluate(() => ({ txt: document.querySelector('#bag-listo')?.textContent ?? '', items: document.querySelectorAll('#bag .bi').length, badge: document.querySelector('#badge')?.textContent ?? '' }));
+    check('bolsa-pedido', 'con la base, el pedido queda registrado: WhatsApp lleva el código y el total, y la bolsa muestra la confirmación vacía',
+      !!codigo && /Te escribo por mi pedido/.test(con) && /Total: \$/.test(con) && /Nombre: Nico Pérez/.test(con) && listo.txt.includes(codigo) && /48 h/.test(listo.txt) && listo.items === 0, JSON.stringify({ con: con.slice(0, 80), listo }));
+    const c = await p.evaluate(panelContrast, '#bag *');
+    check('bolsa-pedido', 'la confirmación y los avisos de la bolsa cumplen contraste AA', c.length === 0, JSON.stringify(c));
+  } catch (e) {
+    check('bolsa-pedido', 'flujo del pedido sin excepciones', false, e.message.split('\n')[0]);
+  }
+  await ctx.close();
+}
+
 // F12: inventar un "admin" en el navegador (localStorage, sessionStorage, cookies) no abre el panel.
 {
   const { ctx, p } = await panelPage(390, 844, 'light', { anon: true });
