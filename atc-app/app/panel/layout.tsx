@@ -6,6 +6,8 @@ import { DEMO_ORDERS } from '@/lib/data/demo-orders';
 import { Sprites } from '@/components/sprites';
 import { PanelShell } from '@/components/panel/panel-shell';
 import '../styles/14-panel.css';
+import '../styles/17-catalogo.css';
+import '../styles/18-pedidos.css';
 
 // Panel del dueño: solo el superadmin con sesión (lib/server/admin.ts); para cualquier otro, 404. Montos de ejemplo hasta
 // conectar la base. Nunca se indexa (además del X-Robots-Tag de next.config).

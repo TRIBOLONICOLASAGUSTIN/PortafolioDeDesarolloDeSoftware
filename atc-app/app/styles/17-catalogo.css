@@ -1,0 +1,70 @@
+/* =========================================================
+   Panel › Catálogo: Productos, Proveedores, Lista de precios, Categorías y Marcas.
+   Reusa las filas del inventario (.pn-inv) y las tarjetas; acá solo lo propio de cada pantalla.
+   ========================================================= */
+/* Filtros con select (categoría y marca): con su etiqueta visible, de a dos desde tablet */
+.pn-sels{display:grid;gap:12px}
+@media (min-width:735px){.pn-sels{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.pn-sel{display:grid;gap:6px;min-width:0}
+.pn-sel>span:first-child{font-size:14px;font-weight:600;color:var(--text-2)}
+
+/* Lista de precios: el formulario del aumento y la vista previa */
+.pn-aum{display:grid;gap:16px}
+.pn-aum .pn-h2+.pn-hint{margin-top:-8px}
+.pn-aum-f{display:grid;gap:12px}
+@media (min-width:735px){.pn-aum-f{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}}
+:is(.pn-aum,.pn-retraso) .pn-chips{display:flex;flex-wrap:nowrap;gap:0;margin:0;padding:3px;border:0;border-radius:999px;background:var(--fill-2)}
+:is(.pn-aum,.pn-retraso) .pn-chip{flex:1 1 0;min-width:0}
+:is(.pn-aum,.pn-retraso) .pn-chip span{display:flex;align-items:center;justify-content:center;height:38px;padding:0 6px;border:0;border-radius:999px;font-size:15px;white-space:nowrap;background:none;box-shadow:none}
+:is(.pn-aum,.pn-retraso) .pn-chip input:checked+span{color:var(--text);background:var(--pn-seg);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+@media (max-width:360px){:is(.pn-aum,.pn-retraso) .pn-chip span{font-size:14px;padding:0 2px}}
+.pn-pct{position:relative;display:block}
+.pn-pct>.pn-in{padding-right:40px;text-align:right}
+.pn-pct>span{position:absolute;right:16px;top:50%;translate:0 -50%;font-size:17px;color:var(--text-2);pointer-events:none}
+.pn-warn-t{font-size:14px;font-weight:500;color:var(--pn-down-t)}
+.pn-warn-t:empty{display:none}
+.pn-prev-l{display:grid;gap:12px;padding:16px;border-radius:18px;background:var(--pn-well)}
+.pn-bajo{font-weight:600;color:var(--pn-down-t)}
+.pn-cambios{margin:0}
+.pn-cambio{display:grid;grid-template-columns:44px minmax(0,1fr) auto;grid-template-areas:"ic t a" "ic s x";align-items:baseline;column-gap:12px;row-gap:2px;padding:10px 0}
+.pn-cambio>.pn-ic{grid-area:ic;align-self:center;background:var(--card)}
+.pn-cambio>:is(.pn-rt,.pn-mamt){display:contents}
+.pn-cambio>.pn-rt>b{grid-area:t}
+.pn-cambio>.pn-rt>small{grid-area:s}
+.pn-cambio>.pn-mamt>b{grid-area:a;text-align:right}
+.pn-cambio>.pn-mamt>small{grid-area:x;justify-self:end;color:var(--text-2)}
+
+/* Proveedores: una tarjeta por proveedor */
+.pn-prov{display:grid;gap:12px}
+.pn-prov-h{display:grid;grid-template-columns:44px minmax(0,1fr);align-items:center;gap:12px}
+.pn-prov-h .pn-rt{display:flex;flex-direction:column;gap:2px}
+.pn-prov-h small{font-size:14px;color:var(--text-2)}
+.pn-prov-dl{margin:0}
+.pn-prov-dl dd{font-size:16px}
+.pn-prov-arts summary{font-weight:500}
+.pn-prov-arts summary .pn-bajo{margin-left:.35em}
+.pn-prov>.btn{justify-self:start}
+
+/* Categorías: fila con enlace a sus productos y el interruptor de la tienda */
+.pn-cats,.pn-marcas{list-style:none;margin:0;padding-block:8px}
+.pn-catrow{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px}
+.pn-catrow>.pn-inv{grid-template-columns:44px minmax(0,1fr) auto;grid-template-areas:"ic t a" "ic s x"}
+/* Interruptor (como en Configuración): 51 × 31 dentro de un área de 44 px */
+.pn-tgl{position:relative;display:grid;place-items:center;width:60px;height:44px;cursor:pointer}
+/* El input invisible recibe el toque; el dibujo de abajo no intercepta el puntero */
+.pn-tgl input{position:absolute;inset:0;z-index:1;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.pn-tgl span{position:relative;width:51px;height:31px;border-radius:999px;background:var(--fill);box-shadow:inset 0 0 0 1px var(--pn-in-line);pointer-events:none;transition:background-color .15s}
+.pn-tgl span::after{content:'';position:absolute;left:2px;top:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.15),0 1px 1px rgba(0,0,0,.16);transition:transform .3s var(--ease)}
+.pn-tgl input:checked+span{background:var(--ok);box-shadow:none}
+.pn-tgl input:checked+span::after{transform:translateX(20px)}
+.pn-tgl input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+
+/* Marcas: el logo de la tienda (monocromo) en lugar del ícono */
+.pn-marcas .pn-inv{grid-template-columns:56px minmax(0,1fr) auto;grid-template-areas:"ic t a" "ic s a"}
+.pn-mlogo{width:56px;color:var(--text)}
+.pn-mlogo svg{width:40px;height:22px;fill:currentColor}
+.pn-mlogo>b{font-size:15px}
+.pn-mtags{grid-area:a;align-self:center}
+.pn-mtag{display:inline-block;padding:4px 10px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;color:var(--text);background:var(--fill)}
+.pn-mtag.rev::before{content:'';display:inline-block;width:6px;height:6px;margin:0 6px 1px 0;border-radius:50%;background:var(--danger)}
+@media (max-width:420px){.pn-marcas .pn-inv{grid-template-areas:"ic t t" "ic s s" "ic a a"}.pn-mtags{justify-self:start;margin-top:4px}}

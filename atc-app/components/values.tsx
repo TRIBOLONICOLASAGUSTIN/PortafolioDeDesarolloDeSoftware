@@ -1,6 +1,7 @@
 import { Icon } from './ui';
 import { Marquee } from './marquee';
 import { vars } from '@/lib/format';
+import { MARCAS_CARRUSEL } from '@/lib/data/marcas';
 
 const VALUES: [string, string, string][] = [
   ['shield', '90 días', 'de garantía escrita en cada reparación.'],
@@ -14,8 +15,6 @@ const PAYMENTS: [string, string, string][] = [
   ['zap', 'Mercado Pago', 'Con QR o link de pago.'],
   ['card', 'Débito y crédito', 'Cuotas en productos seleccionados.'],
 ];
-// Marcas de ejemplo: confirmar con el dueño cuáles trabaja de verdad antes de publicar (el logo dice "esto se vende acá").
-const BRANDS = ['HP', 'Lenovo', 'Epson', 'Brother', 'Logitech', 'Samsung', 'Kingston', 'TP-Link', 'ASUS', 'Corsair', 'Dell', 'Canon', 'NVIDIA', 'Acer', 'AMD', 'Western Digital', 'MSI', 'Redragon'];
 
 export function Values() {
   return (
@@ -34,7 +33,7 @@ export function Values() {
         </div>
         <div className="brands rv" role="group" aria-label="Marcas con las que trabajamos">
           <p className="brands-t">Trabajamos con las marcas que ya conocés</p>
-          <Marquee brands={BRANDS} />
+          <Marquee brands={MARCAS_CARRUSEL} />
         </div>
       </div>
     </section>

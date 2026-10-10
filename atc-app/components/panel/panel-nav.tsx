@@ -16,12 +16,17 @@ export type NavItem = { href: string; t: string; ic: string; n?: number };
 export type NavGrupo = { t: string; items: NavItem[] };
 
 export const NAV: NavGrupo[] = [
+  { t: 'Catálogo', items: [
+    { href: '/panel/productos', t: 'Productos', ic: 'laptop' },
+    { href: '/panel/inventario', t: 'Inventario', ic: 'package' },
+    { href: '/panel/proveedores', t: 'Proveedores', ic: 'truck' },
+    { href: '/panel/precios', t: 'Lista de precios', ic: 'tag' },
+    { href: '/panel/categorias', t: 'Categorías', ic: 'grid' },
+    { href: '/panel/marcas', t: 'Marcas', ic: 'star' },
+  ] },
   { t: 'Ganancias', items: [
     { href: '/panel', t: 'Resumen', ic: 'trend-up' },
     { href: '/panel/movimientos', t: 'Movimientos', ic: 'receipt' },
-  ] },
-  { t: 'Catálogo', items: [
-    { href: '/panel/inventario', t: 'Inventario', ic: 'package' },
   ] },
 ];
 
@@ -31,7 +36,8 @@ function actual(href: string, path: string, q: URLSearchParams) {
   if (p === '/panel') return path === p;
   if (!(path === p || path.startsWith(`${p}/`))) return false;
   if (!qs) return true;
-  return [...new URLSearchParams(qs)].every(([k, v]) => q.get(k) === v);
+  // Pedidos sin ?estado= muestra los pendientes
+  return [...new URLSearchParams(qs)].every(([k, v]) => (q.get(k) ?? (p === '/panel/pedidos' && k === 'estado' ? 'pendiente' : null)) === v);
 }
 
 /**

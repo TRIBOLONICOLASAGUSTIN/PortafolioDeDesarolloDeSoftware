@@ -716,6 +716,161 @@ for (const [w, h, scheme] of [[390, 844, 'dark'], [1440, 900, 'light']]) {
   await ctx.close();
 }
 
+// Catálogo: Productos (filtros que van a la dirección), Lista de precios (aumento con vista previa y redondeo, que se
+// ve en todo el panel, y la planilla), Proveedores (registrar lo que llegó suma a su compra), Categorías (interruptor de
+// la tienda) y Marcas (enlace a sus productos y aviso de las del carrusel sin productos). Contraste, 44 px y sin desborde.
+for (const [w, h, scheme] of [[390, 844, 'light'], [1440, 900, 'dark']]) {
+  const tag = `panel-catalogo-${w}-${scheme === 'dark' ? 'oscuro' : 'claro'}`;
+  const { ctx, p, errs } = await panelPage(w, h, scheme);
+  const menu = async href => {
+    if (await p.locator('.pn-menu').isVisible()) { await p.click('.pn-menu'); await p.waitForTimeout(450); }
+    await Promise.all([p.waitForURL(u => u.pathname === href), p.click(`.pn-nav-a[href="${href}"]`)]); await p.waitForTimeout(600);
+  };
+  const revisar = async (pagina, root = '.pn') => {
+    const c = await p.evaluate(panelContrast), a = await p.evaluate(panelA11y, root), ow = await p.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+    check(tag, `${pagina}: contraste AA, letra ≥ 13 px, 44 px, títulos sin saltos y sin scroll horizontal`, c.length === 0 && a.tiny.length === 0 && a.small.length === 0 && a.h1 === 1 && !a.jump && ow <= 0, JSON.stringify({ c: c.slice(0, 4), tiny: a.tiny, small: a.small, hs: a.hs, ow }));
+    if (WANT_SHOTS) await p.screenshot({ path: `${SHOTS}${tag}--${pagina.toLowerCase().replace(/\s+/g, '-')}.png`, fullPage: true });
+  };
+  try {
+    await p.goto(PANEL); await p.waitForTimeout(500);
+    const nav = await p.evaluate(() => [...document.querySelectorAll('.pn-nav-sec')].map(g => [g.querySelector('.pn-nav-t').textContent, g.querySelectorAll('.pn-nav-a').length]));
+    check(tag, 'el menú arranca por el Catálogo (6 secciones) y sigue con Ganancias', JSON.stringify(nav.slice(0, 2)) === JSON.stringify([['Catálogo', 6], ['Ganancias', 2]]), JSON.stringify(nav));
+
+    // Productos
+    await menu('/panel/productos');
+    const prods = await p.evaluate(() => ({ h1: document.querySelector('h1')?.textContent, cur: document.querySelector('.pn-nav-a[aria-current]')?.getAttribute('href'), n: document.querySelectorAll('.pn-prod').length }));
+    await p.selectOption('#pn-f-cat', 'insumos'); await p.waitForTimeout(200);
+    const insumos = await p.evaluate(() => ({ ids: [...document.querySelectorAll('.pn-prod')].map(r => r.dataset.id).join(), url: location.search }));
+    await p.selectOption('#pn-f-cat', ''); await p.selectOption('#pn-f-marca', 'HP'); await p.waitForTimeout(200);
+    const hp = await p.evaluate(() => ({ n: document.querySelectorAll('.pn-prod').length, url: location.search }));
+    await p.selectOption('#pn-f-marca', '');
+    check(tag, 'productos: 11 con su sección marcada; los filtros de categoría y marca van a la dirección', prods.h1 === 'Productos' && prods.cur === '/panel/productos' && prods.n === 11 && insumos.ids === 'ins-105a,ins-t544' && insumos.url === '?cat=insumos' && hp.n === 2 && hp.url === '?marca=HP', JSON.stringify({ prods, insumos, hp }));
+    await revisar('Productos');
+
+    // Lista de precios: +10 % a Insumos, terminado en 999 (hacia arriba)
+    await menu('/panel/precios');
+    await p.fill('#pn-aum-pct', '200'); await p.waitForTimeout(150);
+    const malo = await p.evaluate(() => ({ err: document.querySelector('#pn-aum-err')?.textContent ?? '', ok: !!document.querySelector('#pn-aum-ok') }));
+    await p.selectOption('#pn-aum-alc', 'cat:insumos'); await p.fill('#pn-aum-pct', '10'); await p.waitForTimeout(150);
+    const prev = await p.evaluate(() => [...document.querySelectorAll('.pn-cambio')].map(r => `${r.dataset.id}:${r.dataset.antes}>${r.dataset.despues}`).join());
+    await revisar('Lista de precios');
+    await p.click('#pn-aum-ok'); await p.waitForTimeout(400);
+    const lista = await p.evaluate(() => Object.fromEntries([...document.querySelectorAll('.pn-lprecio')].map(r => [r.dataset.id, +r.dataset.precio])));
+    const [dl] = await Promise.all([p.waitForEvent('download'), p.click('[data-act="exportar-precios"]')]);
+    const csvTxt = (await import('node:fs')).readFileSync(await dl.path(), 'utf8'), lineas = csvTxt.trim().split(/\r\n/);
+    check(tag, 'precios: un porcentaje fuera de rango avisa; +10 % a Insumos con 999 muestra la vista previa y al aplicar cambia la lista; la planilla sale con los precios nuevos',
+      /entre −50 y 100/.test(malo.err) && !malo.ok && prev === 'ins-105a:24999>27999,ins-t544:42999>47999' && lista['ins-105a'] === 27999 && lista['ins-t544'] === 47999 && lista['nb-hp250'] === 729999
+      && csvTxt.startsWith('﻿Categoría;Marca;Producto;Costo;Precio;Margen %') && lineas.length === 12 && lineas.some(l => l.includes(';27999;')) && /EJEMPLO/.test(dl.suggestedFilename()),
+      JSON.stringify({ malo, prev, lista: [lista['ins-105a'], lista['ins-t544']], n: lineas.length }));
+    // El precio nuevo se ve en Productos y en la ficha (la misma visita)
+    await menu('/panel/productos');
+    await Promise.all([p.waitForURL(/\/panel\/productos\/ins-105a$/), p.click('.pn-prod[data-id="ins-105a"]')]); await p.waitForTimeout(600);
+    const ficha = await p.evaluate(() => ({ txt: document.querySelector('.pn-ficha')?.textContent ?? '', back: document.querySelector('.pn-back')?.getAttribute('href') }));
+    check(tag, 'la ficha abierta desde Productos muestra el precio nuevo y vuelve a Productos', /27\.999/.test(ficha.txt) && ficha.back === '/panel/productos', JSON.stringify({ back: ficha.back }));
+
+    // Proveedores: registrar lo que llegó del mayorista de impresión
+    await menu('/panel/proveedores');
+    const c0 = await p.evaluate(() => +document.querySelector('[data-prov="prov-b"] [data-comprado]').dataset.comprado);
+    await p.click('[data-prov="prov-b"] [data-act="reponer-prov"]'); await p.waitForTimeout(450);
+    const pre = await p.evaluate(() => document.querySelector('#f-prov')?.value);
+    await p.selectOption('#f-ritem', 'ins-105a'); await p.fill('#f-rqty', '5'); await p.fill('#f-rcost', '15000');
+    await p.click('.pn-sheet button[type="submit"]'); await p.waitForTimeout(600);
+    const c1 = await p.evaluate(() => ({ comprado: +document.querySelector('[data-prov="prov-b"] [data-comprado]').dataset.comprado, n: document.querySelectorAll('.pn-prov').length }));
+    check(tag, 'proveedores: 3 tarjetas; "Registrar lo que llegó" abre la reposición con ese proveedor y suma a lo comprado', c1.n === 3 && pre === 'prov-b' && c1.comprado - c0 === 75000, JSON.stringify({ pre, c0, c1 }));
+    await revisar('Proveedores');
+
+    // Categorías: el interruptor de la tienda, y cada una lleva a sus productos
+    await menu('/panel/categorias');
+    const sw = p.locator('.pn-catrow[data-cat="insumos"] input[role="switch"]');
+    await sw.click(); await p.waitForTimeout(250);
+    const cat = await p.evaluate(() => ({ n: document.querySelectorAll('.pn-catrow').length, vis: document.querySelector('.pn-catrow[data-cat="insumos"]').dataset.visible, toast: document.querySelector('.pn-toasts')?.textContent ?? '' }));
+    check(tag, 'categorías: 7, con su interruptor de la tienda (y el aviso de que en la maqueta no se guarda)', cat.n === 7 && cat.vis === 'false' && /no cambia/.test(cat.toast), JSON.stringify(cat));
+    await revisar('Categorías');
+
+    // Marcas: aviso de las del carrusel sin productos y enlace a los productos de una marca
+    await menu('/panel/marcas');
+    const m = await p.evaluate(() => ({ aviso: document.querySelector('#pn-m-revisar')?.textContent ?? '', sam: document.querySelector('[data-marca="Samsung"]')?.dataset.n, hp: document.querySelector('[data-marca="HP"] a')?.getAttribute('href') }));
+    await revisar('Marcas');
+    await Promise.all([p.waitForURL(/\/panel\/productos\?marca=HP$/), p.click('[data-marca="HP"] a')]); await p.waitForTimeout(600);
+    const mhp = await p.evaluate(() => ({ n: document.querySelectorAll('.pn-prod').length, sel: document.querySelector('#pn-f-marca').value }));
+    check(tag, 'marcas: avisa las del carrusel sin productos y cada marca lleva a sus productos', /sin productos cargados/.test(m.aviso) && m.sam === '0' && m.hp === '/panel/productos?marca=HP' && mhp.n === 2 && mhp.sel === 'HP', JSON.stringify({ m, mhp }));
+    check(tag, 'sin errores de consola', errs.length === 0, errs.slice(0, 3).join(' | '));
+  } catch (e) {
+    check(tag, 'catálogo sin excepciones', false, e.message.split('\n')[0]);
+  }
+  await ctx.close();
+}
+
+// Pedidos (maqueta): pendientes (reservan stock 48 h), pagados, retrasados (pagados sin entregar; el umbral se cambia)
+// y autocancelados (el stock volvió). Pagar suma la venta a Ganancias, cancelar devuelve el stock, entregar lo cierra.
+for (const [w, h, scheme] of [[390, 844, 'dark'], [1440, 900, 'light']]) {
+  const tag = `panel-pedidos-${w}-${scheme === 'dark' ? 'oscuro' : 'claro'}`;
+  const { ctx, p, errs } = await panelPage(w, h, scheme);
+  const abrirMenu = async () => { if (await p.locator('.pn-menu').isVisible()) { await p.click('.pn-menu'); await p.waitForTimeout(450); } };
+  const ir = async href => { await abrirMenu(); await Promise.all([p.waitForURL(u => u.pathname + u.search === href), p.click(`.pn-nav-a[href="${href}"]`)]); await p.waitForTimeout(600); };
+  const cuenta = () => p.evaluate(() => Object.fromEntries(['pendiente', 'pagado', 'retrasado', 'autocancelado'].map(e => [e, +(document.querySelector(`.pn-nav-a[href="/panel/pedidos?estado=${e}"] .pn-nav-n`)?.textContent ?? 0)])));
+  const filas = () => p.evaluate(() => [...document.querySelectorAll('.pn-ped')].map(r => r.dataset.codigo));
+  const accion = async (codigo, act) => { await p.click(`.pn-ped[data-codigo="${codigo}"]`); await p.waitForTimeout(450); await p.click(`.pn-sheet [data-act="${act}"]`); await p.waitForTimeout(450); };
+  try {
+    await p.goto(PANEL); await p.waitForTimeout(500);
+    const n0 = await cuenta();
+    await ir('/panel/pedidos?estado=pendiente');
+    const pend = await p.evaluate(() => ({ h1: document.querySelector('h1')?.textContent, cur: document.querySelector('.pn-nav-a[aria-current]')?.getAttribute('href'), filas: [...document.querySelectorAll('.pn-ped')].map(r => r.dataset.codigo), vence: document.querySelector('.pn-ped .pn-pst')?.textContent ?? '' }));
+    check(tag, 'el menú cuenta los pedidos de cada estado y Pendientes los ordena del que vence primero, con cuánto le falta',
+      JSON.stringify(n0) === JSON.stringify({ pendiente: 3, pagado: 2, retrasado: 2, autocancelado: 2 }) && pend.h1 === 'Pedidos' && pend.cur === '/panel/pedidos?estado=pendiente'
+      && pend.filas.join() === 'P-8WRB-2C,P-3HXD-9T,P-7KQ2-4M' && /^Vence en \d+ h$/.test(pend.vence), JSON.stringify({ n0, pend }));
+    const c = await p.evaluate(panelContrast), a = await p.evaluate(panelA11y);
+    check(tag, 'pedidos: contraste AA, letra ≥ 13 px, 44 px, títulos sin saltos y sin scroll horizontal', c.length === 0 && a.tiny.length === 0 && a.small.length === 0 && a.h1 === 1 && !a.jump && await p.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 0, JSON.stringify({ c: c.slice(0, 4), tiny: a.tiny, small: a.small }));
+    if (WANT_SHOTS) await p.screenshot({ path: `${SHOTS}${tag}--pendientes.png`, fullPage: true });
+
+    // Reservado: el tóner del pedido pendiente aparece apartado en su ficha
+    await p.goto(PANEL + '/inventario/ins-105a'); await p.waitForTimeout(600);
+    const res = await p.evaluate(() => document.querySelector('#pn-f-res')?.textContent ?? '');
+    // Autocancelado: el teclado del pedido vencido volvió al stock (con su motivo)
+    await p.goto(PANEL + '/inventario/per-k552'); await p.waitForTimeout(600);
+    const lib = await p.evaluate(() => [...document.querySelectorAll('.pn-sm[data-tipo="libera"]')].map(r => ({ q: +r.dataset.qty, t: r.textContent })));
+    check(tag, 'la ficha muestra lo reservado por pedidos sin pagar, y un pedido autocancelado devuelve el stock con su motivo',
+      /^2 reservadas/.test(res) && lib.length === 1 && lib[0].q === 1 && /Volvió al stock/.test(lib[0].t) && /P-5NJF-7Q/.test(lib[0].t) && /48 h/.test(lib[0].t), JSON.stringify({ res, lib }));
+
+    // Cancelar un pendiente devuelve el stock (el mouse G203 pasa de 2 a 3)
+    await p.goto(PANEL + '/inventario'); await p.waitForTimeout(500);
+    const g0 = await p.evaluate(() => +document.querySelector('.pn-inv[data-id="per-g203"]').dataset.stock);
+    await ir('/panel/pedidos?estado=pendiente');
+    await accion('P-3HXD-9T', 'cancelar'); await p.click('.pn-sheet [data-act="cancelar-ok"]'); await p.waitForTimeout(500);
+    // Pagar otro: la venta entra en Ganancias (Movimientos) y el pedido pasa a Pagados
+    await accion('P-7KQ2-4M', 'pagar');
+    const n1 = await cuenta(), fl = await filas();
+    await ir('/panel/inventario');
+    const g1 = await p.evaluate(() => +document.querySelector('.pn-inv[data-id="per-g203"]').dataset.stock);
+    await ir('/panel/movimientos');
+    const mov = await p.evaluate(() => [...document.querySelectorAll('.pn-mov')].slice(0, 3).map(r => r.textContent).join(' | '));
+    check(tag, 'cancelar devuelve el stock; pagar pasa el pedido a Pagados y su venta entra en Movimientos',
+      g1 - g0 === 1 && fl.join() === 'P-8WRB-2C' && n1.pendiente === 1 && n1.pagado === 3 && /49\.998/.test(mov), JSON.stringify({ g0, g1, n1, fl, mov: mov.slice(0, 160) }));
+
+    // Retrasados: el umbral se cambia (con 7 días queda uno) y "Marcar como entregado" lo saca de la lista
+    await ir('/panel/pedidos?estado=retrasado');
+    const r0 = await filas();
+    await p.click('label.pn-chip:has(input[name="pn-retraso"][value="7"])'); await p.waitForTimeout(250);
+    const r7 = await filas();
+    await p.click('label.pn-chip:has(input[name="pn-retraso"][value="3"])'); await p.waitForTimeout(250);
+    await accion('P-1DSV-5N', 'entregar');
+    const r1 = await filas(), aviso = await p.evaluate(() => document.querySelector('.pn-ped .pn-pst')?.textContent ?? '');
+    check(tag, 'retrasados: pagados sin entregar con su aviso; el umbral cambia la lista y entregar lo cierra',
+      r0.join() === 'P-1DSV-5N,P-6BYK-1W' && r7.join() === 'P-1DSV-5N' && r1.join() === 'P-6BYK-1W' && /^Sin entregar hace \d+ días$/.test(aviso), JSON.stringify({ r0, r7, r1, aviso }));
+    // Autocancelados (pestaña): sin acciones, con el aviso de que el stock volvió
+    await p.click('label.pn-chip:has(input[name="pn-ped"][value="autocancelado"])'); await p.waitForTimeout(300);
+    const auto = await p.evaluate(() => ({ url: location.search, filas: [...document.querySelectorAll('.pn-ped')].map(r => r.dataset.codigo) }));
+    await p.click('.pn-ped[data-codigo="P-5NJF-7Q"]'); await p.waitForTimeout(450);
+    const det = await p.evaluate(() => ({ acts: document.querySelectorAll('.pn-sheet.open [data-act]').length, txt: document.querySelector('.pn-sheet.open')?.textContent ?? '' }));
+    check(tag, 'autocancelados: la pestaña cambia la dirección y el detalle dice que el stock volvió, sin acciones',
+      auto.url === '?estado=autocancelado' && auto.filas.join() === 'P-5NJF-7Q,P-2VTA-6K' && det.acts === 0 && /Se canceló solo/.test(det.txt) && /el stock volvió/.test(det.txt), JSON.stringify({ auto, acts: det.acts }));
+    check(tag, 'sin errores de consola', errs.length === 0, errs.slice(0, 3).join(' | '));
+  } catch (e) {
+    check(tag, 'pedidos sin excepciones', false, e.message.split('\n')[0]);
+  }
+  await ctx.close();
+}
+
 // Espera a que el panel quede quieto: animaciones y transiciones de CSS terminadas y el monto grande ya contado.
 const quieto = p => p.evaluate(async () => {
   await Promise.race([Promise.all(document.getAnimations().map(a => a.finished.catch(() => {}))), new Promise(r => setTimeout(r, 2500))]);

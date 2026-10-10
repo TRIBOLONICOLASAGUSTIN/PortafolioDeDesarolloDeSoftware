@@ -6,7 +6,8 @@ export type Estado = 'cobrado' | 'pagado' | 'sin-guardar';
 type Base = { id: string; ymd: string; hm: string; pay: PayId; note?: string; status: Estado };
 
 export type SaleItem = { productId: string; qty: number; unit: number; unitCost: number };
-export type Venta = Base & { kind: 'venta'; items: SaleItem[] };
+/** `pedido`: venta que salió de un pedido de la tienda (su stock ya salió con la reserva, no se descuenta dos veces). */
+export type Venta = Base & { kind: 'venta'; items: SaleItem[]; pedido?: string };
 export type Reparacion = Base & { kind: 'reparacion'; orderCode: string; equipo: string; svcId: string; amount: number; partsCost: number };
 // Sin "mercadería": su costo ya se resta al vender (si no, se contaría dos veces).
 export type GastoCat = 'alquiler' | 'servicios' | 'impuestos' | 'taller' | 'envios' | 'publicidad' | 'otros';

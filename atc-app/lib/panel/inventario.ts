@@ -4,9 +4,11 @@ import { PRODUCTS } from '@/lib/data/catalog';
 import { armables, BOM } from '@/lib/data/armado';
 import { PIEZAS, TOPE, UMBRAL } from '@/lib/data/inventario';
 import { COSTOS, precioEn } from '@/lib/data/panel';
+import { proveedorDe } from '@/lib/data/proveedores';
 import { addDays, dow } from './dates';
 import type { Periodo } from './stats';
 import type { Estado, Movement, Venta } from './types';
+import type { EventoStock } from './pedidos';
 
 export type Item = {
   id: string; tipo: 'producto' | 'pieza'; cat: string; r?: string; icon?: string; brand: string; name: string; short?: string;
@@ -24,7 +26,8 @@ export type Item = {
   kit?: [string, number][];
   nuevo?: boolean;
 };
-export type StockTipo = 'venta' | 'repo' | 'ajuste' | 'alta';
+/** reserva: un pedido pendiente aparta unidades (dejan de estar disponibles); libera: vuelven (pedido vencido o cancelado). */
+export type StockTipo = 'venta' | 'repo' | 'ajuste' | 'alta' | 'reserva' | 'libera';
 export type StockMov = {
   id: string; itemId: string; ymd: string; hm: string; tipo: StockTipo;
   /** Unidades: negativas si salen */
@@ -36,6 +39,8 @@ export type StockMov = {
   ref?: string;
   /** Pieza usada para armar esta PC */
   para?: string;
+  /** Reposición: proveedor (id de lib/data/proveedores, o el nombre que escribió el dueño) */
+  prov?: string;
   note?: string; status: Estado;
   /** Stock que quedó */
   despues: number;
@@ -74,17 +79,25 @@ export function movsDeVenta(v: Venta, kitDe: (id: string) => [string, number][] 
   return out;
 }
 
+/** Lo que un pedido le hizo al stock, como movimiento (la reserva, la venta en que se convirtió o la liberación). */
+export const movDePedido = (e: EventoStock): StockIn => ({
+  id: `${e.ref}:${e.tipo}:${e.productId}`, itemId: e.productId, ymd: e.at.slice(0, 10), hm: e.at.slice(11, 16), tipo: e.tipo, qty: e.qty,
+  unit: e.tipo === 'venta' ? e.unit : undefined, ref: e.ref, note: e.tipo === 'libera' ? (e.auto ? 'Se venció sin pago (48 h)' : 'Pedido cancelado') : e.tipo === 'reserva' ? 'Pedido sin pagar' : 'Pedido', status: 'pagado',
+});
+
 /**
  * Historial de ejemplo de cada producto y pieza, del más nuevo al más viejo, con el stock que quedó después de cada
  * movimiento. Parte del stock de hoy y recorre las ventas hacia atrás; cuando el stock reconstruido pasaría el tope de
  * la categoría, agrega la reposición que lo explica: a la mañana siguiente de la venta anterior (o justo antes, si las dos
- * ventas fueron el mismo día).
+ * ventas fueron el mismo día). Los pedidos de la tienda entran con sus reservas y liberaciones (`pedidos`); sus ventas
+ * no se descuentan otra vez.
  */
-export function historialBase(ms: Movement[]): Map<string, StockMov[]> {
+export function historialBase(ms: Movement[], pedidos: EventoStock[] = []): Map<string, StockMov[]> {
   const costo = new Map(ITEMS.map(i => [i.id, i.cost]));
   const ev = new Map<string, StockIn[]>();
+  for (const e of pedidos) { const x = movDePedido(e), a = ev.get(x.itemId); if (a) a.push(x); else ev.set(x.itemId, [x]); }
   for (const m of ms) {
-    if (m.kind !== 'venta') continue;
+    if (m.kind !== 'venta' || m.pedido) continue;
     for (const e of movsDeVenta(m, id => BOM[id], id => precioEn(costo.get(id) ?? 0, m.ymd))) {
       const a = ev.get(e.itemId); if (a) a.push(e); else ev.set(e.itemId, [e]);
     }
@@ -105,7 +118,7 @@ export function historialBase(ms: Movement[]): Map<string, StockMov[]> {
           if (dow(d) === 0) d = addDays(d, 1);
           if (d < e.ymd) { ymd = d; hm = '09:30'; }
         }
-        res.push({ id: `RP-${it.id}-${++n}`, itemId: it.id, ymd, hm, tipo: 'repo', qty: s - low, unitCost: precioEn(it.cost, ymd), status: 'pagado', despues: s });
+        res.push({ id: `RP-${it.id}-${++n}`, itemId: it.id, ymd, hm, tipo: 'repo', qty: s - low, unitCost: precioEn(it.cost, ymd), prov: proveedorDe(it.cat) ?? undefined, status: 'pagado', despues: s });
         s = low;
       }
     });

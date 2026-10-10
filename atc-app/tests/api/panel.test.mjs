@@ -35,7 +35,8 @@ before(async () => {
 });
 after(async () => { await Promise.all([adm?.stop(), prod?.stop(), ts?.stop()]); fakeTs?.close(); });
 
-const PATHS = ['/panel', '/panel/movimientos', '/panel/movimientos?tipo=gastos', '/panel/inventario', '/panel/inventario?filtro=bajo', '/panel/inventario/ins-105a', '/panel/inventario/pc-office'];
+const PATHS = ['/panel', '/panel/movimientos', '/panel/movimientos?tipo=gastos', '/panel/inventario', '/panel/inventario?filtro=bajo', '/panel/inventario/ins-105a', '/panel/inventario/pc-office',
+  '/panel/productos', '/panel/productos?estado=pausados&cat=insumos&marca=HP', '/panel/productos/ins-105a', '/panel/proveedores', '/panel/precios', '/panel/categorias', '/panel/marcas', '/panel/pedidos', '/panel/pedidos?estado=retrasado'];
 const PANEL_TEXT = /datos de ejemplo|maqueta|ganancia|registrar venta/i;
 let ipSeq = 20;
 const nextIp = () => ({ 'cf-connecting-ip': `198.51.100.${ipSeq++}` });
@@ -81,7 +82,7 @@ test('API-8 · Sin sesión de superadmin el panel no existe (404 sin contenido d
   assert.equal((await get(adm, '/panel', `atc_s=${valid}`)).status, 200);
 });
 
-test('API-9 · Con sesión: el panel (resumen, movimientos, inventario y fichas) responde 200, noindex (meta y X-Robots-Tag) aunque ATC_INDEXAR=1, sin caché y con CSP con nonce; filtros e ids desconocidos no pasan; sin sesión la tienda no enlaza al panel ni al ingreso, y con la del dueño solo muestra su botón al panel', async () => {
+test('API-9 · Con sesión: el panel (resumen, movimientos, catálogo, inventario y fichas) responde 200, noindex (meta y X-Robots-Tag) aunque ATC_INDEXAR=1, sin caché y con CSP con nonce; filtros e ids desconocidos no pasan; sin sesión la tienda no enlaza al panel ni al ingreso, y con la del dueño solo muestra su botón al panel', async () => {
   const cookie = await sesion();
   for (const p of PATHS) {
     const r = await get(adm, p, cookie);
@@ -101,6 +102,11 @@ test('API-9 · Con sesión: el panel (resumen, movimientos, inventario y fichas)
   assert.match(await (await get(adm, '/panel/inventario?filtro=%3Cscript%3E', cookie)).text(), /data-filtro="todos"/);
   // Solo artículos conocidos (o los cargados en la visita, nuevo-N): cualquier otro id da 404
   for (const p of ['/panel/inventario/no-existe', '/panel/inventario/%3Cscript%3E', '/panel/inventario/nuevo-x']) assert.equal((await get(adm, p, cookie)).status, 404, `${p} no dio 404`);
+  // Catálogo: filtros desconocidos se ignoran; en Productos solo hay productos (las piezas viven en Inventario)
+  assert.match(await (await get(adm, '/panel/productos?estado=%3Cscript%3E&cat=x&marca=%3Cb%3E', cookie)).text(), /data-estado="todos" data-cat="" data-marca=""/);
+  assert.match(await (await get(adm, '/panel/productos?estado=pausados&cat=insumos&marca=HP', cookie)).text(), /data-estado="pausados" data-cat="insumos" data-marca="HP"/);
+  assert.match(await (await get(adm, '/panel/pedidos?estado=%3Cscript%3E', cookie)).text(), /data-estado="pendiente"/);
+  for (const p of ['/panel/productos/pz-cpu-8600g', '/panel/productos/no-existe', '/panel/productos/%3Cscript%3E']) assert.equal((await get(adm, p, cookie)).status, 404, `${p} no dio 404`);
   const home = await (await get(adm, '/')).text();
   assert.doesNotMatch(home, /href="\/(panel|ingresar)/);
   // Una cookie inventada (F12) no hace aparecer el botón: lo decide el servidor verificando la firma

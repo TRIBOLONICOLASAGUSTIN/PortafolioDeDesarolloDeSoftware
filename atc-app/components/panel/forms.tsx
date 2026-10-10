@@ -14,6 +14,7 @@ import { GASTO_CATS, type GastoCat } from '@/lib/panel/types';
 import { addDays } from '@/lib/panel/dates';
 import { fmt, fmtMonto, fmtPct } from '@/lib/format';
 import { storeStamp } from '@/lib/hours';
+import { PROVEEDORES, proveedorDe } from '@/lib/data/proveedores';
 
 /* Formularios de la maqueta: validan como en la etapa 2, pero lo cargado no se guarda
    (queda en la lista con "Sin guardar" hasta que se recarga la página). */
@@ -230,14 +231,16 @@ export function GastoForm() {
 }
 
 /* Inventario: reposición, edición y alta. Como el resto de la maqueta, cambian lo que se ve pero no se guardan. */
-export function ReponerForm({ pre }: { pre?: string }) {
+export function ReponerForm({ pre, prov: provIni }: { pre?: string; prov?: string }) {
   const { hoy, inv, moverStock, ajustar, toast, closeSheet } = usePanel();
   const ini = pre ? inv.byId.get(pre) : undefined;
   const ok = ini && !ini.kit ? ini : undefined;
   const [itemId, setItem] = useState(ok?.id ?? '');
   const [qty, setQty] = useState('1');
   const [cost, setCost] = useState(ok ? String(ok.cost) : '');
-  const [prov, setProv] = useState('');
+  // Proveedor: el que se eligió en Proveedores o el habitual de la categoría (de ejemplo); "Otro" pide el nombre.
+  const [prov, setProv] = useState(provIni ?? (ok ? proveedorDe(ok.cat) ?? '' : ''));
+  const [otro, setOtro] = useState('');
   const { err, setErr, limpiar, fallar, alerta } = useErr();
   // Las PC armadas no se reponen: se reponen sus piezas
   const it = inv.byId.get(itemId), s = it ? inv.stock(it.id) : 0;
@@ -245,15 +248,15 @@ export function ReponerForm({ pre }: { pre?: string }) {
   const elegir = (id: string) => {
     setItem(id);
     const x = inv.byId.get(id);
-    if (x) { setCost(String(x.cost)); setErr(e => ({ ...e, unitCost: '' })); }
+    if (x) { setCost(String(x.cost)); setErr(e => ({ ...e, unitCost: '' })); if (!provIni) setProv(proveedorDe(x.cat) ?? ''); }
   };
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    const r = repoSchema.safeParse({ itemId, qty: q, unitCost: c, prov });
+    const r = repoSchema.safeParse({ itemId, qty: q, unitCost: c, prov: prov === 'otro' ? otro : prov });
     if (!r.success) { fallar(errores(r.error), [['itemId', 'f-ritem'], ['qty', 'f-rqty'], ['unitCost', 'f-rcost'], ['prov', 'f-prov']]); return; }
     const v = r.data, now = ahoraReal(hoy, toast);
     if (!now) return;
-    moverStock({ itemId: v.itemId, ymd: hoy, hm: now.hm, tipo: 'repo', qty: v.qty, unitCost: v.unitCost, note: v.prov || undefined });
+    moverStock({ itemId: v.itemId, ymd: hoy, hm: now.hm, tipo: 'repo', qty: v.qty, unitCost: v.unitCost, prov: v.prov || undefined });
     if (it && v.unitCost !== it.cost) ajustar(v.itemId, { cost: v.unitCost });
     toast('Maqueta: se sumó al stock, pero no se guardó.');
     closeSheet();
@@ -272,9 +275,18 @@ export function ReponerForm({ pre }: { pre?: string }) {
       </Field>
       <Cantidad id="f-rqty" label="Cantidad que entró" value={qty} onChange={limpiar('qty', setQty)} error={err.qty} autoFocus={!!ok} />
       <Plata id="f-rcost" label="Costo por unidad" value={cost} onChange={limpiar('unitCost', setCost)} error={err.unitCost} hint="Si cambió, pasa a ser el costo del producto" />
-      <Field id="f-prov" label="Proveedor (opcional)" error={err.prov}>
-        <input className="pn-in" maxLength={60} value={prov} onChange={e => limpiar('prov', setProv)(e.target.value)} {...aria('f-prov', err.prov)} />
+      <Field id="f-prov" label="Proveedor" error={prov === 'otro' ? undefined : err.prov}>
+        <select className="pn-in" value={prov} onChange={e => limpiar('prov', setProv)(e.target.value)} {...aria('f-prov', prov === 'otro' ? undefined : err.prov)}>
+          <option value="">Sin indicar</option>
+          {PROVEEDORES.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+          <option value="otro">Otro…</option>
+        </select>
       </Field>
+      {prov === 'otro' && (
+        <Field id="f-prov-o" label="Nombre del proveedor" error={err.prov}>
+          <input className="pn-in" maxLength={60} value={otro} onChange={e => limpiar('prov', setOtro)(e.target.value)} {...aria('f-prov-o', err.prov)} />
+        </Field>
+      )}
       {it && q > 0 && (
         <p className="pn-prev" id="pn-prev">
           Stock <b className="pn-num">{s} → {s + q}</b>{c > 0 && <> · Pagaste <b className="pn-num">{fmt(q * c)}</b></>}

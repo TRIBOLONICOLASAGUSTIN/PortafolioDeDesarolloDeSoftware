@@ -26,7 +26,7 @@ export const Lvl = ({ n, className = '' }: { n: Nivel; className?: string }) => 
 
 // Inventario: cuánto hay de cada cosa y cuánto vale. Cada fila abre su ficha.
 export function Inventario({ filtro: inicial }: { filtro: Filtro }) {
-  const { inv, openSheet } = usePanel();
+  const { inv, openSheet, reservas } = usePanel();
   const [filtro, setFiltro] = useState<Filtro>(inicial);
   const [q, setQ] = useState('');
   const nBajo = inv.items.filter(i => inv.nivel(i.id) === 'bajo').length;
@@ -81,6 +81,7 @@ export function Inventario({ filtro: inicial }: { filtro: Filtro }) {
                         {it.brand} · {it.price !== null ? <>{fmt(it.price)} · margen {margen(it)}</> : <>costo {fmt(it.cost)}</>}
                         {!it.activo && <em className="pn-ns"> · Pausado</em>}
                         {it.nuevo && <em className="pn-ns"> · Sin guardar</em>}
+                        {(reservas.get(it.id) ?? 0) > 0 && <em className="pn-ns"> · {reservas.get(it.id)} {reservas.get(it.id) === 1 ? 'reservada' : 'reservadas'}</em>}
                       </small>
                     </span>
                     <span className="pn-mamt"><b className="pn-num">{s} u.</b><Lvl n={nv} /></span>

@@ -1,0 +1,30 @@
+/* =========================================================
+   Panel › Pedidos. Estados sin naranja (está reservado a "Oferta" y "Últimas unidades"):
+   pendiente azul, pagado verde, retrasado rojo de alerta y autocancelado gris.
+   ========================================================= */
+.pn-peds .pn-chips{margin:0}
+@media (min-width:735px){
+  .pn-peds>.pn-chips{max-width:none}
+  .pn-peds>.pn-chips .pn-chip{flex:1 1 auto}
+  .pn-peds>.pn-chips .pn-chip span{padding:0 12px;white-space:nowrap}
+}
+.pn-pedl{padding-block:8px}
+.pn-ped{text-align:left}
+.pn-ped-ic.pendiente{color:var(--link);background:var(--pn-sel)}
+.pn-ped-ic.pagado{color:var(--pn-up-t);background:var(--pn-up-bg)}
+.pn-ped-ic.retrasado{color:var(--pn-down-t);background:var(--pn-down-bg)}
+.pn-ped-ic.autocancelado{color:var(--text-2);background:var(--pn-well)}
+.pn-pst{font-weight:500}
+.pn-pst.pendiente{color:var(--link)}
+.pn-pst.pagado{color:var(--pn-up-t)}
+.pn-pst.retrasado{color:var(--pn-down-t)}
+.pn-pst.autocancelado{color:var(--text-2)}
+/* En el detalle: píldora neutra con el punto del color del estado */
+.pn-pst-pill{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:4px 12px;border-radius:999px;font-size:14px;font-weight:600;color:var(--text);background:var(--fill)}
+.pn-pst-pill::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--text-3)}
+.pn-pst-pill.pendiente::before{background:var(--link)}
+.pn-pst-pill:is(.pagado,.entregado)::before{background:var(--ok)}
+.pn-pst-pill.retrasado::before{background:var(--danger)}
+.pn-pdet-aviso{margin-top:12px}
+.pn-pdet-acts{display:grid;gap:8px}
+.btn.pn-danger{color:var(--pn-down-t)}

@@ -14,19 +14,23 @@ import { periodo, RANGES, type RangeId } from '@/lib/panel/stats';
 import { productName } from '@/lib/panel/labels';
 import { addDays, short } from '@/lib/panel/dates';
 import { fmt, fmtMonto, fmtPct, vars } from '@/lib/format';
+import { PROVEEDORES } from '@/lib/data/proveedores';
 
 const pct = (p: number) => fmtPct(p).replace('+', '');
 /** Fecha corta para las filas: "Hoy", "Ayer", "7 oct" o "19 dic 2025" */
 const fecha = (ymd: string, hoy: string) => (ymd === hoy ? 'Hoy' : ymd === addDays(hoy, -1) ? 'Ayer' : `${short(ymd)}${ymd.slice(0, 4) === hoy.slice(0, 4) ? '' : ` ${ymd.slice(0, 4)}`}`);
-const Volver = () => <Link className="pn-back" href="/panel/inventario" prefetch={false}><Icon n="chev-l" cls="i sm" />Inventario</Link>;
+const Volver = ({ desde }: { desde: Desde }) => <Link className="pn-back" href={`/panel/${desde}`} prefetch={false}><Icon n="chev-l" cls="i sm" />{desde === 'productos' ? 'Productos' : 'Inventario'}</Link>;
+type Desde = 'inventario' | 'productos';
+/** Nombre del proveedor de una reposición (id de los de ejemplo, o el nombre que escribió el dueño) */
+const provNombre = (p?: string) => (p ? PROVEEDORES.find(x => x.id === p)?.nombre ?? p : '');
 
 // Ficha de un producto o una pieza: cuánto hay, cómo se compone el precio, cuánto se vendió y cada entrada y salida.
-export function Ficha({ id }: { id: string }) {
-  const { inv, openSheet, ajustar, toast } = usePanel();
-  const it = inv.byId.get(id);
+export function Ficha({ id, desde = 'inventario' }: { id: string; desde?: Desde }) {
+  const { inv, openSheet, ajustar, toast, reservas } = usePanel();
+  const it = inv.byId.get(id), res = reservas.get(id) ?? 0;
   if (!it) return (
     <>
-      <Volver />
+      <Volver desde={desde} />
       <h1 className="pn-t" tabIndex={-1}>No encontramos este producto</h1>
       <p className="pn-empty">En la maqueta lo cargado no se guarda: al recargar la página, los productos nuevos se pierden.</p>
     </>
@@ -38,7 +42,7 @@ export function Ficha({ id }: { id: string }) {
   };
   return (
     <div className="pn-ficha" data-id={id} data-stock={s} data-nivel={nv}>
-      <Volver />
+      <Volver desde={desde} />
       <header className="pn-fhead">
         <ItemIc it={it} cls=" pn-fic" />
         <div className="pn-fhead-t">
@@ -49,6 +53,7 @@ export function Ficha({ id }: { id: string }) {
             <Lvl n={nv} className=" pn-tag" />
             {!it.activo && <span className="pn-tag" id="pn-f-pausa">Pausado en la tienda</span>}
             {it.nuevo && <span className="pn-tag">Sin guardar</span>}
+            {res > 0 && <span className="pn-tag" id="pn-f-res">{res === 1 ? '1 reservada' : `${res} reservadas`} por pedidos sin pagar</span>}
           </p>
         </div>
       </header>
@@ -227,7 +232,8 @@ function Ventas({ it, movs }: { it: Item; movs: StockMov[] }) {
   );
 }
 
-const TIPO: Record<StockTipo, [string, string]> = { venta: ['Venta', 'bag'], repo: ['Reposición', 'truck'], ajuste: ['Ajuste por conteo', 'refresh'], alta: ['Alta del producto', 'plus'] };
+const TIPO: Record<StockTipo, [string, string]> = { venta: ['Venta', 'bag'], repo: ['Reposición', 'truck'], ajuste: ['Ajuste por conteo', 'refresh'], alta: ['Alta del producto', 'plus'],
+  reserva: ['Reservado por un pedido', 'clock'], libera: ['Volvió al stock', 'refresh'] };
 const PASO = 8;
 // Cada entrada y salida, del más nuevo al más viejo, con el stock que quedó.
 function MovStock({ it, movs, s }: { it: Item; movs: StockMov[]; s: number }) {
@@ -245,7 +251,7 @@ function MovStock({ it, movs, s }: { it: Item; movs: StockMov[]; s: number }) {
               <span className={`pn-mic ${m.tipo}`}><Icon n={ic} /></span>
               <span className="pn-rt">
                 <b>{t}</b>
-                <small>{fecha(m.ymd, hoy)}, {m.hm}{m.ref ? ` · ${m.ref}` : ''}{m.note ? ` · ${m.note}` : ''}{m.status === 'sin-guardar' && <em className="pn-ns"> · Sin guardar</em>}</small>
+                <small>{fecha(m.ymd, hoy)}, {m.hm}{m.ref ? ` · ${m.ref}` : ''}{m.prov ? ` · ${provNombre(m.prov)}` : ''}{m.note ? ` · ${m.note}` : ''}{m.status === 'sin-guardar' && <em className="pn-ns"> · Sin guardar</em>}</small>
               </span>
               <span className="pn-mamt"><b className="pn-num">{m.qty > 0 ? '+' : '−'}{Math.abs(m.qty)}</b><small className="pn-num">{m.qty < 0 ? 'quedan' : 'hay'} {m.despues}</small></span>
             </li>

@@ -2,14 +2,16 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { generar } from '@/lib/data/panel';
+import { COSTOS, generar, precioEn } from '@/lib/data/panel';
+import { pedidosDemo } from '@/lib/data/pedidos';
+import { contar, ESTADOS, estado as estadoDe, eventosStock, REGLAS, reservado, stamp, type EstadoPedido, type Pedido, type Reglas } from '@/lib/panel/pedidos';
 import { BOM } from '@/lib/data/armado';
 import { indexar, type Index } from '@/lib/panel/stats';
 import { historialBase, inventario, movsDeVenta, type Ajuste, type Inventario, type Item, type StockIn } from '@/lib/panel/inventario';
 import { olvidarProductos, producto, registrarProducto } from '@/lib/panel/labels';
 import type { Movement } from '@/lib/panel/types';
 import { Sheets } from './sheets';
-import { PanelBar, PanelNav } from './panel-nav';
+import { NAV, PanelBar, PanelNav, type NavGrupo } from './panel-nav';
 import { Icon } from '../ui';
 
 /* =========================================================
@@ -24,7 +26,7 @@ import { Icon } from '../ui';
 export type Ahora = { ymd: string; hm: string };
 export type Lista = { codigo: string; equipo: string; presupuesto: number | null };
 export type Sheet = { t: 'detalle'; id: string } | { t: 'acciones' } | { t: 'venta'; productId?: string } | { t: 'gasto' } | { t: 'cobro'; code?: string } | { t: 'exportar' }
-  | { t: 'reponer'; itemId?: string } | { t: 'editar'; itemId: string } | { t: 'nuevo' } | null;
+  | { t: 'reponer'; itemId?: string; prov?: string } | { t: 'editar'; itemId: string } | { t: 'nuevo' } | { t: 'pedido'; codigo: string } | null;
 type Panel = {
   ahora: Ahora; hoy: string; ms: Movement[]; idx: Index; byMov: Map<string, Movement>;
   sheet: Sheet; openSheet: (s: Exclude<Sheet, null>) => void; closeSheet: () => void;
@@ -38,27 +40,54 @@ type Panel = {
   moverStock: (e: Omit<StockIn, 'id' | 'status'>) => void;
   ajustar: (id: string, a: Ajuste) => void;
   crear: (item: Omit<Item, 'id' | 'base' | 'nuevo'>, stock: number, hm: string) => string;
+  /** Pedidos de la tienda (de ejemplo) con lo hecho en esta visita, y "ahora" como "YYYY-MM-DD HH:MM" */
+  pedidos: Pedido[]; ahoraS: string; reglas: Reglas; setRetraso: (dias: number) => void;
+  estadoPedido: (p: Pedido) => EstadoPedido;
+  /** Unidades apartadas por pedidos pendientes */
+  reservas: Map<string, number>;
+  pagarPedido: (codigo: string, hm: string) => void; entregarPedido: (codigo: string, hm: string) => void; cancelarPedido: (codigo: string, hm: string) => void;
 };
 const PanelCtx = createContext<Panel | null>(null);
+const PED_IC: Record<string, string> = { pendiente: 'clock', pagado: 'check-c', retrasado: 'bell', autocancelado: 'refresh' };
 export const usePanel = () => useContext(PanelCtx)!;
 
 export function PanelShell({ ahora, listas: todas, children }: { ahora: Ahora; listas: Lista[]; children: ReactNode }) {
   const { ymd, hm } = ahora;
-  const base = useMemo(() => generar({ ymd, hm }), [ymd, hm]);
+  const ahoraS = stamp(ymd, hm);
+  // Pedidos de ejemplo (relativos a "ahora") y lo que el dueño hizo con ellos en esta visita
+  const pedidosBase = useMemo(() => pedidosDemo({ ymd, hm }), [ymd, hm]);
+  const [cambios, setCambios] = useState<Record<string, Partial<Pick<Pedido, 'pagado' | 'entregado' | 'cancelado'>>>>({});
+  const pedidos = useMemo(() => pedidosBase.map(p => (cambios[p.codigo] ? { ...p, ...cambios[p.codigo] } : p)), [pedidosBase, cambios]);
+  const [retrasoD, setRetraso] = useState(REGLAS.retrasoD);
+  const reglas = useMemo<Reglas>(() => ({ ...REGLAS, retrasoD }), [retrasoD]);
+  // Los pedidos de ejemplo ya pagados entran en Ganancias como ventas (su stock salió con la reserva)
+  const base = useMemo(() => {
+    const ventas: Movement[] = pedidosBase.filter(p => p.pagado).map(p => ({
+      kind: 'venta', id: `V-${p.codigo}`, ymd: p.pagado!.slice(0, 10), hm: p.pagado!.slice(11, 16), pay: p.pago, status: 'cobrado', pedido: p.codigo, note: `Pedido ${p.codigo}`,
+      items: p.items.map(i => ({ ...i, unitCost: precioEn(COSTOS[i.productId] ?? 0, p.pagado!.slice(0, 10)) })),
+    }));
+    return [...ventas, ...generar({ ymd, hm })];
+  }, [ymd, hm, pedidosBase]);
   const [extra, setExtra] = useState<Movement[]>([]);
   const data = useMemo(() => {
     const ms = extra.length ? [...extra, ...base] : base;
     return { ahora: { ymd, hm }, hoy: ymd, ms, idx: indexar(ms), byMov: new Map(ms.map(m => [m.id, m])) };
   }, [ymd, hm, base, extra]);
   // Stock: lo cargado en esta visita va en un solo registro, en el orden en que se cargó (ventas, reposiciones y ajustes)
-  const hist = useMemo(() => historialBase(base), [base]);
+  // Lo que los pedidos le hicieron al stock: reservas y liberaciones de ejemplo; si se pagó en esta visita, la reserva
+  // pasa a ser la venta. Una cancelación de esta visita entra por el registro (moverStock), no acá.
+  const hist = useMemo(() => {
+    const deBase = new Set(pedidosBase.flatMap(p => eventosStock(p, ahoraS, reglas)).filter(e => e.tipo === 'libera').map(e => `${e.ref}:${e.productId}`));
+    const ev = pedidos.flatMap(p => eventosStock(p, ahoraS, reglas)).filter(e => e.tipo !== 'libera' || deBase.has(`${e.ref}:${e.productId}`));
+    return historialBase(base, ev);
+  }, [base, pedidosBase, pedidos, ahoraS, reglas]);
   const [log, setLog] = useState<StockIn[]>([]);
   const [ajustes, setAjustes] = useState<Record<string, Ajuste>>({});
   const [nuevos, setNuevos] = useState<Item[]>([]);
   const inv = useMemo(() => inventario(hist, ajustes, nuevos, log), [hist, ajustes, nuevos, log]);
   const agregar = useCallback((m: Movement) => {
     setExtra(x => [m, ...x]);
-    if (m.kind === 'venta') setLog(l => [...l, ...movsDeVenta(m, id => BOM[id])]);
+    if (m.kind === 'venta' && !m.pedido) setLog(l => [...l, ...movsDeVenta(m, id => BOM[id])]);
   }, []);
   const sn = useRef(0);
   const sid = useCallback((n: number) => `S-${ymd.slice(2).replaceAll('-', '')}-n${n}`, [ymd]);
@@ -82,6 +111,29 @@ export function PanelShell({ ahora, listas: todas, children }: { ahora: Ahora; l
     return todas.filter(o => !cobradas.has(o.codigo));
   }, [todas, extra]);
   const nuevoId = useCallback((p: 'V' | 'R' | 'G') => `${p}-${ymd.slice(2).replaceAll('-', '')}-n${extra.length + 1}`, [ymd, extra.length]);
+
+  // Pedidos (maqueta): pagar lo convierte en venta (entra en Ganancias), entregar lo cierra, cancelar devuelve el stock.
+  const estadoPedido = useCallback((p: Pedido) => estadoDe(p, ahoraS, reglas), [ahoraS, reglas]);
+  const reservas = useMemo(() => reservado(pedidos, ahoraS, reglas), [pedidos, ahoraS, reglas]);
+  const pagarPedido = useCallback((codigo: string, hmP: string) => {
+    const p = pedidos.find(x => x.codigo === codigo);
+    if (!p || p.pagado || p.cancelado) return;
+    setCambios(c => ({ ...c, [codigo]: { ...c[codigo], pagado: stamp(ymd, hmP) } }));
+    agregar({ kind: 'venta', id: nuevoId('V'), ymd, hm: hmP, pay: p.pago, status: 'sin-guardar', pedido: codigo, note: `Pedido ${codigo}`,
+      items: p.items.map(i => ({ ...i, unitCost: inv.byId.get(i.productId)?.cost ?? 0 })) });
+  }, [pedidos, ymd, agregar, nuevoId, inv]);
+  const entregarPedido = useCallback((codigo: string, hmP: string) => setCambios(c => ({ ...c, [codigo]: { ...c[codigo], entregado: stamp(ymd, hmP) } })), [ymd]);
+  const cancelarPedido = useCallback((codigo: string, hmP: string) => {
+    const p = pedidos.find(x => x.codigo === codigo);
+    if (!p || p.pagado || p.cancelado || estadoDe(p, ahoraS, reglas) !== 'pendiente') return;
+    setCambios(c => ({ ...c, [codigo]: { ...c[codigo], cancelado: stamp(ymd, hmP) } }));
+    for (const it of p.items) moverStock({ itemId: it.productId, ymd, hm: hmP, tipo: 'libera', qty: it.qty, ref: codigo, note: 'Pedido cancelado' });
+  }, [pedidos, ymd, ahoraS, reglas, moverStock]);
+  // Menú con los pedidos de cada estado
+  const grupos = useMemo<NavGrupo[]>(() => {
+    const n = contar(pedidos, ahoraS, reglas);
+    return [...NAV, { t: 'Pedidos', items: ESTADOS.map(([e, t]) => ({ href: `/panel/pedidos?estado=${e}`, t, ic: PED_IC[e], n: n[e] })) }];
+  }, [pedidos, ahoraS, reglas]);
 
   const [toasts, setToasts] = useState<{ id: number; msg: string }[]>([]);
   const seq = useRef(0);
@@ -155,13 +207,15 @@ export function PanelShell({ ahora, listas: todas, children }: { ahora: Ahora; l
     if (alTitulo.current) { alTitulo.current = false; requestAnimationFrame(() => document.querySelector<HTMLElement>('#pn-main .pn-t')?.focus()); }
   }, [path, search, closeSheet]);
 
-  const value = useMemo<Panel>(() => ({ ...data, sheet, openSheet, closeSheet, extra, agregar, nuevoId, toast, listas, inv, moverStock, ajustar, crear }),
-    [data, sheet, openSheet, closeSheet, extra, agregar, nuevoId, toast, listas, inv, moverStock, ajustar, crear]);
+  const value = useMemo<Panel>(() => ({ ...data, sheet, openSheet, closeSheet, extra, agregar, nuevoId, toast, listas, inv, moverStock, ajustar, crear,
+    pedidos, ahoraS, reglas, setRetraso, estadoPedido, reservas, pagarPedido, entregarPedido, cancelarPedido }),
+    [data, sheet, openSheet, closeSheet, extra, agregar, nuevoId, toast, listas, inv, moverStock, ajustar, crear,
+      pedidos, ahoraS, reglas, estadoPedido, reservas, pagarPedido, entregarPedido, cancelarPedido]);
   return (
     <PanelCtx.Provider value={value}>
       <div className={`pn${cajon ? ' nav-open' : ''}`} inert={!!sheet}>
         <a className="sr pn-skip" href="#pn-main">Ir al contenido</a>
-        <PanelNav open={navOpen} cerrable={movil} onClose={cerrarNav} onGo={onGo} />
+        <PanelNav open={navOpen} cerrable={movil} onClose={cerrarNav} onGo={onGo} grupos={grupos} />
         <div className="pn-nav-scrim" aria-hidden="true" onClick={cerrarNav} />
         <div className="pn-body" inert={cajon}>
           <PanelBar open={navOpen} onMenu={() => setNavOpen(true)} btnRef={menuBtn} />
