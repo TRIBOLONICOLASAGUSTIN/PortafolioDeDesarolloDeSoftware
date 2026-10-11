@@ -87,6 +87,8 @@ function Bag() {
   const [listo, setListo] = useState<{ codigo: string; url: string } | null>(null);
   const [aviso, setAviso] = useState('');
   useEffect(() => { if (ids.length) setListo(null); }, [ids.length]);
+  const okRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (listo) okRef.current?.focus({ preventScroll: true }); }, [listo]);
   const finalizar = async (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
     if (enviando) return;
@@ -118,10 +120,10 @@ function Bag() {
     <aside className={`bag${open ? ' open' : ''}`} id="bag" role="dialog" aria-modal="true" aria-labelledby="bagTitle" inert={!open} ref={ref}>
       <button className="x-btn" data-close aria-label="Cerrar" onClick={closeLayer}><Icon n="x" /></button>
       <div className="bag-h"><h3 id="bagTitle">Tu bolsa</h3>
-        <p id="bagSub">{count ? `${count} producto${count > 1 ? 's' : ''} · lo enviamos por WhatsApp, sin pagar online.` : 'Revisá tu pedido y lo enviamos por WhatsApp.'}</p></div>
+        <p id="bagSub">{count ? `${count} producto${count > 1 ? 's' : ''} · el pedido sigue por WhatsApp, sin pagar online.` : 'El pedido sigue por WhatsApp, sin pagar online.'}</p></div>
       <div className="bag-b" id="bagBody">
         {listo && (
-          <div className="bag-ok" id="bag-listo" role="status">
+          <div className="bag-ok" id="bag-listo" role="status" tabIndex={-1} ref={okRef}>
             <Icon n="check-c" /><b>Listo: tu pedido {listo.codigo} quedó registrado.</b>
             <p>Te lo reservamos hasta coordinar el pago por WhatsApp (48 h). Si WhatsApp no se abrió, <a href={listo.url} target="_blank" rel="noopener">abrilo acá</a>.</p>
           </div>
@@ -136,7 +138,7 @@ function Bag() {
                 <b>{p.brand} {p.name}</b><small>{p.short}</small>
                 <div className="bi-row">
                   <div className="qty sm" role="group" aria-label={`Cantidad de ${p.name}: ${q}`}>
-                    <button data-bq="-1" data-id={id} aria-label="Quitar uno" onClick={() => setQty(id, q - 1)}><Icon n="minus" /></button><span>{q}</span>
+                    <button data-bq="-1" data-id={id} aria-label="Quitar uno" onClick={() => { setQty(id, q - 1); if (q === 1) ref.current?.querySelector<HTMLElement>('[data-close]')?.focus(); }}><Icon n="minus" /></button><span>{q}</span>
                     <button data-bq="1" data-id={id} aria-label="Agregar uno" disabled={q >= p.stock} onClick={() => setQty(id, q + 1)}><Icon n="plus" /></button>
                   </div>
                   <span className="pr">{fmt(p.price * q)}</span>

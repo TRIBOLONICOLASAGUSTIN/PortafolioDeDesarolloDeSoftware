@@ -4,7 +4,7 @@
 *,*::before,*::after{box-sizing:border-box}
 html{overflow-x:clip;scroll-behavior:smooth;-webkit-text-size-adjust:100%;scroll-padding-top:60px}
 body{margin:0;font-family:var(--font);font-size:17px;line-height:1.47;letter-spacing:-.011em;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;transition:background-color .35s,color .35s}
-html.lock{overflow:hidden}
+html.lock{overflow:hidden;padding-right:var(--sb,0px)}
 /* Cambio de tema: todo cambia junto (sin transiciones a destiempo) y la vista se funde una vez */
 html.theme-sw *,html.theme-sw *::before,html.theme-sw *::after{transition:none!important}
 ::view-transition-old(root),::view-transition-new(root){animation-duration:.3s;animation-timing-function:var(--ease)}

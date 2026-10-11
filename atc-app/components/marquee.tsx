@@ -20,16 +20,16 @@ export function Marquee({ brands }: { brands: string[] }) {
     io.observe(mq);
     return () => io.disconnect();
   }, []);
-  // El salto a #tienda lo hace el navegador (como GoCat); acá solo se fija el filtro.
+  // El salto a #cats (categorías, píldora de la marca y tarjetas) lo hace el navegador; acá solo se fija el filtro.
   const elegir = (b: string) => { setCat('todo'); setBrand(b); };
   const logo = (b: string, copy?: boolean) => (
-    <a key={copy ? `${b}-2` : b} className="bl-a" href="#tienda" data-brand={b} onClick={() => elegir(b)}
+    <a key={copy ? `${b}-2` : b} className="bl-a" href="#cats" data-brand={b} onClick={() => elegir(b)}
       aria-label={copy ? undefined : `Ver productos ${b}`} aria-hidden={copy || undefined} tabIndex={copy ? -1 : undefined}>
       <BrandLogo name={b} deco />
     </a>
   );
   return (
-    <div className="mq" id="mq" ref={ref}>
+    <div className="mq" id="mq" ref={ref} onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) e.currentTarget.scrollLeft = 0; }}>
       <div className="mq-track">
         {shown.map(b => logo(b))}
         {shown.map(b => logo(b, true))}

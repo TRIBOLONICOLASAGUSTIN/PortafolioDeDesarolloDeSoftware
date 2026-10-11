@@ -28,3 +28,6 @@
 .pn-pdet-aviso{margin-top:12px}
 .pn-pdet-acts{display:grid;gap:8px}
 .btn.pn-danger{color:var(--pn-down-t)}
+/* Código del pedido sin cortar: en el celular va debajo del nombre, con los productos */
+.pn-nw{white-space:nowrap}
+@media (max-width:734px){.pn-ped{grid-template-areas:"ic t a ch" "ic s s ch" "ic x x ch"}.pn-ped>.pn-mamt>small{justify-self:start}}

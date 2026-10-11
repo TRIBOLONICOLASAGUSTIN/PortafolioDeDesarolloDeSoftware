@@ -54,7 +54,7 @@
 .socials .ib:hover{background:var(--fill)}
 
 /* Footer */
-footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1.5;padding:22px 0 32px}
+footer{background:var(--bg-alt);color:var(--text-2);font-size:12px;line-height:1.5;padding:22px 0 calc(96px + env(safe-area-inset-bottom))}
 .f-note{padding-bottom:16px;border-bottom:1px solid var(--line);color:var(--text-3)}
 .f-cols{display:grid;grid-template-columns:1.3fr repeat(3,1fr);gap:28px;padding:28px 0 24px}
 .f-cols h2{font-family:var(--font);font-size:12px;font-weight:600;letter-spacing:0;line-height:1.4;color:var(--text);margin:0 0 10px}

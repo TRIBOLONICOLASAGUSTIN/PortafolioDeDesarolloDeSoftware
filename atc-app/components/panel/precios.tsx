@@ -6,7 +6,7 @@ import { Icon } from '../ui';
 import { Chips } from './chips';
 import { usePanel } from './panel-shell';
 import { DemoBanner } from './demo-banner';
-import { GRUPOS, grupo, ItemIc } from './inventario';
+import { GRUPOS, ItemIc } from './inventario';
 import { productos } from '@/lib/panel/catalogo';
 import { bajoCosto, margenDe, PCT_MAX, PCT_MIN, previsualizar, REDONDEOS, type Alcance, type Redondeo } from '@/lib/panel/precios';
 import { csvPrecios } from '@/lib/panel/csv';
@@ -24,11 +24,12 @@ const aNumero = (s: string) => (/^\s*[−-]?\d{1,3}([.,]\d{1,2})?\s*$/.test(s) ?
 export function Precios() {
   const { inv, ajustar, toast } = usePanel();
   const [alc, setAlc] = useState('todo');
-  const [txt, setTxt] = useState('10');
+  const [txt, setTxt] = useState('');
   const [red, setRed] = useState<Redondeo>('999');
   const todos = productos(inv);
   const marcas = [...new Set(todos.map(i => i.brand))].sort((a, b) => a.localeCompare(b, 'es'));
   const n = aNumero(txt), valido = Number.isFinite(n) && n >= PCT_MIN && n <= PCT_MAX && n !== 0;
+  const vacio = txt.trim() === '', err = !vacio && !valido;
   const cambios = valido ? previsualizar(todos, alcanceDe(alc), n, red) : [];
   const bajo = cambios.filter(bajoCosto).length;
   const aplicar = () => {
@@ -67,8 +68,8 @@ export function Precios() {
           </label>
           <label className="pn-sel"><span>Porcentaje</span>
             <span className="pn-pct">
-              <input className="pn-in pn-num" id="pn-aum-pct" inputMode="decimal" autoComplete="off" value={txt} onChange={e => setTxt(e.target.value)}
-                aria-invalid={!valido || undefined} aria-describedby="pn-aum-err" />
+              <input className="pn-in pn-num" id="pn-aum-pct" autoComplete="off" placeholder="p. ej. 10" value={txt} onChange={e => setTxt(e.target.value)}
+                aria-invalid={err || undefined} aria-describedby="pn-aum-err" />
               <span aria-hidden="true">%</span>
             </span>
           </label>
@@ -77,10 +78,10 @@ export function Precios() {
           <span className="pn-lab" aria-hidden="true">Redondeo</span>
           <Chips name="pn-aum-red" legend="Redondeo" value={red} onChange={setRed} options={REDONDEOS} />
         </div>
-        <p className="pn-warn-t" id="pn-aum-err" role={valido ? undefined : 'alert'}>{valido ? '' : `Escribí un porcentaje entre −50 y 100 (por ejemplo 10 o −5).`}</p>
+        <p className="pn-warn-t" id="pn-aum-err" role={err ? 'alert' : undefined}>{err ? 'Escribí un porcentaje entre −50 y 100 (por ejemplo 10 o −5).' : ''}</p>
         {valido && (
-          <div className="pn-prev-l" aria-live="polite">
-            <p className="pn-count" id="pn-aum-n">{cambios.length === 0 ? 'Con ese redondeo ningún precio cambia.' : cambios.length === 1 ? 'Cambia 1 precio' : `Cambian ${cambios.length} precios`}{bajo > 0 && <b className="pn-bajo"> · {bajo === 1 ? '1 queda' : `${bajo} quedan`} por debajo del costo</b>}</p>
+          <div className="pn-prev-l">
+            <p className="pn-count" id="pn-aum-n" role="status">{cambios.length === 0 ? 'Con ese redondeo ningún precio cambia.' : cambios.length === 1 ? 'Cambia 1 precio' : `Cambian ${cambios.length} precios`}{bajo > 0 && <b className="pn-bajo"> · {bajo === 1 ? '1 queda' : `${bajo} quedan`} por debajo del costo</b>}</p>
             {cambios.length > 0 && (
               <ul className="pn-movs pn-cambios">
                 {cambios.map(c => {
@@ -88,8 +89,8 @@ export function Precios() {
                   return (
                     <li key={c.id} className="pn-cambio" data-id={c.id} data-antes={c.antes} data-despues={c.despues}>
                       <ItemIc it={it} />
-                      <span className="pn-rt"><b>{it.name}</b><small>margen {pct(c.margenAntes)} → {pct(c.margenDespues)}{bajoCosto(c) && <em className="pn-ns"> · debajo del costo</em>}</small></span>
-                      <span className="pn-mamt"><b className="pn-num">{fmt(c.despues)}</b><small><s>{fmt(c.antes)}</s></small></span>
+                      <span className="pn-rt"><b>{it.name}</b><small>margen {pct(c.margenAntes)}<span aria-hidden="true"> → </span><span className="sr"> pasa a </span>{pct(c.margenDespues)}{bajoCosto(c) && <em className="pn-ns"> · debajo del costo</em>}</small></span>
+                      <span className="pn-mamt"><b className="pn-num">{fmt(c.despues)}</b><small><span className="sr">antes </span><s>{fmt(c.antes)}</s></small></span>
                     </li>
                   );
                 })}
@@ -110,7 +111,7 @@ export function Precios() {
                   <Link className="pn-inv pn-lprecio" href={`/panel/productos/${it.id}`} prefetch={false} data-id={it.id} data-precio={it.price ?? 0}>
                     <ItemIc it={it} />
                     <span className="pn-rt"><b>{it.name}</b><small>{it.brand} · costo {fmt(it.cost)} · margen {pct(margenDe(it.price ?? 0, it.cost))}</small></span>
-                    <span className="pn-mamt"><b className="pn-num">{fmt(it.price ?? 0)}</b><small>{grupo(it.cat)}</small></span>
+                    <span className="pn-mamt"><b className="pn-num">{fmt(it.price ?? 0)}</b></span>
                     <Icon n="chev-r" cls="i sm pn-chev" />
                   </Link>
                 </li>

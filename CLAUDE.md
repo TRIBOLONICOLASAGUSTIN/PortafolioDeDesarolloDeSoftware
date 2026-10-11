@@ -17,6 +17,7 @@ Las reglas de abajo aplican a todo lo de AT Computación.
 - Datos de ejemplo hasta que el dueño pase los reales: WhatsApp `5493420000000`, dirección, mail, precios, tiempos del cotizador, stock y reseñas.
 - **No mergear a `main`** mientras haya datos de ejemplo: GitHub Pages lo publicaría. Se trabaja en ramas.
 - La compra no cobra online. La bolsa registra el pedido (código `P-XXXX-XX`), la base aparta el stock 48 h y se abre WhatsApp con el código (entrega, pago y nombre). Si no se paga, se cancela solo y el stock vuelve. Si el servidor falla, WhatsApp se abre igual sin código. Nada de datos de tarjeta.
+- Transferencias (cuando se programen): del pago se guarda solo el nombre de quien pagó y el monto. Nunca CBU, alias, banco ni número de cuenta del cliente, ni comprobantes.
 
 ## Estilo (inspirado en apple.com, calmo, que no canse la vista)
 - **Espacio:**
@@ -93,14 +94,14 @@ Las reglas de abajo aplican a todo lo de AT Computación.
 
 ## `atc-app/` (proyecto real)
 - **Estructura:**
-  - `app/`: la página, los estilos por sección en `app/styles/`, la ruta `api/seguimiento` y el panel del dueño en `app/panel/` (resumen, movimientos e inventario con la ficha de cada producto; solo el superadmin con sesión: contraseña + código del celular, `lib/server/admin.ts`; sin sesión da 404; montos de ejemplo hasta conectar la base) y su ingreso en `app/ingresar/`.
+  - `app/`: la página, los estilos por sección en `app/styles/`, las rutas `api/seguimiento` y `api/pedidos` (la bolsa), `privacidad/` y el panel del dueño en `app/panel/` (menú lateral con Catálogo: productos, inventario, proveedores, lista de precios, categorías y marcas; Ganancias: resumen y movimientos; Pedidos: pendientes, pagados, retrasados y autocancelados; solo el superadmin con sesión: contraseña + código del celular, `lib/server/admin.ts`; sin sesión da 404; datos de ejemplo hasta conectar la base) y su ingreso en `app/ingresar/`.
   - `components/`: un componente por pieza; `'use client'` solo donde hay interacción.
   - `lib/data/`: datos de ejemplo.
   - `lib/server/`: código que solo corre en el servidor.
   - `supabase/`: migraciones.
   - `tests/`: pruebas.
 - **Antes de cada commit:** `npm test`.
-  - Corre tipos, build, base (19), API (14), e2e (395) y `check:docs`.
+  - Corre tipos, build, base (27), API (27), e2e (499) y `check:docs`.
   - Usa un Postgres 16 temporal que imita Supabase; `npm run db:stop` lo borra.
   - En la nube, el e2e necesita `PW="$(npm root -g)/playwright/index.mjs"`.
 - **Cada cambio de base lleva:**
@@ -120,6 +121,7 @@ Las reglas de abajo aplican a todo lo de AT Computación.
 - **Verificar** con `cd atc-app && npm test`, o por partes: `typecheck`, `build`, `test:db`, `test:api`, `test:e2e` y `check:docs`. El e2e cubre flujos, desborde, contraste AA, bucles, accesibilidad y errores de consola (incluidas las violaciones de CSP).
 - **Capturas** solo de la sección que se tocó.
 - **No usar multi-agente ni workflows** salvo que el usuario lo pida explícitamente.
+- **Skills de terceros** (`.claude/skills/`, revisadas antes de sumarlas): sugieren, pero si chocan con este archivo mandan estas reglas. `impeccable`, `design-taste-frontend`, `redesign-existing-projects` y `find-skills` solo corren si el dueño las llama; `impeccable` va sin su lanzador (no se descarga ningún binario). Nunca instalar skills, paquetes ni hooks sin preguntar.
 - **Un commit + push por lote,** con mensaje en castellano.
 - **Pendientes priorizados** en `docs/atc/pendientes.md`: marcarlos al terminarlos.
 - **Para ver el sitio en la Mac** (Node 20.9 o más):

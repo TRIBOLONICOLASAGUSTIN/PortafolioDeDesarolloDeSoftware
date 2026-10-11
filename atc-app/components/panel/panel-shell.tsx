@@ -13,6 +13,7 @@ import type { Movement } from '@/lib/panel/types';
 import { Sheets } from './sheets';
 import { NAV, PanelBar, PanelNav, type NavGrupo } from './panel-nav';
 import { Icon } from '../ui';
+import { bloquearScroll } from '@/lib/scroll-lock';
 
 /* =========================================================
    Panel del dueño (maqueta): estado compartido entre Resumen, Movimientos e Inventario.
@@ -167,7 +168,7 @@ export function PanelShell({ ahora, listas: todas, children }: { ahora: Ahora; l
     const el = opener.current;
     if (el) requestAnimationFrame(() => { (el.isConnected ? el : document.querySelector<HTMLElement>('#pn-main .pn-t'))?.focus(); opener.current = null; });
   }, [sheet, closeSheet]);
-  useEffect(() => () => { document.documentElement.classList.remove('lock'); olvidarProductos(); }, []);
+  useEffect(() => () => { bloquearScroll(false); olvidarProductos(); }, []);
   // Menú: en celular y tablet es un cajón (cerrable); desde 1024 px, una barra fija.
   const [movil, setMovil] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
@@ -197,7 +198,7 @@ export function PanelShell({ ahora, listas: todas, children }: { ahora: Ahora; l
     return () => document.removeEventListener('keydown', onKey);
   }, [cajon, cerrarNav]);
   // Sin scroll de fondo mientras hay una hoja o el cajón abierto
-  useEffect(() => { document.documentElement.classList.toggle('lock', !!sheet || cajon); }, [sheet, cajon]);
+  useEffect(() => { bloquearScroll(!!sheet || cajon); }, [sheet, cajon]);
 
   // Si se cambia de página (por ejemplo con "Atrás"), la hoja y el cajón se cierran.
   const path = usePathname(), search = useSearchParams().toString();

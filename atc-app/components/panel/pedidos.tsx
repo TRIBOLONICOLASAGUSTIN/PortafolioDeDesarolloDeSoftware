@@ -8,7 +8,7 @@ import { usePanel } from './panel-shell';
 import { DemoBanner } from './demo-banner';
 import { ESTADO_IDS, ESTADO_PEDIDO, ESTADOS, minutosEntre, total, vence, type EstadoPedido, type Pedido, type Vista } from '@/lib/panel/pedidos';
 import { productName, payLabel } from '@/lib/panel/labels';
-import { long, short } from '@/lib/panel/dates';
+import { diaLargo, long, short } from '@/lib/panel/dates';
 import { storeStamp } from '@/lib/hours';
 import { fmt } from '@/lib/format';
 
@@ -66,7 +66,7 @@ export function Pedidos({ estado: inicial }: { estado: Vista }) {
             <li key={p.codigo}>
               <button type="button" className="pn-inv pn-ped" data-codigo={p.codigo} data-estado={estado} onClick={() => openSheet({ t: 'pedido', codigo: p.codigo })}>
                 <span className={`pn-ic pn-ped-ic ${estado}`}><Icon n={IC[estado]} /></span>
-                <span className="pn-rt"><b>{p.cliente} · {p.codigo}</b><small>{resumenItems(p)}</small></span>
+                <span className="pn-rt"><b>{p.cliente}<span className="pn-g-out"> · <span className="pn-nw">{p.codigo}</span></span></b><small><span className="pn-g-in pn-nw">{p.codigo} · </span>{resumenItems(p)}</small></span>
                 <span className="pn-mamt"><b className="pn-num">{fmt(total(p))}</b><small className={`pn-pst ${estado}`}>{cuando(p, estado, ahoraS)}</small></span>
                 <Icon n="chev-r" cls="i sm pn-chev" />
               </button>
@@ -106,7 +106,7 @@ export function PedidoDetalle({ codigo }: { codigo: string }) {
       <p className="pn-det-amt pn-num">{fmt(total(p))}</p>
       <p><span className={`pn-pst-pill ${e}`}>{ESTADO_PEDIDO[e]}</span></p>
       {e === 'retrasado' && <p className="pn-hint pn-pdet-aviso">Pagado hace {dias(minutosEntre(p.pagado!, ahoraS))} y todavía sin entregar. Coordiná la entrega con {p.cliente} por WhatsApp.</p>}
-      {e === 'pendiente' && <p className="pn-hint pn-pdet-aviso">Si no se paga, se cancela solo el {fecha(vence(p))} y el stock vuelve.</p>}
+      {e === 'pendiente' && <p className="pn-hint pn-pdet-aviso">Si no se paga, se cancela solo el {diaLargo(vence(p).slice(0, 10)).toLowerCase()} a las {vence(p).slice(11, 16)} y el stock vuelve.</p>}
       <ol className="pn-step" aria-label="Productos del pedido">
         {p.items.map(i => <li key={i.productId}><b>{productName(i.productId)}</b><span>{i.qty} × {fmt(i.unit)} · {fmt(i.qty * i.unit)}</span></li>)}
       </ol>
@@ -123,7 +123,7 @@ export function PedidoDetalle({ codigo }: { codigo: string }) {
       <div className="pn-foot pn-pdet-acts">
         {e === 'pendiente' && <button type="button" className="btn btn-full" data-act="pagar" data-autofocus onClick={accion(pagarPedido, `Pedido ${codigo} pagado: la venta entró en Ganancias.`)}><Icon n="check" />Marcar como pagado</button>}
         {e === 'pendiente' && !confirmar && <button type="button" className="btn btn-gray btn-full" data-act="cancelar" onClick={() => setConfirmar(true)}>Cancelar pedido</button>}
-        {e === 'pendiente' && confirmar && <button type="button" className="btn btn-gray btn-full pn-danger" data-act="cancelar-ok" onClick={accion(cancelarPedido, `Pedido ${codigo} cancelado: el stock volvió.`)}>Sí, cancelar y devolver el stock</button>}
+        {e === 'pendiente' && confirmar && <button type="button" className="btn btn-gray btn-full pn-danger" data-act="cancelar-ok" autoFocus onClick={accion(cancelarPedido, `Pedido ${codigo} cancelado: el stock volvió.`)}>Sí, cancelar y devolver el stock</button>}
         {(e === 'pagado' || e === 'retrasado') && <button type="button" className="btn btn-full" data-act="entregar" data-autofocus onClick={accion(entregarPedido, `Pedido ${codigo} entregado.`)}><Icon n="check" />Marcar como entregado</button>}
       </div>
     </div>

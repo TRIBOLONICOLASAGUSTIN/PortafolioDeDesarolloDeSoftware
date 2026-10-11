@@ -34,7 +34,7 @@ export function CatalogoCategorias() {
             <li key={c.id} className="pn-catrow" data-cat={c.id} data-visible={visible}>
               <Link className="pn-inv" href={`/panel/productos?cat=${c.id}`} prefetch={false}>
                 <span className="pn-ic pn-ic-r"><Render r={c.r} /></span>
-                <span className="pn-rt"><b>{c.t}</b><small>{r.n === 1 ? '1 producto' : `${r.n} productos`} · {r.unidades} u. · margen {pct(r.margen)}</small></span>
+                <span className="pn-rt"><b>{c.t}</b><small>{r.n === 1 ? '1 producto' : `${r.n} productos`} · {r.unidades}&nbsp;u. · margen&nbsp;{pct(r.margen)}<span className="pn-g-in"> · {fmt(r.valor)} al costo</span></small></span>
                 <span className="pn-mamt"><b className="pn-num">{fmt(r.valor)}</b><small>stock al costo</small></span>
               </Link>
               <label className="pn-tgl">
@@ -45,7 +45,7 @@ export function CatalogoCategorias() {
           );
         })}
       </ul>
-      <p className="pn-hint"><Icon n="info" cls="i sm" /> Tocá una categoría para ver sus productos. El interruptor la muestra u oculta en la tienda (en la maqueta no se guarda).</p>
+      <p className="pn-hint pn-hint-i"><Icon n="info" cls="i sm" /><span>Tocá una categoría para ver sus productos. El interruptor la muestra u oculta en la tienda (en la maqueta no se guarda).</span></p>
     </div>
     </>
   );

@@ -74,7 +74,8 @@ export function Shop() {
       </div>
       <div className="shelf" id="shelf" aria-label="Productos" ref={shelf} onScroll={arrows}>
         {list.length ? list.map(p => <Card key={p.id} p={p} />) : brand ? (
-          <div className="p-empty"><b>Por ahora no hay productos {brand} en la tienda online.</b><p className="muted">Consultanos y te decimos qué hay en el local.</p>
+          <div className="p-empty"><b>{cat === 'todo' ? `Por ahora no hay productos ${brand} en la tienda online.` : `En ${CATS.find(c => c.id === cat)?.t ?? 'esta categoría'} no hay productos ${brand} por ahora.`}</b><p className="muted">Consultanos y te decimos qué hay en el local.</p>
+            {cat !== 'todo' && <button type="button" className="lnk" onClick={() => setCat('todo')}>Ver todo lo de {brand}</button>}
             <Wa className="btn btn-wa btn-sm" text={`¡Hola! Busco productos ${brand}: `}><Icon n="wa" cls="i sm" />Consultar</Wa></div>
         ) : (
           <div className="p-empty"><b>Tenemos más productos en el local.</b><p className="muted">Consultanos por lo que buscás y te respondemos con stock y precio.</p>

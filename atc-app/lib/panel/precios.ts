@@ -4,7 +4,7 @@ import type { Item } from './inventario';
 
 export type Alcance = { t: 'todo' } | { t: 'cat'; id: string } | { t: 'marca'; id: string };
 export type Redondeo = 'no' | '100' | '999';
-export const REDONDEOS: [Redondeo, string][] = [['no', 'Sin redondeo'], ['100', 'A $ 100'], ['999', 'Termina en 999']];
+export const REDONDEOS: [Redondeo, string][] = [['no', 'Sin redondeo'], ['100', 'A $ 100'], ['999', 'Final 999']];
 /** Aumento (o rebaja) permitido, en %: evita un error de tipeo que deje un precio en cero o lo multiplique por diez. */
 export const PCT_MIN = -50, PCT_MAX = 100;
 

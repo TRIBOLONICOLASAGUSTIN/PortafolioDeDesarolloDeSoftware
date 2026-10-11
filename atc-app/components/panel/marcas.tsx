@@ -28,14 +28,14 @@ export function Marcas() {
               <span className="pn-ic pn-mlogo" aria-hidden="true">{LOGOS[f.marca] ? <svg viewBox={LOGOS[f.marca].vb}><path d={LOGOS[f.marca].d} /></svg> : <b>{f.marca.slice(0, 2).toUpperCase()}</b>}</span>
               <span className="pn-rt">
                 <b>{f.marca}</b>
-                <small>{f.n === 0 ? 'Sin productos cargados' : `${f.n === 1 ? '1 producto' : `${f.n} productos`} · ${f.unidades} u. · ${fmt(f.valor)} al costo`}</small>
+                <small>{f.n === 0 ? 'Sin productos cargados' : `${f.n === 1 ? '1 producto' : `${f.n} productos`} · ${f.unidades}\u00a0u. · ${fmt(f.valor)} al costo`}</small>
               </span>
               <span className="pn-mtags">{f.carrusel && <small className={`pn-mtag${f.n ? '' : ' rev'}`}>{f.n ? 'En el carrusel' : 'En el carrusel · revisar'}</small>}</span>
             </>
           );
           return (
             <li key={f.marca} data-marca={f.marca} data-n={f.n}>
-              {f.n > 0 ? <Link className="pn-inv" href={`/panel/productos?marca=${encodeURIComponent(f.marca)}`} prefetch={false}>{cuerpo}</Link> : <div className="pn-inv">{cuerpo}</div>}
+              {f.n > 0 ? <Link className="pn-inv" href={`/panel/productos?marca=${encodeURIComponent(f.marca)}`} prefetch={false}>{cuerpo}<Icon n="chev-r" cls="i sm pn-chev" /></Link> : <div className="pn-inv">{cuerpo}</div>}
             </li>
           );
         })}

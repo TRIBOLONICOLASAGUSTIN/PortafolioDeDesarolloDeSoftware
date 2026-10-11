@@ -24,7 +24,7 @@ export function Sheets() {
     <Sheet open={!!sheet} onClose={closeSheet} labelledBy="pn-sh-h">
       {s?.t === 'detalle' && <Detalle id={s.id} />}
       {s?.t === 'acciones' && <AccionesSheet />}
-      {s?.t === 'pedido' && <PedidoDetalle key={s.codigo} codigo={s.codigo} />}
+      {s?.t === 'pedido' && <PedidoDetalle key={`${s.codigo}${!!sheet}`} codigo={s.codigo} />}
       {s && s.t in TITULO && <h2 className="pn-sh-t" id="pn-sh-h">{s.t === 'editar' && inv.byId.get(s.itemId)?.tipo === 'pieza' ? 'Editar pieza' : TITULO[s.t as keyof typeof TITULO]}</h2>}
       {s?.t === 'venta' && <VentaForm key={`v${!!sheet}`} pre={s.productId} />}
       {s?.t === 'cobro' && <CobroForm key={`c${!!sheet}`} code={s.code} />}

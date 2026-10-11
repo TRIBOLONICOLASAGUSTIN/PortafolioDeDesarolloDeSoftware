@@ -30,7 +30,7 @@ body:has(.pn){background:var(--bg-alt)}
 .pn-nav{display:flex;flex-direction:column;gap:8px;padding:12px 12px max(16px,env(safe-area-inset-bottom));background:var(--pn-side)}
 .pn-nav-h{display:flex;align-items:center;gap:8px;min-height:52px;padding-left:8px}
 .pn-nav-h .pn-ej{margin-left:auto}
-.pn-nav-g{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;padding:4px 0 8px}
+.pn-nav-g{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding:4px 0 8px}
 .pn-nav-sec+.pn-nav-sec{margin-top:20px}
 .pn-nav-t{padding:0 12px 6px;font-size:13px;font-weight:600;color:var(--text-2)}
 .pn-nav-g ul{display:grid;gap:2px;list-style:none;margin:0;padding:0}
@@ -196,6 +196,8 @@ body:has(.pn){background:var(--bg-alt)}
 .pn-how{margin-top:8px}
 .pn-how summary{display:flex;align-items:center;min-height:44px;font-size:15px;color:var(--link);cursor:pointer;list-style:none}
 .pn-how summary::-webkit-details-marker{display:none}
+.pn-how summary::after{content:"";flex:none;width:12px;height:8px;margin-left:8px;background:var(--pn-chev) no-repeat center/12px 8px;transition:transform .3s var(--ease)}
+.pn-how[open] summary::after{transform:rotate(180deg)}
 .pn-how p{padding-bottom:4px;font-size:15px;line-height:1.47;color:var(--text-2)}
 
 @media (max-width:734px){
@@ -251,6 +253,8 @@ body:has(.pn){background:var(--bg-alt)}
 /* Movimientos */
 .pn-movs{list-style:none;margin:4px 0 0;padding:0}
 .pn-movs>li+li{box-shadow:inset 0 1px 0 var(--line-2)}
+/* Listas que son la tarjeta misma (Pedidos, Categorías, Marcas): margen a los costados, como el resto de las tarjetas */
+.pn-card.pn-movs{padding-inline:clamp(20px,3vw,28px)}
 @container pn-main (max-width:899.98px){.pn-ult .pn-movs>li:nth-child(n+6){display:none}}
 .pn-mov{display:grid;grid-template-columns:44px minmax(0,1fr) auto;grid-template-areas:"ic t a" "ic s x";align-items:baseline;column-gap:12px;row-gap:2px;width:calc(100% + 16px);min-height:64px;margin-inline:-8px;padding:10px 8px;border-radius:12px;text-align:left;transition:background-color .15s}
 .pn-mov>.pn-mic{grid-area:ic;align-self:center}
@@ -500,6 +504,7 @@ select.pn-in{appearance:none;padding-right:40px;text-overflow:ellipsis;backgroun
   :is(.pn-movl,.pn-tools)>.pn-chips .pn-chip span{height:38px;padding:0 4px;background:none}
   :is(.pn-movl,.pn-tools)>.pn-chips .pn-chip input:checked+span{color:var(--text);background:var(--pn-seg);box-shadow:0 1px 3px rgba(0,0,0,.12)}
   .pn-tools>.pn-chips .pn-chip span{padding:0 14px}
+  .pn-tools>.pn-chips{display:grid;grid-auto-flow:column;grid-auto-columns:1fr}
 }
 
 /* Movimiento: cada cosa aparece una vez y por una razón (orientar), solo con transform y opacity.

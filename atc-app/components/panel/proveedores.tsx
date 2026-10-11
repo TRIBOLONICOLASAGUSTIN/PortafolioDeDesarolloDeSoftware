@@ -48,7 +48,7 @@ export function Proveedores() {
                 ))}
               </ul>
             </details>
-            <button type="button" className="btn btn-gray pn-reg" data-act="reponer-prov" onClick={() => openSheet({ t: 'reponer', prov: p.id })}><Icon n="truck" />Registrar lo que llegó</button>
+            <button type="button" className="btn btn-gray pn-reg" data-act="reponer-prov" onClick={() => openSheet({ t: 'reponer', prov: p.id })}><Icon n="truck" />Registrar lo que llegó<span className="sr"> de {p.nombre}</span></button>
           </section>
         );
       })}

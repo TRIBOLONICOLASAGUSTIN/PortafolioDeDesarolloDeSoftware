@@ -32,6 +32,8 @@
 .mq-track{display:flex;align-items:center;width:max-content;animation:mq 48s linear infinite;animation-play-state:paused}
 .mq.on .mq-track{animation-play-state:running}
 .mq.on:is(:hover,:focus-within) .mq-track{animation-play-state:paused}
+.mq:focus-within{-webkit-mask-image:none;mask-image:none}
+.mq:focus-within .mq-track{animation:none}
 /* Cada logo es un enlace a la tienda filtrada por esa marca */
 .mq-track .bl-a{display:flex;align-items:center;min-height:44px;padding:6px clamp(26px,3.6vw,52px);border-radius:12px;color:var(--text-3);white-space:nowrap;transition:color .15s}
 .mq-track .bl-a:focus-visible{outline:2px solid var(--accent);outline-offset:-4px}

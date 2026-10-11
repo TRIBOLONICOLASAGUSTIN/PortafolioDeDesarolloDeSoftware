@@ -419,16 +419,16 @@ for (const [w, rm] of [[1440, 'no-preference'], [390, 'reduce']]) {
   const p = await ctx.newPage(); await p.goto(HTML); await p.waitForTimeout(400);
   // El carrusel se mueve: el clic se hace sobre el enlace (como un toque), sin esperar a que quede quieto.
   const tocar = b => p.evaluate(b => document.querySelector(`.mq-track>a.bl-a[data-brand="${b}"]:not([aria-hidden])`).click(), b);
-  // Con movimiento, el salto a #tienda es suave: se espera a que llegue (hasta 3 s) en vez de un tiempo fijo.
-  const llego = () => p.waitForFunction(() => Math.abs(document.querySelector('#tienda').getBoundingClientRect().top) < 120, null, { timeout: 3000 }).catch(() => {});
+  // Con movimiento, el salto a #cats es suave: se espera a que llegue (hasta 3 s) en vez de un tiempo fijo.
+  const llego = () => p.waitForFunction(() => Math.abs(document.querySelector('#cats').getBoundingClientRect().top) < 120, null, { timeout: 3000 }).catch(() => {});
   await tocar('HP'); await llego(); await p.waitForTimeout(150);
   const hp = await p.evaluate(() => ({ brands: [...document.querySelectorAll('#shelf .pcard .p-brand')].map(e => e.textContent), pill: document.querySelector('.brand-pill')?.textContent ?? '', hash: location.hash,
-    top: Math.round(document.querySelector('#tienda').getBoundingClientRect().top) }));
+    top: Math.round(document.querySelector('#cats').getBoundingClientRect().top), carta: Math.round(document.querySelector('#shelf .pcard')?.getBoundingClientRect().bottom ?? 9e9) - innerHeight }));
   await p.click('.brand-x'); await p.waitForTimeout(300);
   const todos = await p.evaluate(() => ({ n: document.querySelectorAll('#shelf .pcard').length, pill: !!document.querySelector('.brand-pill') }));
   await tocar('Samsung'); await p.waitForTimeout(700);
   const vacio = await p.evaluate(() => document.querySelector('#shelf .p-empty')?.textContent ?? '');
-  check(`marcas-${w}`, 'tocar un logo lleva a la tienda con solo esa marca; la píldora lo quita; sin productos, vacío honesto', hp.brands.length === 2 && hp.brands.every(b => b === 'HP') && /HP/.test(hp.pill) && hp.hash === '#tienda' && Math.abs(hp.top) < 120 && todos.n === 11 && !todos.pill && /Samsung/.test(vacio) && /Consultanos/.test(vacio), JSON.stringify({ hp, todos, vacio: vacio.slice(0, 60) }));
+  check(`marcas-${w}`, 'tocar un logo lleva a la tienda con solo esa marca y su primera tarjeta entera a la vista; la píldora lo quita; sin productos, vacío honesto', hp.brands.length === 1 && hp.brands.every(b => b === 'HP') && /HP/.test(hp.pill) && hp.hash === '#cats' && Math.abs(hp.top) < 120 && hp.carta <= 0 && todos.n === 11 && !todos.pill && /Samsung/.test(vacio) && /Consultanos/.test(vacio), JSON.stringify({ hp, todos, vacio: vacio.slice(0, 60) }));
   await ctx.close();
 }
 
@@ -624,6 +624,9 @@ for (const [w, scheme] of [[390, 'light'], [1440, 'dark']]) {
     // 1) Sin servidor (503): WhatsApp igual, sin código
     await p.route('**/api/pedidos', r => r.fulfill({ status: 503, contentType: 'application/json', body: '{"ok":false,"motivo":"no_disponible"}' }));
     await llenar();
+    // La bolsa entra entera en el celular (antes .layers quedaba desplazado ~143 px y se veía cortada)
+    const caja = await p.evaluate(() => ({ left: Math.round(document.querySelector('#bag').getBoundingClientRect().left), sl: document.querySelector('.layers').scrollLeft }));
+    check('bolsa-pedido', 'a 390 px la bolsa se ve entera (sin quedar corrida)', caja.left === 0 && caja.sl === 0, JSON.stringify(caja));
     const sin = await finalizar();
     const queda = await p.evaluate(() => document.querySelectorAll('#bag .bi').length);
     check('bolsa-pedido', 'si el servidor no responde, WhatsApp se abre igual con el pedido (sin código) y la bolsa no se pierde', /Quiero hacer este pedido/.test(sin) && !/P-[0-9A-Z]{4}/.test(sin) && queda === 1, JSON.stringify({ sin: sin.slice(0, 60), queda }));
@@ -638,9 +641,9 @@ for (const [w, scheme] of [[390, 'light'], [1440, 'dark']]) {
     await p.unroute('**/api/pedidos');
     const con = await finalizar();
     const codigo = con.match(/P-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{2}/)?.[0] ?? '';
-    const listo = await p.evaluate(() => ({ txt: document.querySelector('#bag-listo')?.textContent ?? '', items: document.querySelectorAll('#bag .bi').length, badge: document.querySelector('#badge')?.textContent ?? '' }));
-    check('bolsa-pedido', 'con la base, el pedido queda registrado: WhatsApp lleva el código y el total, y la bolsa muestra la confirmación vacía',
-      !!codigo && /Te escribo por mi pedido/.test(con) && /Total: \$/.test(con) && /Nombre: Nico Pérez/.test(con) && listo.txt.includes(codigo) && /48 h/.test(listo.txt) && listo.items === 0, JSON.stringify({ con: con.slice(0, 80), listo }));
+    const listo = await p.evaluate(() => ({ txt: document.querySelector('#bag-listo')?.textContent ?? '', items: document.querySelectorAll('#bag .bi').length, badge: document.querySelector('#badge')?.textContent ?? '', foco: document.activeElement?.id ?? '' }));
+    check('bolsa-pedido', 'con la base, el pedido queda registrado: WhatsApp lleva el código y el total, y la bolsa muestra la confirmación (con el foco) vacía',
+      !!codigo && /Te escribo por mi pedido/.test(con) && /Total: \$/.test(con) && /Nombre: Nico Pérez/.test(con) && listo.txt.includes(codigo) && /48 h/.test(listo.txt) && listo.items === 0 && listo.foco === 'bag-listo', JSON.stringify({ con: con.slice(0, 80), listo }));
     const c = await p.evaluate(panelContrast, '#bag *');
     check('bolsa-pedido', 'la confirmación y los avisos de la bolsa cumplen contraste AA', c.length === 0, JSON.stringify(c));
   } catch (e) {
@@ -791,7 +794,7 @@ for (const [w, h, scheme] of [[390, 844, 'light'], [1440, 900, 'dark']]) {
     await p.selectOption('#pn-f-cat', ''); await p.selectOption('#pn-f-marca', 'HP'); await p.waitForTimeout(200);
     const hp = await p.evaluate(() => ({ n: document.querySelectorAll('.pn-prod').length, url: location.search }));
     await p.selectOption('#pn-f-marca', '');
-    check(tag, 'productos: 11 con su sección marcada; los filtros de categoría y marca van a la dirección', prods.h1 === 'Productos' && prods.cur === '/panel/productos' && prods.n === 11 && insumos.ids === 'ins-105a,ins-t544' && insumos.url === '?cat=insumos' && hp.n === 2 && hp.url === '?marca=HP', JSON.stringify({ prods, insumos, hp }));
+    check(tag, 'productos: 11 con su sección marcada; los filtros de categoría y marca van a la dirección', prods.h1 === 'Productos' && prods.cur === '/panel/productos' && prods.n === 11 && insumos.ids === 'ins-105a,ins-t544' && insumos.url === '?cat=insumos' && hp.n === 1 && hp.url === '?marca=HP', JSON.stringify({ prods, insumos, hp }));
     await revisar('Productos');
 
     // Lista de precios: +10 % a Insumos, terminado en 999 (hacia arriba)
@@ -840,7 +843,7 @@ for (const [w, h, scheme] of [[390, 844, 'light'], [1440, 900, 'dark']]) {
     await revisar('Marcas');
     await Promise.all([p.waitForURL(/\/panel\/productos\?marca=HP$/), p.click('[data-marca="HP"] a')]); await p.waitForTimeout(600);
     const mhp = await p.evaluate(() => ({ n: document.querySelectorAll('.pn-prod').length, sel: document.querySelector('#pn-f-marca').value }));
-    check(tag, 'marcas: avisa las del carrusel sin productos y cada marca lleva a sus productos', /sin productos cargados/.test(m.aviso) && m.sam === '0' && m.hp === '/panel/productos?marca=HP' && mhp.n === 2 && mhp.sel === 'HP', JSON.stringify({ m, mhp }));
+    check(tag, 'marcas: avisa las del carrusel sin productos y cada marca lleva a sus productos', /sin productos cargados/.test(m.aviso) && m.sam === '0' && m.hp === '/panel/productos?marca=HP' && mhp.n === 1 && mhp.sel === 'HP', JSON.stringify({ m, mhp }));
     check(tag, 'sin errores de consola', errs.length === 0, errs.slice(0, 3).join(' | '));
   } catch (e) {
     check(tag, 'catálogo sin excepciones', false, e.message.split('\n')[0]);
@@ -1277,7 +1280,7 @@ for (const [w, h, scheme] of [[320, 640, 'light'], [390, 844, 'dark'], [1440, 90
     const tope = await p.evaluate(() => document.querySelector('#f-qty-e')?.textContent);
     await p.fill('#f-qty', '2'); await p.click('.pn-sheet button[type="submit"]'); await p.waitForTimeout(600);
     const f1 = await ficha();
-    check(tag, 'ficha: se abre desde la fila; vender 2 baja el stock de 18 a 16 y no deja vender más de lo que hay', f0.url === '/panel/inventario/ins-105a' && f0.h1 === 'Tóner 105A compatible' && f0.stock === '18 u.' && pre.prod === 'ins-105a' && pre.focus === 'f-qty' && tope === 'Hay 18 en stock' && f1.stock === '16 u.' && f1.first?.tipo === 'venta' && f1.first.qty === -2 && f1.first.despues === 16 && /Sin guardar/.test(f1.first.txt), JSON.stringify({ f0: f0.stock, pre, tope, f1 }));
+    check(tag, 'ficha: se abre desde la fila; vender 2 baja el stock de 18 a 16 y no deja vender más de lo que hay', f0.url === '/panel/inventario/ins-105a' && f0.h1 === 'Tóner compatible con HP 105A' && f0.stock === '18 u.' && pre.prod === 'ins-105a' && pre.focus === 'f-qty' && tope === 'Hay 18 en stock' && f1.stock === '16 u.' && f1.first?.tipo === 'venta' && f1.first.qty === -2 && f1.first.despues === 16 && /Sin guardar/.test(f1.first.txt), JSON.stringify({ f0: f0.stock, pre, tope, f1 }));
     const fc = await p.evaluate(panelContrast), fa = await p.evaluate(panelA11y);
     check(tag, 'ficha: contraste AA, letra ≥ 13 px, 44 px y títulos sin saltos', fc.length === 0 && fa.tiny.length === 0 && fa.small.length === 0 && fa.h1 === 1 && !fa.jump, JSON.stringify({ c: fc.slice(0, 4), tiny: fa.tiny, small: fa.small, hs: fa.hs }));
     // Reponer suma; contar otra cantidad deja un ajuste; editar el precio cambia la ganancia; pausar la marca

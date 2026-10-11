@@ -27,7 +27,7 @@ export const PRODUCTS: Product[] = [
     specs: ['AMD Ryzen 5 8600G con gráficos integrados', '16 GB DDR5', 'SSD NVMe de 512 GB', 'Probada 24 h antes de entregarla', 'Garantía de armado de 12 meses'] },
   { id: 'imp-l3250', cat: 'impresoras', r: 'printer', brand: 'Epson', name: 'EcoTank L3250', short: 'Multifunción · Wi-Fi · Sistema continuo', price: 389999, stock: 6, tag: 'Sistema continuo',
     specs: ['Imprime, copia y escanea', 'Wi-Fi y app Epson Smart Panel', 'Tanques de tinta recargables', 'Incluye kit de tintas inicial'] },
-  { id: 'ins-105a', cat: 'insumos', r: 'toner', brand: 'HP', name: 'Tóner 105A compatible', short: 'Rinde hasta 1.000 páginas', price: 24999, stock: 18,
+  { id: 'ins-105a', cat: 'insumos', r: 'toner', brand: 'Compatible', name: 'Tóner compatible con HP 105A', short: 'Rinde hasta 1.000 páginas', price: 24999, stock: 18,
     specs: ['Compatible con HP Laser 107 y MFP 135/137', 'Rinde hasta 1.000 páginas al 5%', 'Garantía de calidad de impresión'] },
   { id: 'ins-t544', cat: 'insumos', r: 'ink', brand: 'Epson', name: 'Kit de tintas T544', short: 'Originales · 4 colores', price: 42999, stock: 12,
     specs: ['Tintas originales Epson', 'Cian, magenta, amarillo y negro', 'Para EcoTank L1110, L3110, L3150, L3250'] },

@@ -134,6 +134,21 @@ Varios hallazgos repiten el mismo problema visto desde distintos ángulos. En el
 - [ ] **Marcas del carrusel** (`components/values.tsx`, logos en `components/brand-logos.tsx`):
   - Confirmar con el dueño qué marcas trabaja de verdad: un logo le dice al cliente "esto se vende acá".
   - Logitech, Canon, Brother y Western Digital no tienen logo libre: conseguir el SVG oficial del kit de prensa de cada marca y sumarlo. Hasta entonces no se muestran.
+- [x] **Tienda y panel en una sola experiencia (octubre 2026):**
+  - Seguridad: auditoría completa por dimensiones con verificación adversaria (11 hallazgos confirmados, todos de severidad baja o informativa, arreglados con su prueba). El 404 de `/panel` es idéntico a cualquier otro; F12 no da acceso (API-15 y e2e).
+  - Privacidad y cookies: página `/privacidad` (sin cartel: el sitio no usa cookies propias con los clientes) y la bolsa ya no guarda nombre ni dirección.
+  - Tienda: pie más ancho, flechas del estante alineadas también con barra de scroll visible (Windows), y cada marca del carrusel lleva a sus productos.
+  - Botón con la marca "AT" abajo a la izquierda que lleva al panel, solo para el dueño con sesión (lo dibuja el servidor), y "Ver la tienda" en el panel.
+  - Panel con menú lateral: Catálogo (Productos, Inventario, Proveedores, Lista de precios, Categorías y Marcas), Ganancias (Resumen y Movimientos) y Pedidos (Pendientes, Pagados, Retrasados y Autocancelados).
+  - La bolsa registra el pedido en la base: código `P-XXXX-XX`, stock apartado 48 h, autocancelación que devuelve el stock y WhatsApp con el código. El cobro sigue por WhatsApp.
+- [ ] **Transferencias** (pedido del dueño, para más adelante): cómo informar el alias o CBU **del local** (dato público del negocio), cómo confirmar que llegó la plata y cómo se marca el pedido como pagado. Definir con el dueño antes de programar.
+  - **Regla del dueño:** del pago se guarda **solo el nombre de quien pagó y el monto** (junto al código del pedido). Nunca el CBU, alias, banco o número de cuenta del cliente, ni el comprobante (imagen o PDF): el dueño lo mira en su home banking o en WhatsApp y no se sube al sitio. Nada de datos de tarjeta.
+- [ ] **Panel conectado a la base:** hoy los pedidos del panel son de ejemplo. La etapa 2 lee `sales_orders` (solo el dueño) y cambia su estado (pagado, entregado, cancelado) con el rol del servidor después de verificar la sesión.
+- [x] **Skills de diseño (octubre 2026):** en `.claude/skills/`, leídas enteras antes de sumarlas.
+  - Tal cual: emilkowalski/skills (animate, animation-vocabulary, apple-design, break-ui, emil-design-eng, find-animation-opportunities, improve-animations, mobile-native, pick-ui-library, prototype, review-animations) y anthropics/skills (mcp-builder).
+  - Apagadas (solo con /nombre) y con nota del proyecto: pbakaus/impeccable 4.5.2 (sin `scripts/` ni `agents/`: su lanzador baja y ejecuta un binario sin firma e instala hooks), Leonxlnx/taste-skill (design-taste-frontend, redesign-existing-projects: chocan con la tipografía, la paleta y la CSP) y vercel-labs/skills (find-skills: instalaba global con `-y`).
+  - Afuera: vercel-labs/agent-browser (stub sin contenido revisable que preautoriza `npx agent-browser`). "Prompt de diseños": falta el link.
+  - Para actualizarlas: `npx skills@latest add <repo> --agent claude-code --copy` en una carpeta aparte, leer el diff entero y recién ahí copiar.
 - [ ] **Antes de producción:**
   - Checklist de `seguridad.md` §8.
   - Datos reales del dueño.

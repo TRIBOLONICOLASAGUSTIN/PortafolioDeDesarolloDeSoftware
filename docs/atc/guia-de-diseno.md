@@ -118,21 +118,23 @@ Cada fila es un componente de React. El prototipo HTML original se reemplazó po
 | Barra superior | Logo, secciones, buscador, **tema claro/oscuro junto a la bolsa** | Vidrio translúcido; en el celular, menú a pantalla completa |
 | Inicio | Fondo negro en los dos temas (idea tomada de Resend, sin su violeta ni su serifa). Título, bajada y 2 accesos al lado de la notebook 3D cerrada; al bajar se abre, gira de frente y se funde con la compu del seguimiento, que se corre y deja lugar a su texto ("Seguí tu reparación desde acá.") | La animación sigue al scroll; no corre sola (el cubo de Resend gira solo: acá no, sin bucles). Con "reducir movimiento", todo quieto y sin 3D; sin WebGL, la compu HTML hace el recorrido |
 | Valores y pagos | 4 promesas honestas + tarjetas de medios de pago | Sin cifras inventadas |
-| Marcas | Carrusel lento | Única excepción de movimiento |
-| Tienda | Encabezado centrado, categorías, tarjetas deslizables, ficha y bolsa | La compra termina en WhatsApp; no se cobra online |
+| Marcas | Carrusel lento; cada logo lleva a sus productos (píldora "Marca: X ✕" para limpiar el filtro) | Única excepción de movimiento; con "reducir movimiento", grilla quieta y clicable; marca sin productos → vacío honesto que invita a consultar |
+| Tienda | Encabezado centrado, categorías, tarjetas deslizables, ficha y bolsa | La bolsa registra el pedido (código `P-XXXX-XX`, stock apartado 48 h) y termina en WhatsApp; no se cobra online. Si el servidor falla, WhatsApp igual abre sin código |
 | ¿Qué notebook es para vos? | 3 perfiles por uso | Recomendar por uso, no por precio |
 | Servicio técnico | Celular fijo que cambia con cada paso | Texto legible en el celular |
 | Seguimiento | Código + teléfono → estado y novedades | Código aleatorio, datos mínimos |
 | Cotizador | Configurador en una pantalla | Rango orientativo; precio final después del diagnóstico |
 | Contacto | WhatsApp, llamada, horarios y mapa | Decir quién atiende |
-| Pie | Navegación, botón de arrepentimiento, Defensa del Consumidor, Data Fiscal | Obligatorio para vender online en Argentina |
+| Pie | Navegación, botón de arrepentimiento, Defensa del Consumidor, Data Fiscal y Privacidad | Obligatorio para vender online en Argentina; ancho propio (hasta 1440 px), no el de la columna de texto |
+| Botón del dueño | "AT" fijo abajo a la izquierda, 44 px, que lleva al panel | Lo dibuja el servidor solo con sesión de superadmin; un cliente nunca lo ve ni puede inventarlo |
+| Panel del dueño | Menú lateral (fijo desde 1024 px, cajón debajo) con tres grupos: Catálogo, Ganancias y Pedidos | Fila activa con fondo suave y color de link; contadores de pedidos; estados sin naranja (pendiente azul, pagado verde, retrasado rojo, autocancelado gris); grillas con *container queries* sobre el contenido |
 
 ---
 
 ## 5. Presentación en Figma — guion de 6 diapositivas
 
 > El conector de Figma no funcionaba en la sesión donde se escribió esta guía. Este guion es la base para armarlas cuando funcione.
-> **Capturas:** en cada carpeta `tests/atc/capturas/` que genera el script.
+> **Capturas:** `cd atc-app && node tests/e2e/verificar.mjs --capturas` las guarda en `atc-app/tests/e2e/capturas/` (no se suben al repo).
 
 1. **Portada y marca.**
    - **Qué mostrar:** maqueta flotante del inicio en perspectiva sobre fondo `#f5f5f7`, logo "AT", el lema "Tu tecnología. En las mejores manos." y dos sellos honestos (Garantía escrita 90 días · Te atiende el técnico).

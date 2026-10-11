@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { byId } from '@/lib/data/catalog';
 import { bagCount, type BagState } from '@/lib/whatsapp';
+import { bloquearScroll } from '@/lib/scroll-lock';
 
 /* =========================================================
    Interfaz: ventanas (ficha, bolsa, búsqueda), menú, WhatsApp, categoría y avisos
@@ -111,7 +112,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const patch = useCallback((p: Partial<BagState>) => setBag(b => ({ ...b, ...p })), []);
 
   /* Estado visual global: bloqueo de scroll y clases del body que usa el CSS */
-  useEffect(() => { document.documentElement.classList.toggle('lock', !!layer || menuOpen); }, [layer, menuOpen]);
+  useEffect(() => { bloquearScroll(!!layer || menuOpen); }, [layer, menuOpen]);
   useEffect(() => { document.body.classList.toggle('menu-open', menuOpen); }, [menuOpen]);
   useEffect(() => { document.body.classList.toggle('wa-open', waOpen); }, [waOpen]);
 

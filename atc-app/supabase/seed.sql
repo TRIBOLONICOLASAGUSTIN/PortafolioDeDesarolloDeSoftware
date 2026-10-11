@@ -11,7 +11,7 @@ insert into public.products (slug, category, brand, name, short, specs, price_ar
    '["AMD Ryzen 5 8600G con gráficos integrados","16 GB DDR5","SSD NVMe de 512 GB","Probada 24 h antes de entregarla","Garantía de armado de 12 meses"]', 699999, 3, 'Armada por nosotros'),
   ('imp-l3250', 'impresoras', 'Epson', 'EcoTank L3250', 'Multifunción · Wi-Fi · Sistema continuo',
    '["Imprime, copia y escanea","Wi-Fi y app Epson Smart Panel","Tanques de tinta recargables","Incluye kit de tintas inicial"]', 389999, 6, 'Sistema continuo'),
-  ('ins-105a', 'insumos', 'HP', 'Tóner 105A compatible', 'Rinde hasta 1.000 páginas',
+  ('ins-105a', 'insumos', 'Compatible', 'Tóner compatible con HP 105A', 'Rinde hasta 1.000 páginas',
    '["Compatible con HP Laser 107 y MFP 135/137","Rinde hasta 1.000 páginas al 5%","Garantía de calidad de impresión"]', 24999, 18, null),
   ('ins-t544', 'insumos', 'Epson', 'Kit de tintas T544', 'Originales · 4 colores',
    '["Tintas originales Epson","Cian, magenta, amarillo y negro","Para EcoTank L1110, L3110, L3150, L3250"]', 42999, 12, null),
