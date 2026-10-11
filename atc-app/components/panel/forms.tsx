@@ -12,7 +12,7 @@ import { UMBRAL } from '@/lib/data/inventario';
 import { GRUPOS } from './inventario';
 import { GASTO_CATS, type GastoCat } from '@/lib/panel/types';
 import { addDays } from '@/lib/panel/dates';
-import { fmt, fmtMargen, fmtMonto } from '@/lib/format';
+import { fmt, fmtMargen, fmtMonto, nombreProducto } from '@/lib/format';
 import { storeStamp } from '@/lib/hours';
 import { PROVEEDORES, proveedorDe } from '@/lib/data/proveedores';
 
@@ -121,7 +121,7 @@ export function VentaForm({ pre }: { pre?: string }) {
       <Field id="f-prod" label="Producto" error={err.productId} hint={p?.kit ? 'Al venderla se descuentan sus piezas del stock' : undefined}>
         <select className="pn-in" value={productId} onChange={e => limpiar('productId', elegir)(e.target.value)} data-autofocus={!ini || undefined} {...aria('f-prod', err.productId, !!p?.kit)}>
           <option value="">Elegí un producto</option>
-          {productos.map(x => { const n = inv.stock(x.id); return <option key={x.id} value={x.id} disabled={n <= 0}>{x.brand} {x.name}{n > 0 ? ` · ${n} en stock` : ' · sin stock'}</option>; })}
+          {productos.map(x => { const n = inv.stock(x.id); return <option key={x.id} value={x.id} disabled={n <= 0}>{nombreProducto(x)}{n > 0 ? ` · ${n} en stock` : ' · sin stock'}</option>; })}
         </select>
       </Field>
       <Cantidad id="f-qty" label="Cantidad" value={qty} onChange={limpiar('qty', setQty)} error={err.qty} max={stock || 999} autoFocus={!!ini} />

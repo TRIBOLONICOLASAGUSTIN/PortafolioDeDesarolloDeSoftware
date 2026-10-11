@@ -1,6 +1,6 @@
 import { CONFIG } from './data/config';
 import { byId } from './data/catalog';
-import { fmt } from './format';
+import { fmt, nombreProducto } from './format';
 
 export const waLink = (text: string) => `https://wa.me/${CONFIG.whatsapp}?text=${encodeURIComponent(text)}`;
 
@@ -32,8 +32,8 @@ export type PedidoRes =
  */
 export function bagMessage(b: BagState, reg?: Registrado | null) {
   const lines = reg
-    ? reg.items.map(i => `• ${i.qty} × ${byId[i.slug] ? `${byId[i.slug].brand} ${byId[i.slug].name}` : i.nombre} — ${fmt(i.precio * i.qty)}`).join('\n')
-    : Object.entries(b.items).map(([id, q]) => `• ${q} × ${byId[id].brand} ${byId[id].name} — ${fmt(byId[id].price * q)}`).join('\n');
+    ? reg.items.map(i => `• ${i.qty} × ${byId[i.slug] ? nombreProducto(byId[i.slug]) : i.nombre} — ${fmt(i.precio * i.qty)}`).join('\n')
+    : Object.entries(b.items).map(([id, q]) => `• ${q} × ${nombreProducto(byId[id])} — ${fmt(byId[id].price * q)}`).join('\n');
   const pay = PAYS.find(p => p[0] === b.pago)?.[1] ?? '';
   const ent = b.entrega === 'retiro' ? 'Retiro en el local' : `Envío a domicilio${b.dir.trim() ? ` (${b.dir.trim()})` : ''}`;
   const cabeza = reg ? `¡Hola AT Computación! 👋 Te escribo por mi pedido ${reg.codigo}:` : '¡Hola AT Computación! 👋 Quiero hacer este pedido:';

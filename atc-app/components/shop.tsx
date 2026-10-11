@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useBag, useReducedMotion, useUI } from './app-shell';
 import { Icon, Render, Wa } from './ui';
 import { CATS, PRODUCTS, stockInfo, type Product } from '@/lib/data/catalog';
-import { fmt } from '@/lib/format';
+import { fmt, nombreProducto } from '@/lib/format';
 
 function Card({ p }: { p: Product }) {
   const { openQV } = useUI();
@@ -12,7 +12,7 @@ function Card({ p }: { p: Product }) {
   const st = stockInfo(p.stock);
   return (
     <article className="pcard" data-id={p.id}>
-      <button className="p-hit" data-open={p.id} aria-label={`Ver detalles de ${p.brand} ${p.name}`} onClick={() => openQV(p.id)}></button>
+      <button className="p-hit" data-open={p.id} aria-label={`Ver detalles de ${nombreProducto(p)}`} onClick={() => openQV(p.id)}></button>
       <span className="p-tag">{p.tag ?? ''}</span>
       <div className="p-img"><Render r={p.r} wall={p.wall} /></div>
       <span className="p-brand">{p.brand}</span>
@@ -22,7 +22,7 @@ function Card({ p }: { p: Product }) {
         <div><span className="p-price">{fmt(p.price)}</span><span className={`stock ${st.c}`}>{st.t}</span></div>
         {p.stock > 0
           ? <button className="btn btn-sm" data-add={p.id} onClick={() => add(p.id, 1)}>Comprar</button>
-          : <Wa className="btn btn-sm btn-gray" text={`¡Hola! Quería saber cuándo vuelve a ingresar ${p.brand} ${p.name}.`}>Avisarme</Wa>}
+          : <Wa className="btn btn-sm btn-gray" text={`¡Hola! Quería saber cuándo vuelve a ingresar ${nombreProducto(p)}.`}>Avisarme</Wa>}
       </div>
     </article>
   );

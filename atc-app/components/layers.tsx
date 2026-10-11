@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useBag, useReducedMotion, useUI } from './app-shell';
 import { Icon, Render, Wa } from './ui';
 import { byId, CATS, PAGES, PRODUCTS, stockInfo } from '@/lib/data/catalog';
-import { fmt, norm } from '@/lib/format';
+import { fmt, nombreProducto, norm } from '@/lib/format';
 import { bagMessage, bagSubtotal, PAYS, topeBolsa, waLink, type BagState, type PedidoRes, type Registrado } from '@/lib/whatsapp';
 import { postJson, tokenTurnstile } from '@/lib/turnstile-client';
 
@@ -47,7 +47,7 @@ function QuickView() {
               <button className="btn" data-qv-add disabled={max <= 0} onClick={() => { add(p.id, qq); closeLayer(); }}>{max <= 0 ? 'Ya está en tu bolsa' : 'Agregar a la bolsa'}</button>
             </div>
           )}
-          <Wa className="lnk qv-alt" style={{ fontSize: 15 }} text={p.stock > 0 ? `¡Hola! Me interesa ${p.brand} ${p.name} (${fmt(p.price)}). ¿Está disponible?` : `¡Hola! Quería saber cuándo vuelve a ingresar ${p.brand} ${p.name}.`}>
+          <Wa className="lnk qv-alt" style={{ fontSize: 15 }} text={p.stock > 0 ? `¡Hola! Me interesa ${nombreProducto(p)} (${fmt(p.price)}). ¿Está disponible?` : `¡Hola! Quería saber cuándo vuelve a ingresar ${nombreProducto(p)}.`}>
             {p.stock > 0 ? 'Consultar por WhatsApp' : 'Avisarme cuando ingrese'}
           </Wa>
           <p className="qv-note"><Icon n="store" cls="i sm" />Retiralo en el local o coordinamos el envío por WhatsApp.</p>
@@ -120,7 +120,7 @@ function Bag() {
             const p = byId[id], q = bag.items[id];
             return (
               <div key={id} className="bi"><div className="bi-img"><Render r={p.r} wall={p.wall} /></div><div>
-                <b>{p.brand} {p.name}</b><small>{p.short}</small>
+                <b>{nombreProducto(p)}</b><small>{p.short}</small>
                 <div className="bi-row">
                   <div className="qty sm" role="group" aria-label={`Cantidad de ${p.name}: ${q}`}>
                     <button data-bq="-1" data-id={id} aria-label="Quitar uno" onClick={() => { setQty(id, q - 1); if (q === 1) ref.current?.querySelector<HTMLElement>('[data-close]')?.focus(); }}><Icon n="minus" /></button><span>{q}</span>
@@ -210,7 +210,7 @@ function Spotlight() {
             <Wa className="btn btn-wa btn-sm" text={`¡Hola! ¿Tienen ${q.trim()}?`}><Icon n="wa" cls="i sm" />Consultar por WhatsApp</Wa></li>
         ) : <>
           {prods.length > 0 && <li className="sg" role="presentation">Productos</li>}
-          {prods.map((p, i) => row(i, <Render r={p.r} wall={p.wall} />, <><b>{p.brand} {p.name}</b><small>{fmt(p.price)} · {stockInfo(p.stock).t}</small></>))}
+          {prods.map((p, i) => row(i, <Render r={p.r} wall={p.wall} />, <><b>{nombreProducto(p)}</b><small>{fmt(p.price)} · {stockInfo(p.stock).t}</small></>))}
           {pages.length > 0 && <li className="sg" role="presentation">Secciones</li>}
           {pages.map((g, j) => row(prods.length + j, <Icon n={g.ic} />, <b>{g.t}</b>))}
         </>}

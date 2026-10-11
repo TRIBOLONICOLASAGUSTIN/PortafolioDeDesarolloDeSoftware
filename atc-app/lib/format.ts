@@ -26,3 +26,6 @@ export function fmtPct(p: number) {
 }
 /** Margen: el porcentaje sin el "+" (25 %, −3 %); sin dato, "—". */
 export const fmtMargen = (p: number | null) => (p === null ? '—' : fmtPct(p).replace('+', ''));
+/** Marca y nombre de un producto, sin repetir la marca si el nombre ya la dice ("Compatible" + "Tóner compatible con…"). */
+export const nombreProducto = (p: { brand: string; name: string }) =>
+  p.name.toLowerCase().includes(p.brand.toLowerCase()) ? p.name : `${p.brand} ${p.name}`;
