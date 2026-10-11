@@ -85,6 +85,11 @@ export function cookieSpec(cfg: Extract<AdminConfig, { ok: true }>) {
   const https = cfg.mode === 'prod';
   return { name: https ? '__Host-atc_s' : 'atc_s', secure: https };
 }
+/** Encabezado Set-Cookie de la sesión: `valor` vacío y 0 segundos la borran (Salir). */
+export function cookieSesion(cfg: Extract<AdminConfig, { ok: true }>, valor: string, segundos: number) {
+  const { name, secure } = cookieSpec(cfg);
+  return [`${name}=${valor}`, 'Path=/', 'HttpOnly', 'SameSite=Strict', `Max-Age=${segundos}`, ...(secure ? ['Secure'] : [])].join('; ');
+}
 
 export function nuevaSesion(cfg: Extract<AdminConfig, { ok: true }>, now = Date.now()) {
   const exp = Math.floor(now / 1000) + SESSION_HOURS * 3600;

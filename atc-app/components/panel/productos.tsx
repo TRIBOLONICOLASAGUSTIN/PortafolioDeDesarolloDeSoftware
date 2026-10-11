@@ -9,10 +9,9 @@ import { DemoBanner } from './demo-banner';
 import { GRUPOS, grupo, ItemIc, margen } from './inventario';
 import { ESTADOS_PROD, productos, resumir, type EstadoProd } from '@/lib/panel/catalogo';
 import type { Item } from '@/lib/panel/inventario';
-import { fmt, fmtPct, norm } from '@/lib/format';
+import { fmt, fmtMargen, norm } from '@/lib/format';
 
 const CATS_PROD = GRUPOS.filter(g => g.id !== 'piezas');
-const pct = (p: number | null) => (p === null ? '—' : fmtPct(p).replace('+', ''));
 
 // Productos: lo que se vende en la tienda, con precio, margen y si está a la vista. Cada fila abre su ficha.
 // Filtros por estado, categoría y marca (también por ?estado=, ?cat= y ?marca=, que valida el servidor).
@@ -51,7 +50,7 @@ export function Productos({ estado: e0, cat: c0, marca: m0 }: { estado: EstadoPr
       <dl className="pn-kpis">
         <div><dt>En la tienda</dt><dd><b className="pn-num" id="pn-p-activos">{r.activos}</b><small>de {r.n} productos</small></dd></div>
         <div><dt>Pausados</dt><dd><b className="pn-num" id="pn-p-pausados">{r.n - r.activos}</b><small>no se muestran</small></dd></div>
-        <div><dt>Margen promedio</dt><dd><b className="pn-num" id="pn-p-margen">{pct(r.margen)}</b><small>sobre el precio</small></dd></div>
+        <div><dt>Margen promedio</dt><dd><b className="pn-num" id="pn-p-margen">{fmtMargen(r.margen)}</b><small>sobre el precio</small></dd></div>
       </dl>
       <div className="pn-tools">
         <span className="pn-search">

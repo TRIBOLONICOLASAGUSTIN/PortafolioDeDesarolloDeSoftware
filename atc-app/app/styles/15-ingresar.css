@@ -5,7 +5,7 @@ body:has(.in){background:var(--bg-alt)}
 :root[data-theme="dark"] body:has(.in){background:var(--bg)}
 .in{min-height:100svh;display:grid;place-items:center;padding:48px 20px}
 .in-card{width:min(400px,100%);padding:clamp(28px,5vw,40px);border-radius:32px;background:var(--tile);box-shadow:var(--shadow);animation:in .6s var(--ease)}
-:root[data-theme="dark"] .in-card{box-shadow:inset 0 0 0 .5px rgba(255,255,255,.08)}
+:root[data-theme="dark"] .in-card{box-shadow:var(--borde-oscuro)}
 .in-card .mark{width:44px;height:44px;border-radius:12px;font-size:15px;margin-bottom:20px}
 .in h1{font-size:32px;letter-spacing:-.03em;line-height:1.1}
 .in-sub{margin-top:6px;font-size:15px;color:var(--text-2)}

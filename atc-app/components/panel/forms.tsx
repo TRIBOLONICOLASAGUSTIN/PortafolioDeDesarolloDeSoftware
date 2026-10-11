@@ -12,7 +12,7 @@ import { UMBRAL } from '@/lib/data/inventario';
 import { GRUPOS } from './inventario';
 import { GASTO_CATS, type GastoCat } from '@/lib/panel/types';
 import { addDays } from '@/lib/panel/dates';
-import { fmt, fmtMonto, fmtPct } from '@/lib/format';
+import { fmt, fmtMargen, fmtMonto } from '@/lib/format';
 import { storeStamp } from '@/lib/hours';
 import { PROVEEDORES, proveedorDe } from '@/lib/data/proveedores';
 
@@ -135,7 +135,7 @@ export function VentaForm({ pre }: { pre?: string }) {
       </Field>
       {listo && (
         <p className="pn-prev" id="pn-prev">
-          Total <b className="pn-num">{fmt(q * u)}</b> · Ganancia <b className="pn-num">{fmtMonto(q * (u - c))}</b>{u > 0 && <> ({fmtPct((u - c) / u).replace('+', '')})</>}
+          Total <b className="pn-num">{fmt(q * u)}</b> · Ganancia <b className="pn-num">{fmtMonto(q * (u - c))}</b>{u > 0 && <> ({fmtMargen((u - c) / u)})</>}
           {c > u && <span className="pn-warn"><Icon n="info" cls="i xs" /> El costo es mayor que el precio: en esta venta perdés plata.</span>}
         </p>
       )}
@@ -338,7 +338,7 @@ export function EditarForm({ id }: { id: string }) {
       {!conCosto && <p className="pn-hint">El costo de la PC es la suma de sus piezas: se cambia en cada pieza.</p>}
       {conPrecio && u > 0 && c >= 0 && (
         <p className="pn-prev" id="pn-prev">
-          Ganancia por unidad <b className="pn-num">{fmtMonto(u - c)}</b> ({fmtPct((u - c) / u).replace('+', '')})
+          Ganancia por unidad <b className="pn-num">{fmtMonto(u - c)}</b> ({fmtMargen((u - c) / u)})
           {c >= u && <span className="pn-warn"><Icon n="info" cls="i xs" /> El costo es igual o mayor que el precio.</span>}
         </p>
       )}
@@ -410,7 +410,7 @@ export function NuevoForm() {
           <input className="pn-in pn-num" inputMode="numeric" value={umbral} onChange={e => limpiar('umbral', setUmbral)(e.target.value)} {...aria('f-numb', err.umbral, true)} />
         </Field>
       </div>
-      {u > 0 && c >= 0 && <p className="pn-prev" id="pn-prev">Ganancia por unidad <b className="pn-num">{fmtMonto(u - c)}</b> ({fmtPct((u - c) / u).replace('+', '')})</p>}
+      {u > 0 && c >= 0 && <p className="pn-prev" id="pn-prev">Ganancia por unidad <b className="pn-num">{fmtMonto(u - c)}</b> ({fmtMargen((u - c) / u)})</p>}
       <div className="pn-foot"><button className="btn btn-full" type="submit">Agregar producto</button></div>
     </form>
   );

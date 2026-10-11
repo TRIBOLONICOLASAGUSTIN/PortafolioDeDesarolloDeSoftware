@@ -4,6 +4,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { startServer, LOCAL_ENV } from '../helpers/server.mjs';
+import { postRuta } from '../helpers/http.mjs';
 import { connect } from '../db/helpers.mjs';
 
 let local, prod, demo, db;
@@ -21,12 +22,7 @@ after(async () => { await db?.end(); await Promise.all([local?.stop(), prod?.sto
 
 let ipSeq = 10;
 const nextIp = () => `198.51.100.${ipSeq++}`;
-async function post(srv, body, { ip = nextIp(), headers = {}, raw } = {}) {
-  const res = await fetch(`${srv.base}/api/pedidos`, { method: 'POST', headers: { 'content-type': 'application/json', 'cf-connecting-ip': ip, ...headers }, body: raw ?? JSON.stringify(body) });
-  const text = await res.text();
-  let json = null; try { json = JSON.parse(text); } catch {}
-  return { status: res.status, headers: res.headers, json, text };
-}
+const post = (srv, body, { ip = nextIp(), headers = {}, raw } = {}) => postRuta(srv.base, '/api/pedidos', body, { headers: { 'cf-connecting-ip': ip, ...headers }, raw });
 const PEDIDO = { items: [{ slug: 'ins-105a', qty: 2 }, { slug: 'red-hdmi', qty: 1 }], entrega: 'retiro', pago: 'transferencia', nombre: 'Sofía Ramírez' };
 const stock = async slug => (await db.query('select stock from public.products where slug = $1', [slug])).rows[0].stock;
 

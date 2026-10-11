@@ -6,10 +6,12 @@ import { readFileSync } from 'node:fs';
 const port = process.env.ATC_PGPORT ?? '54329';
 const db = process.env.ATC_DB ?? 'atc_test';
 /** Contraseña al azar del cluster de pruebas (la escribe db-local.sh; solo la lee el dueño de la carpeta). */
-export function clusterPass() {
+function clusterPass() {
   try { return encodeURIComponent(readFileSync(`${process.env.ATC_PGDATA ?? '/tmp/atc-pgdata'}/.atc-pass`, 'utf8').trim()); } catch { return ''; }
 }
-export const DB_URL = process.env.ATC_DB_URL ?? `postgres://postgres:${clusterPass()}@127.0.0.1:${port}/${db}`;
+/** Conexión a la base local de pruebas con ese rol (postgres, atc_tracker o atc_tienda). */
+export const localDbUrl = rol => `postgres://${rol}:${clusterPass()}@127.0.0.1:${port}/${db}`;
+export const DB_URL = process.env.ATC_DB_URL ?? localDbUrl('postgres');
 
 // Solo estos roles se pueden asumir en las pruebas (evita interpolar texto arbitrario).
 const ROLES = new Set(['anon', 'authenticated', 'atc_tracker', 'atc_tienda', 'service_role']);

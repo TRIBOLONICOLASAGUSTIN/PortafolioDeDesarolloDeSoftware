@@ -3,8 +3,9 @@
 import { z } from 'zod';
 import { GASTO_CATS } from './types';
 import { CATS } from '@/lib/data/catalog';
+import { PAY_IDS } from '@/lib/whatsapp';
 
-const PAY = z.enum(['efectivo', 'transferencia', 'mp', 'tarjeta'], 'Elegí cómo te pagaron');
+const PAY = z.enum(PAY_IDS, 'Elegí cómo te pagaron');
 const monto = z.number('Ingresá un monto').int('Sin centavos').positive('Tiene que ser mayor a $ 0').max(100_000_000, 'Revisá el monto');
 const costo = z.number('Ingresá un monto (0 si no hubo)').int('Sin centavos').min(0, 'No puede ser negativo').max(100_000_000, 'Revisá el monto');
 

@@ -8,7 +8,7 @@ const DAY_MS = 86400000;
 
 const ms = (ymd: string) => Date.UTC(+ymd.slice(0, 4), +ymd.slice(5, 7) - 1, +ymd.slice(8, 10));
 const ymdOf = (t: number) => new Date(t).toISOString().slice(0, 10);
-const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
+export const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 const parts = (ymd: string) => ({ y: +ymd.slice(0, 4), m: +ymd.slice(5, 7) - 1, d: +ymd.slice(8, 10) });
 
 export const addDays = (ymd: string, n: number) => ymdOf(ms(ymd) + n * DAY_MS);
@@ -30,8 +30,6 @@ export const monthsBetween = (a: string, b: string) => { const p = parts(a), q =
 export const short = (ymd: string) => { const { m, d } = parts(ymd); return `${d} ${MON[m]}`; };
 /** "oct" o "oct 2025" si no es del año de referencia. */
 export const monthShort = (ymd: string, ref: string) => { const { y, m } = parts(ymd); return y === parts(ref).y ? MON[m] : `${MON[m]} ${y}`; };
-/** "octubre de 2026" */
-export const monthLong = (ymd: string) => { const { y, m } = parts(ymd); return `${MONTHS[m]} de ${y}`; };
 /** "Hoy", "Ayer" o "Miércoles 7 de octubre" (con el año si no es el actual). */
 export function labelDay(ymd: string, hoy: string) {
   const diff = daysBetween(ymd, hoy);

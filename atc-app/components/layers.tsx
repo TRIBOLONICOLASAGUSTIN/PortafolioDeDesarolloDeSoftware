@@ -5,8 +5,8 @@ import { useBag, useReducedMotion, useUI } from './app-shell';
 import { Icon, Render, Wa } from './ui';
 import { byId, CATS, PAGES, PRODUCTS, stockInfo } from '@/lib/data/catalog';
 import { fmt, norm } from '@/lib/format';
-import { bagMessage, bagSubtotal, PAYS, topeBolsa, waLink, type Registrado } from '@/lib/whatsapp';
-import { tokenTurnstile } from '@/lib/turnstile-client';
+import { bagMessage, bagSubtotal, PAYS, topeBolsa, waLink, type BagState, type PedidoRes, type Registrado } from '@/lib/whatsapp';
+import { postJson, tokenTurnstile } from '@/lib/turnstile-client';
 
 /** Lleva el foco a un elemento de la ventana cuando se abre. */
 function useFocusOnOpen(open: boolean, root: React.RefObject<HTMLElement | null>, sel: string) {
@@ -66,7 +66,7 @@ function Bag() {
   const dirRef = useRef<HTMLInputElement>(null);
   useFocusOnOpen(open, ref, '[data-close]');
   const ids = Object.keys(bag.items);
-  const setEntrega = (e: 'retiro' | 'envio') => { patch({ entrega: e }); if (e === 'envio') requestAnimationFrame(() => dirRef.current?.focus()); };
+  const setEntrega = (e: BagState['entrega']) => { patch({ entrega: e }); if (e === 'envio') requestAnimationFrame(() => dirRef.current?.focus()); };
   // Finalizar: el servidor registra el pedido y aparta el stock 48 h; después se abre WhatsApp con el código.
   // Si algo falla, WhatsApp se abre igual sin código (el enlace del botón ya lo tiene): nunca se pierde una venta.
   const tsRef = useRef<HTMLDivElement>(null);
@@ -85,12 +85,9 @@ function Bag() {
     let reg: Registrado | null = null, faltan: string[] | null = null;
     try {
       const token = await tokenTurnstile(tsRef.current, 'pedido');
-      const r = await fetch('/api/pedidos', {
-        method: 'POST', headers: { 'content-type': 'application/json' }, signal: AbortSignal.timeout(8000),
-        body: JSON.stringify({ items: Object.entries(bag.items).map(([slug, qty]) => ({ slug, qty })), entrega: bag.entrega, pago: bag.pago,
-          ...(bag.nombre.trim() ? { nombre: bag.nombre.trim().slice(0, 60) } : {}), ...(token ? { turnstileToken: token } : {}) }),
-      });
-      const j = await r.json().catch(() => null);
+      const { j } = await postJson<PedidoRes>('/api/pedidos',
+        { items: Object.entries(bag.items).map(([slug, qty]) => ({ slug, qty })), entrega: bag.entrega, pago: bag.pago, ...(bag.nombre.trim() ? { nombre: bag.nombre.trim().slice(0, 60) } : {}) },
+        token, 8000);
       if (j?.ok) reg = j; else if (j?.motivo === 'sin_stock' && Array.isArray(j.productos)) faltan = j.productos;
     } catch {}
     setEnviando(false);

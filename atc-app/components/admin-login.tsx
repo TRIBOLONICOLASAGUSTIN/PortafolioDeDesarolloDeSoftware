@@ -3,6 +3,7 @@
 import Script from 'next/script';
 import Link from 'next/link';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { postJson } from '@/lib/turnstile-client';
 
 const MOTIVOS: Record<string, string> = {
   credenciales: 'Los datos no son correctos.',
@@ -31,13 +32,11 @@ export function AdminLogin({ turnstileKey, nonce }: { turnstileKey?: string; non
     const token = f.get('cf-turnstile-response');
     setBusy(true); setErr('');
     try {
-      const r = await fetch('/api/ingresar', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ usuario: String(f.get('usuario') ?? ''), clave: String(f.get('clave') ?? ''), codigo: String(f.get('codigo') ?? '').replace(/\s/g, ''), ...(typeof token === 'string' ? { turnstileToken: token } : {}) }),
-      });
-      const j = (await r.json().catch(() => ({}))) as { ok?: boolean; motivo?: string };
-      if (r.ok && j.ok) { location.assign('/panel'); return; }
-      setErr(MOTIVOS[j.motivo ?? ''] ?? MOTIVOS.no_disponible);
+      const { ok, j } = await postJson<{ ok?: boolean; motivo?: string }>('/api/ingresar',
+        { usuario: String(f.get('usuario') ?? ''), clave: String(f.get('clave') ?? ''), codigo: String(f.get('codigo') ?? '').replace(/\s/g, '') },
+        typeof token === 'string' ? token : null);
+      if (ok && j?.ok) { location.assign('/panel'); return; }
+      setErr(MOTIVOS[j?.motivo ?? ''] ?? MOTIVOS.no_disponible);
     } catch {
       setErr(MOTIVOS.no_disponible);
     }

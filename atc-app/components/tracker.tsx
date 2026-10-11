@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Icon, Wa } from './ui';
-import { STEPS, type TrackFound, type TrackResult } from '@/lib/data/tracking';
+import { cuerpoCodigo, STEPS, type TrackFound, type TrackResult } from '@/lib/data/tracking';
 import { fmt, vars } from '@/lib/format';
 import { longDate, shortDateTime } from '@/lib/hours';
-import { tokenTurnstile } from '@/lib/turnstile-client';
+import { postJson, tokenTurnstile } from '@/lib/turnstile-client';
 
 const MSG = {
   incompleto: 'Completá el código de tu comprobante (por ejemplo 7KQ2-9M) y los últimos 3 números de tu teléfono.',
@@ -17,12 +17,9 @@ const MSG = {
   origen: 'No pudimos procesar el pedido. Recargá la página e intentá de nuevo.',
 };
 
-// Lo que escribe la gente → formato del comprobante: mayúsculas, sin I/L/O (Crockford), "7KQ2-9M".
-// Si pegan el código completo ("AT-7KQ2-9M"), se quita el prefijo AT (igual que normalize_code en la base).
+// Lo que escribe la gente → formato del comprobante, "7KQ2-9M" (si pegan "AT-7KQ2-9M", se quita el prefijo).
 const tidyCode = (s: string) => {
-  let v = s.toUpperCase().replace(/[^0-9A-Z]/g, '');
-  if (v.length === 8 && v.startsWith('AT')) v = v.slice(2);
-  v = v.replace(/[IL]/g, '1').replace(/O/g, '0').slice(0, 6);
+  const v = cuerpoCodigo(s).slice(0, 6);
   return v.length > 4 ? `${v.slice(0, 4)}-${v.slice(4)}` : v;
 };
 
@@ -88,13 +85,9 @@ export function Tracker({ demo }: { demo: boolean }) {
     try {
       // Turnstile se carga recién acá (no en cada visita a la home): datos mínimos
       const token = await tokenTurnstile(tsRef.current, 'seguimiento');
-      const res = await fetch('/api/seguimiento', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ codigo: `AT-${c}`, telefono3: t, ...(token ? { turnstileToken: token } : {}) }),
-      });
-      const r: TrackResult | null = await res.json().catch(() => null);
+      const { status, j: r } = await postJson<TrackResult>('/api/seguimiento', { codigo: `AT-${c}`, telefono3: t }, token);
       if (r?.ok) setOut({ order: r });
-      else fail(MSG[(r && !r.ok && r.motivo) || (res.status === 429 ? 'demasiados_intentos' : 'no_disponible')]);
+      else fail(MSG[(r && !r.ok && r.motivo) || (status === 429 ? 'demasiados_intentos' : 'no_disponible')]);
     } catch {
       fail(MSG.no_disponible);
     } finally {

@@ -8,13 +8,14 @@ import { usePanel } from './panel-shell';
 import { DemoBanner } from './demo-banner';
 import { CATS } from '@/lib/data/catalog';
 import { FILTROS, NIVEL, type Filtro, type Item, type Nivel } from '@/lib/panel/inventario';
-import { fmt, fmtPct, norm } from '@/lib/format';
+import { fmt, fmtMargen, norm } from '@/lib/format';
+import { margenDe } from '@/lib/panel/precios';
 
 /** Categorías del catálogo y, al final, las piezas con las que se arman las PC */
 export const GRUPOS: { id: string; t: string }[] = [...CATS.filter(c => c.id !== 'todo').map(c => ({ id: c.id, t: c.t })), { id: 'piezas', t: 'Piezas para armar PC' }];
 export const grupo = (cat: string) => GRUPOS.find(g => g.id === cat)?.t ?? cat;
 
-export const margen = (it: Item) => (it.price ? fmtPct((it.price - it.cost) / it.price).replace('+', '') : '');
+export const margen = (it: Item) => (it.price ? fmtMargen(margenDe(it.price, it.cost)) : '');
 export const unidades = (n: number) => `${n} ${n === 1 ? 'unidad' : 'unidades'}`;
 
 /** Ícono de cada artículo: la ilustración del producto o el de la pieza */

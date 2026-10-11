@@ -28,3 +28,9 @@ export async function verifyTurnstile(token: string, ip: string, action: Accion,
     return false;
   }
 }
+
+/** Turnstile es obligatorio en producción (y fuera de ella si hay clave secreta): true si no hace falta o si el token vale. */
+export async function turnstileOk(mode: 'demo' | 'local' | 'prod', token: string | undefined, ip: string, action: Accion, req: Request) {
+  if (mode !== 'prod' && !process.env.TURNSTILE_SECRET_KEY) return true;
+  return !!token && verifyTurnstile(token, ip, action, req);
+}

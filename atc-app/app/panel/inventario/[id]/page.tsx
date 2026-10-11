@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { panelAcceso } from '@/lib/server/panel';
+import { panelAcceso, exigirPanel } from '@/lib/server/panel';
 import { Ficha } from '@/components/panel/ficha';
 import { ITEM_IDS, ITEMS } from '@/lib/panel/inventario';
 
@@ -16,14 +16,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function PanelFicha({ params }: Props) {
-  if (!(await panelAcceso())) notFound();
+  await exigirPanel();
   const { id } = await params;
   if (!valido(id)) notFound();
   return (
-    <>
-      <main className="wrap pn-main" id="pn-main" data-item={id}>
-        <Ficha id={id} />
-      </main>
-    </>
+    <main className="wrap pn-main" id="pn-main" data-item={id}>
+      <Ficha id={id} />
+    </main>
   );
 }

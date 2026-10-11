@@ -1,21 +1,17 @@
-import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import { panelAcceso } from '@/lib/server/panel';
+import { exigirPanel, panelMeta } from '@/lib/server/panel';
 import { Inventario } from '@/components/panel/inventario';
 import { FILTROS, type Filtro } from '@/lib/panel/inventario';
 
-export async function generateMetadata(): Promise<Metadata> { return (await panelAcceso()) ? { title: 'Inventario' } : {}; }
+export const generateMetadata = panelMeta('Inventario');
 
 export default async function PanelInventario({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  if (!(await panelAcceso())) notFound();
+  await exigirPanel();
   // Solo valores conocidos: cualquier otro (o repetido) cae en "todos".
   const q = (await searchParams).filtro;
   const filtro: Filtro = typeof q === 'string' && FILTROS.some(([f]) => f === q) ? (q as Filtro) : 'todos';
   return (
-    <>
-      <main className="wrap pn-main pn-col" id="pn-main" data-filtro={filtro}>
-        <Inventario filtro={filtro} />
-      </main>
-    </>
+    <main className="wrap pn-main pn-col" id="pn-main" data-filtro={filtro}>
+      <Inventario filtro={filtro} />
+    </main>
   );
 }

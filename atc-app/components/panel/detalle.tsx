@@ -5,7 +5,7 @@ import { usePanel } from './panel-shell';
 import { ESTADO, gastoLabel, payLabel, productName, tipo } from '@/lib/panel/labels';
 import { long } from '@/lib/panel/dates';
 import { ingreso, resultado } from '@/lib/panel/types';
-import { fmt, fmtMonto, fmtPct } from '@/lib/format';
+import { fmt, fmtMargen, fmtMonto } from '@/lib/format';
 
 const unidades = (n: number) => `${n} ${n === 1 ? 'unidad' : 'unidades'}`;
 
@@ -38,7 +38,7 @@ export function Detalle({ id }: { id: string }) {
         {m.kind === 'gasto' ? <li><b>{gastoLabel(m.cat)}</b><span>{m.concept}</span></li> : <li><b>{payLabel(m.pay)}</b><span>Entra {fmt(ingreso(m))}</span></li>}
       </ol>
       {m.kind !== 'gasto' && (
-        <p className="pn-det-res"><span>Ganancia de {m.kind === 'venta' ? 'esta venta' : 'esta reparación'}</span><b className="pn-num">{fmtMonto(res)}{ingreso(m) > 0 && ` (${fmtPct(res / ingreso(m)).replace('+', '')})`}</b></p>
+        <p className="pn-det-res"><span>Ganancia de {m.kind === 'venta' ? 'esta venta' : 'esta reparación'}</span><b className="pn-num">{fmtMonto(res)}{ingreso(m) > 0 && ` (${fmtMargen(res / ingreso(m))})`}</b></p>
       )}
 
       <dl className="pn-dl">

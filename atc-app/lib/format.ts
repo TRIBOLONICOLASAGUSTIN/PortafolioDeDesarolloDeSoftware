@@ -24,3 +24,5 @@ export function fmtPct(p: number) {
   const s = v < 10 ? v.toFixed(1).replace('.', ',').replace(/,0$/, '') : String(Math.round(v));
   return `${s === '0' ? '' : p < 0 ? '−' : '+'}${s}\u00a0%`;
 }
+/** Margen: el porcentaje sin el "+" (25 %, −3 %); sin dato, "—". */
+export const fmtMargen = (p: number | null) => (p === null ? '—' : fmtPct(p).replace('+', ''));

@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { clientIp, redLimite, trackingConfig } from '@/lib/server/config';
 import { limit } from '@/lib/server/ratelimit';
-import { verifyTurnstile } from '@/lib/server/turnstile';
-import { readLimited, sameSite } from '@/lib/server/http';
+import { turnstileOk } from '@/lib/server/turnstile';
+import { avisoFaltante, corteLimite, leerJson, respuestas } from '@/lib/server/http';
 import { demoTrack, trackOrder } from '@/lib/server/tracking';
 
 // POST /api/seguimiento — la única puerta pública a una orden (docs/atc/seguridad.md §3).
@@ -17,49 +17,33 @@ const Body = z.object({
   turnstileToken: z.string().max(2048).optional(),
 }).strict();
 
-const json = (body: unknown, status = 200, extra: Record<string, string> = {}) =>
-  Response.json(body, { status, headers: { 'Cache-Control': 'no-store', ...extra } });
 // Las fallas usan siempre { ok:false, motivo } (ver TrackResult): el cliente las mapea a un mensaje.
-const invalid = () => json({ ok: false, motivo: 'solicitud_invalida' }, 400);
-const unavailable = () => json({ ok: false, motivo: 'no_disponible' }, 503);
-
-let warned = false;
+const r = respuestas(), { json } = r;
+const avisar = avisoFaltante('seguimiento');
 
 export async function POST(req: Request) {
-  if (!sameSite(req)) return json({ ok: false, motivo: 'origen' }, 403);
-  if (!(req.headers.get('content-type') ?? '').toLowerCase().startsWith('application/json')) return invalid();
-  const text = await readLimited(req, MAX_BODY);
-  if (text === null) return invalid();
-  let data: unknown;
-  try { data = JSON.parse(text); } catch { return invalid(); }
-  const parsed = Body.safeParse(data);
-  if (!parsed.success) return invalid();
-  const { codigo, telefono3, turnstileToken } = parsed.data;
+  const leido = await leerJson(req, MAX_BODY, Body, r);
+  if ('corte' in leido) return leido.corte;
+  const { codigo, telefono3, turnstileToken } = leido.data;
 
   const cfg = trackingConfig();
-  if (!cfg.ok) {
-    if (!warned) { warned = true; console.error(`[seguimiento] falta configuración: ${cfg.missing.join(', ')}`); }
-    return unavailable();
-  }
+  if (!cfg.ok) { avisar(cfg.missing); return r.noDisponible(); }
   const ip = clientIp(req, cfg.mode);
-  if (!ip) return unavailable();
+  if (!ip) return r.noDisponible();
 
-  const rl = await limit(ip, cfg.mode);
-  if (rl === 'error') return unavailable();
-  if (!rl.allowed) return json({ ok: false, motivo: 'demasiados_intentos' }, 429, { 'Retry-After': String(rl.retry) });
+  const corte = corteLimite(await limit(ip, cfg.mode), r, 'demasiados_intentos');
+  if (corte) return corte;
 
-  if (cfg.mode === 'prod' || process.env.TURNSTILE_SECRET_KEY) {
-    if (!turnstileToken || !(await verifyTurnstile(turnstileToken, ip, 'seguimiento', req))) return json({ ok: false, motivo: 'verificacion' }, 403);
-  }
+  if (!(await turnstileOk(cfg.mode, turnstileToken, ip, 'seguimiento', req))) return json({ ok: false, motivo: 'verificacion' }, 403);
 
   if (cfg.mode === 'demo') return json(demoTrack(codigo, telefono3));
   try {
     // La base también limita por IP: en IPv6, por su /64.
-    const r = await trackOrder(cfg.dbUrl, cfg.mode, codigo, telefono3, redLimite(ip));
-    return json(r, !r.ok && r.motivo === 'demasiados_intentos' ? 429 : 200);
+    const res = await trackOrder(cfg.dbUrl, cfg.mode, codigo, telefono3, redLimite(ip));
+    return json(res, !res.ok && res.motivo === 'demasiados_intentos' ? 429 : 200);
   } catch (e) {
     // Nunca se registra el código ni el teléfono.
     console.error('[seguimiento] la base no respondió:', (e as { code?: string }).code ?? 'sin código');
-    return unavailable();
+    return r.noDisponible();
   }
 }

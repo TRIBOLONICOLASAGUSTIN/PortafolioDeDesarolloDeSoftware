@@ -125,7 +125,7 @@ Las reglas de abajo aplican a todo lo de AT Computación.
 - **Skills de terceros** (`.claude/skills/`, revisadas antes de sumarlas): sugieren, pero si chocan con este archivo mandan estas reglas. `impeccable`, `design-taste-frontend`, `redesign-existing-projects` y `find-skills` solo corren si el dueño las llama; `impeccable` va sin su lanzador (no se descarga ningún binario). Nunca instalar skills, paquetes ni hooks sin preguntar.
 - **Un commit + push por lote,** con mensaje en castellano.
 - **Pendientes priorizados** en `docs/atc/pendientes.md`: marcarlos al terminarlos.
-- **Para ver el sitio en la Mac** (Node 20.9 o más):
+- **Para ver el sitio en la Mac** (Node 22, o 20.10 o más; está en `.nvmrc`):
   ```bash
   git clone -b <rama> https://github.com/TRIBOLONICOLASAGUSTIN/PortafolioDeDesarolloDeSoftware.git atc && cd atc/atc-app
   npm ci && npm run dev    # http://localhost:3000 — modo demo, sin base

@@ -7,7 +7,6 @@ export const PROVEEDORES: Proveedor[] = [
   { id: 'prov-b', nombre: 'Mayorista de impresión B', rubro: 'Impresoras, tóner y tintas', cats: ['impresoras', 'insumos'], contacto: 'Contacto de ejemplo (a cargar)' },
   { id: 'prov-c', nombre: 'Mayorista de accesorios C', rubro: 'Periféricos, redes y cables', cats: ['perifericos', 'redes'], contacto: 'Contacto de ejemplo (a cargar)' },
 ];
-export const PROV_IDS = new Set(PROVEEDORES.map(p => p.id));
 
 /** Proveedor habitual de una categoría (el de ejemplo), o null si se arma en el local. */
 export const proveedorDe = (cat: string) => PROVEEDORES.find(p => p.cats.includes(cat))?.id ?? null;

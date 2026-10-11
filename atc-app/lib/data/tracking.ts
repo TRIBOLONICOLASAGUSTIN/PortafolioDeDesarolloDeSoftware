@@ -17,3 +17,10 @@ export type TrackFound = {
   novedades: { estado: OrderStatus; nota: string | null; fecha: string }[];
 };
 export type TrackResult = TrackFound | { ok: false; motivo: 'no_encontrada' | 'demasiados_intentos' | 'no_disponible' | 'verificacion' | 'solicitud_invalida' | 'origen' };
+
+/** Lo que escribió la persona → los caracteres del código: mayúsculas, sin el prefijo AT (solo si son 8), I/L → 1 y
+ *  O → 0. Igual que normalize_code en la base (migración 0300); lo usan el formulario y el modo demo del servidor. */
+export const cuerpoCodigo = (s: string) => {
+  const v = s.toUpperCase().replace(/[^0-9A-Z]/g, '');
+  return (v.length === 8 && v.startsWith('AT') ? v.slice(2) : v).replace(/[IL]/g, '1').replace(/O/g, '0');
+};

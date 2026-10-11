@@ -55,7 +55,7 @@
 .brand-pill b{font-weight:600}
 .brand-x{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;color:var(--text-2);transition:color .15s}
 @media (hover:hover){.brand-x:hover{color:var(--text)}}
-:root[data-theme="dark"] .brand-pill{box-shadow:inset 0 0 0 .5px rgba(255,255,255,.08)}
+:root[data-theme="dark"] .brand-pill{box-shadow:var(--borde-oscuro)}
 .p-empty{flex:0 0 min(520px,86vw);display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:16px;padding:36px;border-radius:24px;background:var(--card)}
 .p-empty b{font-size:21px;letter-spacing:-.02em}
 

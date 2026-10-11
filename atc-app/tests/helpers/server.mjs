@@ -2,14 +2,14 @@
 // Las pruebas corren contra la app real de producción: CSP, encabezados y la ruta /api/seguimiento.
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { clusterPass } from '../db/helpers.mjs';
+import { localDbUrl } from '../db/helpers.mjs';
 
 const APP = fileURLToPath(new URL('../..', import.meta.url));
 
 // Entorno de la base local de pruebas (scripts/db-local.sh): atc_tracker con la contraseña al azar del cluster, solo en 127.0.0.1.
 export const LOCAL_ENV = {
-  ATC_TRACKER_DATABASE_URL: `postgres://atc_tracker:${clusterPass()}@127.0.0.1:${process.env.ATC_PGPORT ?? '54329'}/${process.env.ATC_DB ?? 'atc_test'}`,
-  ATC_TIENDA_DATABASE_URL: `postgres://atc_tienda:${clusterPass()}@127.0.0.1:${process.env.ATC_PGPORT ?? '54329'}/${process.env.ATC_DB ?? 'atc_test'}`,
+  ATC_TRACKER_DATABASE_URL: localDbUrl('atc_tracker'),
+  ATC_TIENDA_DATABASE_URL: localDbUrl('atc_tienda'),
   ATC_LOCAL: '1',
   ATC_IP_HEADER: 'cf-connecting-ip',
 };

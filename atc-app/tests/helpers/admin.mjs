@@ -1,6 +1,7 @@
 // Superadmin de PRUEBA (solo para los tests: nada de esto se usa en el sitio).
 // Replica el formato del servidor (lib/server/admin.ts y lib/server/totp.ts) para generar códigos y sesiones.
 import { createHash, createHmac, randomBytes, scryptSync } from 'node:crypto';
+import { postRuta } from './http.mjs';
 
 export const ADMIN = { user: 'dueno', pass: 'clave-de-prueba-123', totp: 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP' };
 
@@ -46,9 +47,4 @@ export function forgeSession(env, exp, mode = 'local') {
 }
 
 /** POST /api/ingresar. */
-export async function login(base, body, headers = {}) {
-  const res = await fetch(`${base}/api/ingresar`, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: typeof body === 'string' ? body : JSON.stringify(body) });
-  const text = await res.text();
-  let json = null; try { json = JSON.parse(text); } catch {}
-  return { status: res.status, headers: res.headers, text, json, cookie: res.headers.get('set-cookie') };
-}
+export const login = (base, body, headers = {}) => postRuta(base, '/api/ingresar', body, { headers });

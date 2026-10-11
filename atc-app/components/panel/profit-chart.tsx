@@ -4,9 +4,9 @@ import { useId, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { curva, escala, marcasX, H, W } from '@/lib/panel/chart';
 import type { Bucket, Unit } from '@/lib/panel/stats';
 import { fmtEje, fmtMonto } from '@/lib/format';
+import { cap } from '@/lib/panel/dates';
 
 const DEL: Record<Unit, string> = { 'día': 'del día', semana: 'de la semana', mes: 'del mes' };
-const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 
 /**
  * Ganancia acumulada del período, al estilo de Bolsa: grilla suave, montos a la derecha y fechas abajo.

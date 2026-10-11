@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import { panelAcceso } from '@/lib/server/panel';
+import { exigirPanel, panelAcceso } from '@/lib/server/panel';
 import { storeStamp } from '@/lib/hours';
 import { DEMO_ORDERS } from '@/lib/data/demo-orders';
 import { Sprites } from '@/components/sprites';
@@ -22,7 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {
-  if (!(await panelAcceso())) notFound();
+  await exigirPanel();
   // Órdenes listas para retirar (de ejemplo; en la etapa 2, de la base). Se pasan armadas desde el servidor:
   // así las órdenes de ejemplo no terminan en el JS que descarga la tienda.
   const listas = Object.values(DEMO_ORDERS).map(o => o.r).filter(r => r.estado === 'listo').map(r => ({ codigo: r.codigo, equipo: r.equipo, presupuesto: r.presupuesto }));

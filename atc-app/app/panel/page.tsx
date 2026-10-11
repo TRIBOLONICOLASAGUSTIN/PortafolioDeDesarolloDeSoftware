@@ -1,20 +1,15 @@
-import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import { panelAcceso } from '@/lib/server/panel';
+import { exigirPanel, panelMeta } from '@/lib/server/panel';
 import { Resumen } from '@/components/panel/resumen';
 import { storeStamp } from '@/lib/hours';
 import { diaLargo } from '@/lib/panel/dates';
 
-export async function generateMetadata(): Promise<Metadata> { return (await panelAcceso()) ? { title: 'Resumen' } : {}; }
+export const generateMetadata = panelMeta('Resumen');
 
 export default async function PanelResumen() {
-  // El layout ya controla; se repite porque los layouts no se vuelven a evaluar al navegar dentro del panel.
-  if (!(await panelAcceso())) notFound();
+  await exigirPanel();
   return (
-    <>
-      <main className="wrap pn-main" id="pn-main">
-        <Resumen fecha={diaLargo(storeStamp().ymd)} />
-      </main>
-    </>
+    <main className="wrap pn-main" id="pn-main">
+      <Resumen fecha={diaLargo(storeStamp().ymd)} />
+    </main>
   );
 }

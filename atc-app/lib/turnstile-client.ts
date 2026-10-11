@@ -1,5 +1,6 @@
 // Cloudflare Turnstile en el navegador, solo cuando hace falta (datos mínimos): el script se pide recién cuando el
 // cliente consulta una reparación o finaliza un pedido, no en cada visita. Lo comparten el seguimiento y la bolsa.
+// Acá también vive el envío a las rutas del sitio (postJson), que usan el seguimiento, la bolsa y el ingreso.
 // Con la CSP 'strict-dynamic', un script que agrega otro script propio (este módulo) no necesita nonce.
 // (El ingreso del dueño usa el widget implícito con su <Script>: el formulario nativo lee cf-turnstile-response.)
 type TS = { render: (el: HTMLElement, o: Record<string, unknown>) => string; remove?: (id: string) => void; reset?: (el?: string | HTMLElement) => void };
@@ -35,4 +36,13 @@ export async function tokenTurnstile(el: HTMLElement | null, action: 'seguimient
     ts.render(el, { sitekey: TURNSTILE_KEY, action, appearance: 'interaction-only', size: 'flexible', language: 'es',
       callback: (t: string) => { clearTimeout(fin); res(t); }, 'error-callback': () => { clearTimeout(fin); res(null); } });
   });
+}
+
+/** POST JSON a una ruta del sitio, con el token de Turnstile si hay. `j`: la respuesta, o null si no llegó un JSON. */
+export async function postJson<T>(url: string, body: Record<string, unknown>, token?: string | null, ms?: number) {
+  const r = await fetch(url, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, ...(ms ? { signal: AbortSignal.timeout(ms) } : {}),
+    body: JSON.stringify({ ...body, ...(token ? { turnstileToken: token } : {}) }),
+  });
+  return { ok: r.ok, status: r.status, j: (await r.json().catch(() => null)) as T | null };
 }

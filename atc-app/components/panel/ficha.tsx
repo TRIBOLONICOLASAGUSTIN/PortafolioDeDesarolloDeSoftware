@@ -13,10 +13,9 @@ import { porTramo, type Item, type StockMov, type StockTipo } from '@/lib/panel/
 import { periodo, RANGES, type RangeId } from '@/lib/panel/stats';
 import { productName } from '@/lib/panel/labels';
 import { addDays, short } from '@/lib/panel/dates';
-import { fmt, fmtMonto, fmtPct, vars } from '@/lib/format';
+import { fmt, fmtMargen, fmtMonto, vars } from '@/lib/format';
 import { PROVEEDORES } from '@/lib/data/proveedores';
 
-const pct = (p: number) => fmtPct(p).replace('+', '');
 /** Fecha corta para las filas: "Hoy", "Ayer", "7 oct" o "19 dic 2025" */
 const fecha = (ymd: string, hoy: string) => (ymd === hoy ? 'Hoy' : ymd === addDays(hoy, -1) ? 'Ayer' : `${short(ymd)}${ymd.slice(0, 4) === hoy.slice(0, 4) ? '' : ` ${ymd.slice(0, 4)}`}`);
 const Volver = ({ desde }: { desde: Desde }) => <Link className="pn-back" href={`/panel/${desde}`} prefetch={false}><Icon n="chev-l" cls="i sm" />{desde === 'productos' ? 'Productos' : 'Inventario'}</Link>;
@@ -139,7 +138,7 @@ function Composicion({ it }: { it: Item }) {
             <i style={vars({ background: x.c })} aria-hidden="true" />
             <span>{x.t}</span>
             <b className="pn-num">{fmt(x.v)}</b>
-            <small className="pn-num">{price > 0 ? pct(x.v / price) : '—'}</small>
+            <small className="pn-num">{price > 0 ? fmtMargen(x.v / price) : '—'}</small>
           </li>
         ))}
       </ul>

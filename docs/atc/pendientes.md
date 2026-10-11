@@ -110,6 +110,25 @@ Varios hallazgos repiten el mismo problema visto desde distintos ángulos. En el
   - [ ] **Falta configurar** (necesita cuentas): Turnstile, Upstash, hosting (Vercel/Netlify/Cloudflare) y `ATC_IP_HEADER` según el hosting (`seguridad.md` §8 punto 8).
   - [ ] **Borde (CDN/WAF)** antes de publicar: límites por IP, solo GET/HEAD fuera de `/api`, tope de cuerpo, desafío a bots, topes de gasto y la Data API de Supabase apagada (`seguridad.md` §8 punto 10). Sin esto, una sola compu pone lenta la home (unos 2,6 s, §11).
 - [x] **Avalanchas y puertas traseras (L11):** topes de la bolsa (3 por producto, 10 por pedido, la mitad del stock para los pendientes), límite por /48 y techo del sitio después de Turnstile, cuerpos con tope y corte a los 5 s, Upstash consultado como mucho el máximo por instancia, base con `query_timeout`, scrypt de a 2 con cola, modos que no abren de más y `seed.sql` fuera de `supabase/`. Prueba de carga con `npm run carga`. Pruebas FN-9, FN-10 y API-30 a API-33.
+- [x] **Sin código duplicado ni muerto (L12, mismo comportamiento):**
+  - Hecho:
+    - Las rutas POST comparten la lectura del cuerpo, las respuestas sin caché, el aviso de configuración, el corte por límite y Turnstile (`lib/server/http.ts`, `turnstileOk`); cada ruta sigue escribiendo su orden de controles.
+    - La cookie de sesión se arma en un solo lugar (`cookieSesion`).
+    - Las páginas del panel usan `exigirPanel` y `panelMeta`.
+    - Un solo formato de margen (`fmtMargen`), una sola lista de medios de pago y entrega (Zod incluido), un solo tipo de respuesta del pedido y una sola limpieza del código de seguimiento (`cuerpoCodigo`).
+    - En el navegador, `postJson` para el seguimiento, la bolsa y el ingreso; la planilla CSV y su descarga, en `lib/panel/csv.ts`.
+    - El borde fino del modo oscuro es un token (`--borde-oscuro`).
+    - Las pruebas comparten `postRuta`, `localDbUrl` y el Upstash falso.
+    - Código muerto borrado: 3 íconos sin uso, `PROV_IDS`, `monthLong`, `faseOf`, `.btn-ghost` y fragmentos vacíos.
+    - `.gitattributes` (los `.sh` siempre con LF), `.nvmrc` (22) y `engines` ≥ 20.10.
+    - Comprobado con 113 capturas idénticas píxel a píxel (antes y después) y `npm test`.
+  - Queda repetido a propósito:
+    - Las reglas de la base y su espejo en TypeScript (topes de la bolsa, `normalize_code`, medios de pago): la base es la que manda y el servidor corta antes.
+    - El código TOTP en el servidor, en `admin:setup` y en las pruebas: cada uno tiene que funcionar solo.
+    - Los mensajes de error de cada formulario.
+    - Encabezados, KPIs y filas del panel: son una o dos líneas que varían en cada pantalla, y un componente común sumaría vueltas sin ahorrar código.
+    - Estilos que coinciden por casualidad (segmentados, píldoras): unirlos ataría componentes distintos y movería el orden de la cascada.
+    - `unidades()` no era código muerto (lo usan la ficha y el detalle).
 - [x] **Tienda centrada:** flechas del estante en el eje de la sección (44 px), encabezados de servicio y reseñas centrados como el resto, categorías hasta el borde en el celular y Contacto con padding simétrico (e2e "centrado-*").
 - [x] **Hojas del panel prolijas:** la X centrada con el título y al ras del contenido, sin barra de scroll nativa, campos en `#2c2c2e` en oscuro (no negros), Precio y Costo a la misma altura, contador como un solo control, medios de pago en recuadros 2 × 2, flecha propia en el selector y el botón principal siempre a la vista (e2e "panel-hojas-*").
 - [x] **Gráfico de Ganancia estilo Bolsa:** grilla suave con montos a la derecha ("$ 500 mil", "$ 1,5 M"), fechas abajo, el período anterior en gris punteado con leyenda, el último punto marcado y el detalle (acumulado, del día y período anterior) dentro del dibujo. La tabla para lectores suma el período anterior.

@@ -1,10 +1,10 @@
 import { createHmac } from 'node:crypto';
 import { z } from 'zod';
-import { adminConfig, cookieSpec, credencialesOk, cuentaId, nuevaSesion, SESSION_HOURS, Ocupado } from '@/lib/server/admin';
+import { adminConfig, cookieSesion, credencialesOk, cuentaId, nuevaSesion, SESSION_HOURS, Ocupado } from '@/lib/server/admin';
 import { clientIp, redLimite } from '@/lib/server/config';
-import { readLimited, sameSite } from '@/lib/server/http';
+import { avisoFaltante, corteLimite, leerJson, respuestas } from '@/lib/server/http';
 import { fallos2fa, limit, primeraVez } from '@/lib/server/ratelimit';
-import { verifyTurnstile } from '@/lib/server/turnstile';
+import { turnstileOk } from '@/lib/server/turnstile';
 import { verificar } from '@/lib/server/totp';
 
 // POST /api/ingresar — ingreso del superadmin al panel (docs/atc/seguridad.md §3 y §5, fila 17).
@@ -32,13 +32,9 @@ const Body = z.object({
   turnstileToken: z.string().max(2048).optional(),
 }).strict();
 
-const json = (body: unknown, status = 200, extra: Record<string, string> = {}) =>
-  Response.json(body, { status, headers: { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex', ...extra } });
-const invalid = () => json({ ok: false, motivo: 'solicitud_invalida' }, 400);
-const unavailable = () => json({ ok: false, motivo: 'no_disponible' }, 503);
+const r = respuestas({ 'X-Robots-Tag': 'noindex' }), { json } = r;
 const denied = () => json({ ok: false, motivo: 'credenciales' }, 401);
-
-let warned = false;
+const avisar = avisoFaltante('ingresar');
 
 // Registro de cada intento (para ver si alguien está probando claves): resultado y la red de origen como HMAC.
 // Nunca el usuario, la clave, el código ni la IP en crudo.
@@ -46,42 +42,31 @@ const registrar = (secret: Buffer, ip: string, resultado: 'ok' | 'limite' | 'ver
   console.info(JSON.stringify({ evento: 'ingreso', resultado, red: createHmac('sha256', secret).update(redLimite(ip)).digest('hex').slice(0, 16) }));
 
 export async function POST(req: Request) {
-  if (!sameSite(req)) return json({ ok: false, motivo: 'origen' }, 403);
-  if (!(req.headers.get('content-type') ?? '').toLowerCase().startsWith('application/json')) return invalid();
-  const text = await readLimited(req, MAX_BODY);
-  if (text === null) return invalid();
-  let data: unknown;
-  try { data = JSON.parse(text); } catch { return invalid(); }
-  const parsed = Body.safeParse(data);
-  if (!parsed.success) return invalid();
-  const { usuario, clave, codigo, turnstileToken } = parsed.data;
+  const leido = await leerJson(req, MAX_BODY, Body, r);
+  if ('corte' in leido) return leido.corte;
+  const { usuario, clave, codigo, turnstileToken } = leido.data;
 
   const cfg = adminConfig();
-  if (!cfg.ok) {
-    if (!warned) { warned = true; console.error(`[ingresar] falta configuración: ${cfg.missing.join(', ')}`); }
-    return unavailable();
-  }
+  if (!cfg.ok) { avisar(cfg.missing); return r.noDisponible(); }
   if (cfg.mode === 'local' && !desdeEstaCompu(req)) return json({ ok: false, motivo: 'solo_local' }, 403);
   const ip = clientIp(req, cfg.mode);
-  if (!ip) return unavailable();
+  if (!ip) return r.noDisponible();
 
   const rl = await limit(ip, cfg.mode, { ns: 'adm', max: 5, window: 900 });
-  if (rl === 'error') return unavailable();
-  if (!rl.allowed) { registrar(cfg.secret, ip, 'limite'); return json({ ok: false, motivo: 'demasiados_intentos' }, 429, { 'Retry-After': String(rl.retry) }); }
+  const corte = corteLimite(rl, r, 'demasiados_intentos');
+  if (corte) { if (rl !== 'error') registrar(cfg.secret, ip, 'limite'); return corte; }
 
-  if (cfg.mode === 'prod' || process.env.TURNSTILE_SECRET_KEY) {
-    if (!turnstileToken || !(await verifyTurnstile(turnstileToken, ip, 'ingresar', req))) { registrar(cfg.secret, ip, 'verificacion'); return json({ ok: false, motivo: 'verificacion' }, 403); }
-  }
+  if (!(await turnstileOk(cfg.mode, turnstileToken, ip, 'ingresar', req))) { registrar(cfg.secret, ip, 'verificacion'); return json({ ok: false, motivo: 'verificacion' }, 403); }
 
   // Se calculan las dos cosas siempre (tiempo parejo) y recién después se decide.
   const step = verificar(cfg.totp, codigo);
   let ok: boolean;
-  try { ok = await credencialesOk(cfg, usuario, clave); } catch (e) { if (e instanceof Ocupado) return unavailable(); throw e; }
+  try { ok = await credencialesOk(cfg, usuario, clave); } catch (e) { if (e instanceof Ocupado) return r.noDisponible(); throw e; }
   // Contraseña correcta con un código equivocado: solo lo provoca quien ya tiene la contraseña. A los 10 en 24 h (desde
   // cualquier red) no entra nadie hasta que pasen las 24 h o el dueño corra admin:setup; el log lo avisa.
   // Se consulta siempre (también con la clave mal) para que el tiempo no delate la contraseña.
   const fallos = await fallos2fa(cuentaId(cfg), cfg.mode, ok && step === null);
-  if (fallos === 'error') return unavailable();
+  if (fallos === 'error') return r.noDisponible();
   if (ok && fallos >= MAX_2FA) {
     registrar(cfg.secret, ip, 'bloqueo_2fa');
     console.error('[ingresar] contraseña correcta con 10 códigos del celular fallidos en 24 h: cambiá las claves (npm run admin:setup)');
@@ -92,7 +77,5 @@ export async function POST(req: Request) {
   if (!(await primeraVez(`adm:totp:${step}`, 120, cfg.mode))) { registrar(cfg.secret, ip, 'codigo_usado'); return denied(); }
   registrar(cfg.secret, ip, 'ok');
 
-  const { name, secure } = cookieSpec(cfg);
-  const cookie = [`${name}=${nuevaSesion(cfg)}`, 'Path=/', 'HttpOnly', 'SameSite=Strict', `Max-Age=${SESSION_HOURS * 3600}`, ...(secure ? ['Secure'] : [])].join('; ');
-  return json({ ok: true }, 200, { 'Set-Cookie': cookie });
+  return json({ ok: true }, 200, { 'Set-Cookie': cookieSesion(cfg, nuevaSesion(cfg), SESSION_HOURS * 3600) });
 }

@@ -7,9 +7,8 @@ import { usePanel } from './panel-shell';
 import { DemoBanner } from './demo-banner';
 import { CATS } from '@/lib/data/catalog';
 import { productos, resumir } from '@/lib/panel/catalogo';
-import { fmt, fmtPct } from '@/lib/format';
+import { fmt, fmtMargen } from '@/lib/format';
 
-const pct = (p: number | null) => (p === null ? '—' : fmtPct(p).replace('+', ''));
 
 // Categorías de la tienda: cuántos productos tiene cada una, cuánto vale su stock, su margen promedio y si se muestra
 // en la tienda. Maqueta: ocultar una categoría no cambia la tienda (se guarda en la etapa 2).
@@ -34,7 +33,7 @@ export function CatalogoCategorias() {
             <li key={c.id} className="pn-catrow" data-cat={c.id} data-visible={visible}>
               <Link className="pn-inv" href={`/panel/productos?cat=${c.id}`} prefetch={false}>
                 <span className="pn-ic pn-ic-r"><Render r={c.r} /></span>
-                <span className="pn-rt"><b>{c.t}</b><small>{r.n === 1 ? '1 producto' : `${r.n} productos`} · {r.unidades}&nbsp;u. · margen&nbsp;{pct(r.margen)}<span className="pn-g-in"> · {fmt(r.valor)} al costo</span></small></span>
+                <span className="pn-rt"><b>{c.t}</b><small>{r.n === 1 ? '1 producto' : `${r.n} productos`} · {r.unidades}&nbsp;u. · margen&nbsp;{fmtMargen(r.margen)}<span className="pn-g-in"> · {fmt(r.valor)} al costo</span></small></span>
                 <span className="pn-mamt"><b className="pn-num">{fmt(r.valor)}</b><small>stock al costo</small></span>
               </Link>
               <label className="pn-tgl">

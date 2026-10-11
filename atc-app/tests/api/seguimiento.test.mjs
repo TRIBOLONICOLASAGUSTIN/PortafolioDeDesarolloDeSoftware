@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { startServer, LOCAL_ENV } from '../helpers/server.mjs';
 import { fakeUpstash, PEM_PRUEBA } from '../helpers/upstash.mjs';
+import { postRuta } from '../helpers/http.mjs';
 import { connect } from '../db/helpers.mjs';
 
 const RL_MAX = 8;
@@ -22,16 +23,7 @@ after(async () => { await db?.end(); await Promise.all([local?.stop(), prod?.sto
 
 let ipSeq = 10;
 const nextIp = () => `198.51.100.${ipSeq++}`;
-async function post(srv, body, { ip = nextIp(), headers = {}, raw } = {}) {
-  const res = await fetch(`${srv.base}/api/seguimiento`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', 'cf-connecting-ip': ip, ...headers },
-    body: raw ?? JSON.stringify(body),
-  });
-  const text = await res.text();
-  let json = null; try { json = JSON.parse(text); } catch {}
-  return { status: res.status, headers: res.headers, text, json };
-}
+const post = (srv, body, { ip = nextIp(), headers = {}, raw } = {}) => postRuta(srv.base, '/api/seguimiento', body, { headers: { 'cf-connecting-ip': ip, ...headers }, raw });
 
 test('API-1 · Con datos correctos responde 200 solo con las claves permitidas, sin teléfono ni datos internos y sin caché', async () => {
   const r = await post(local, { codigo: 'AT-3FJ8-WX', telefono3: '548' });

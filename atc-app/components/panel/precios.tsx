@@ -9,10 +9,9 @@ import { DemoBanner } from './demo-banner';
 import { GRUPOS, ItemIc } from './inventario';
 import { productos } from '@/lib/panel/catalogo';
 import { bajoCosto, margenDe, PCT_MAX, PCT_MIN, previsualizar, REDONDEOS, type Alcance, type Redondeo } from '@/lib/panel/precios';
-import { csvPrecios } from '@/lib/panel/csv';
-import { fmt, fmtPct } from '@/lib/format';
+import { csvPrecios, descargarCsv } from '@/lib/panel/csv';
+import { fmt, fmtMargen } from '@/lib/format';
 
-const pct = (p: number) => fmtPct(p).replace('+', '');
 const CATS_PROD = GRUPOS.filter(g => g.id !== 'piezas');
 /** "todo", "cat:insumos" o "marca:HP" (el valor del select) */
 const alcanceDe = (v: string): Alcance => (v.startsWith('cat:') ? { t: 'cat', id: v.slice(4) } : v.startsWith('marca:') ? { t: 'marca', id: v.slice(6) } : { t: 'todo' });
@@ -38,11 +37,7 @@ export function Precios() {
   };
   const exportar = () => {
     const rows = CATS_PROD.flatMap(g => todos.filter(i => i.cat === g.id).map(i => ({ cat: g.t, marca: i.brand, nombre: i.name, costo: i.cost, precio: i.price ?? 0, margen: margenDe(i.price ?? 0, i.cost) })));
-    const url = URL.createObjectURL(new Blob([csvPrecios(rows)], { type: 'text/csv;charset=utf-8' }));
-    const a = document.createElement('a');
-    a.href = url; a.download = 'atc-lista-de-precios-EJEMPLO.csv';
-    document.body.append(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    descargarCsv(csvPrecios(rows), 'atc-lista-de-precios-EJEMPLO.csv');
     toast('Se descargó la lista de precios (datos de ejemplo).');
   };
   return (
@@ -89,7 +84,7 @@ export function Precios() {
                   return (
                     <li key={c.id} className="pn-cambio" data-id={c.id} data-antes={c.antes} data-despues={c.despues}>
                       <ItemIc it={it} />
-                      <span className="pn-rt"><b>{it.name}</b><small>margen {pct(c.margenAntes)}<span aria-hidden="true"> → </span><span className="sr"> pasa a </span>{pct(c.margenDespues)}{bajoCosto(c) && <em className="pn-ns"> · debajo del costo</em>}</small></span>
+                      <span className="pn-rt"><b>{it.name}</b><small>margen {fmtMargen(c.margenAntes)}<span aria-hidden="true"> → </span><span className="sr"> pasa a </span>{fmtMargen(c.margenDespues)}{bajoCosto(c) && <em className="pn-ns"> · debajo del costo</em>}</small></span>
                       <span className="pn-mamt"><b className="pn-num">{fmt(c.despues)}</b><small><span className="sr">antes </span><s>{fmt(c.antes)}</s></small></span>
                     </li>
                   );
@@ -110,7 +105,7 @@ export function Precios() {
                 <li key={it.id}>
                   <Link className="pn-inv pn-lprecio" href={`/panel/productos/${it.id}`} prefetch={false} data-id={it.id} data-precio={it.price ?? 0}>
                     <ItemIc it={it} />
-                    <span className="pn-rt"><b>{it.name}</b><small>{it.brand} · costo {fmt(it.cost)} · margen {pct(margenDe(it.price ?? 0, it.cost))}</small></span>
+                    <span className="pn-rt"><b>{it.name}</b><small>{it.brand} · costo {fmt(it.cost)} · margen {fmtMargen(margenDe(it.price ?? 0, it.cost))}</small></span>
                     <span className="pn-mamt"><b className="pn-num">{fmt(it.price ?? 0)}</b></span>
                     <Icon n="chev-r" cls="i sm pn-chev" />
                   </Link>

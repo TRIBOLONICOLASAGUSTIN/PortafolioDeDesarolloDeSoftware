@@ -10,6 +10,8 @@
   --shadow:0 1px 2px rgba(0,0,0,.04),0 8px 28px rgba(0,0,0,.06);
   --shadow-h:0 2px 6px rgba(0,0,0,.05),0 18px 50px rgba(0,0,0,.10);
   --e3:0 30px 90px rgba(0,0,0,.22); --hair:1px; --hair-c:rgba(0,0,0,.08);
+  /* Borde fino de las tarjetas en modo oscuro (ahí no se usa sombra): una sola definición */
+  --borde-oscuro:inset 0 0 0 .5px rgba(255,255,255,.08);
   --map-land:#f1eee8; --map-road:#ffffff; --map-road-2:#e2ded6; --map-park:#cfe8c6; --map-water:#bcdcf5;
   --card:var(--tile-alt);
   --font:-apple-system,BlinkMacSystemFont,"SF Pro Text",var(--font-inter),"Inter","Segoe UI",system-ui,sans-serif;

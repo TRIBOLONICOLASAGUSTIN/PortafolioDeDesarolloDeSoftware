@@ -5,7 +5,7 @@ import { Icon } from '../ui';
 import { Chips } from './chips';
 import { usePanel } from './panel-shell';
 import { RANGES, RANGE_IDS, periodo, porDia, type RangeId } from '@/lib/panel/stats';
-import { csv } from '@/lib/panel/csv';
+import { csv, descargarCsv } from '@/lib/panel/csv';
 
 // Descarga la planilla del período elegido (se arma en el navegador: no sale nada del dispositivo).
 export function Exportar() {
@@ -14,11 +14,7 @@ export function Exportar() {
   const per = periodo(range, hoy);
   const ms = porDia(idx, per.from, per.to).flatMap(g => g.items);
   const bajar = () => {
-    const url = URL.createObjectURL(new Blob([csv(ms)], { type: 'text/csv;charset=utf-8' }));
-    const a = document.createElement('a');
-    a.href = url; a.download = `atc-movimientos-EJEMPLO-${per.from}_${per.to}.csv`;
-    document.body.append(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    descargarCsv(csv(ms), `atc-movimientos-EJEMPLO-${per.from}_${per.to}.csv`);
     toast('Se descargó la planilla (datos de ejemplo).');
     closeSheet();
   };

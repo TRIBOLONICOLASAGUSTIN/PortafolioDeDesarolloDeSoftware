@@ -34,7 +34,6 @@ const clamp = (v: number) => Math.min(1, Math.max(0, v));
 const smooth = (t: number) => t * t * (3 - 2 * t);
 /** Fases del recorrido: F1 cerrada (giro lento) · F2 se abre la tapa y se despega la cubierta inferior · F3 despiece completo */
 export const phases = (p: number) => ({ turn: smooth(clamp(p / .18)), f2: smooth(clamp((p - .18) / .3)), f3: smooth(clamp((p - .48) / .37)) });
-export const faseOf = (p: number) => (p < .18 ? 1 : p < .48 ? 2 : 3);
 /** Modo inicio: la tapa se abre y el modelo gira entre p = .08 y p = .5 (después queda de frente) */
 export const abreInicio = (p: number) => smooth(clamp((p - .08) / .42));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;

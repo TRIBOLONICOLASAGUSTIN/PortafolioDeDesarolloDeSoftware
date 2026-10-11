@@ -6,8 +6,11 @@ export const waLink = (text: string) => `https://wa.me/${CONFIG.whatsapp}?text=$
 
 export const PAYS = [['efectivo', 'Efectivo'], ['transferencia', 'Transferencia'], ['mp', 'Mercado Pago'], ['tarjeta', 'Tarjeta']] as const;
 export type PayId = (typeof PAYS)[number][0];
+/** Las mismas listas validan en el servidor (Zod) y en el panel: un solo lugar para agregar un medio de pago. */
+export const PAY_IDS = PAYS.map(([id]) => id) as [PayId, ...PayId[]];
+export const ENTREGAS = ['retiro', 'envio'] as const;
 
-export type BagState = { items: Record<string, number>; entrega: 'retiro' | 'envio'; pago: PayId; nombre: string; dir: string };
+export type BagState = { items: Record<string, number>; entrega: (typeof ENTREGAS)[number]; pago: PayId; nombre: string; dir: string };
 
 /** Como mucho 3 unidades de cada producto por pedido (lo mismo controla la base): para más, se coordina por WhatsApp. */
 export const POR_PRODUCTO = 3;
@@ -18,6 +21,10 @@ export const bagSubtotal = (b: BagState) => Object.entries(b.items).reduce((a, [
 
 /** Pedido registrado por el servidor (POST /api/pedidos): código, total y precios de la base. */
 export type Registrado = { codigo: string; total: number; items: { slug: string; nombre: string; qty: number; precio: number }[] };
+/** Respuesta de POST /api/pedidos, tal como la arma crear_pedido en la base (la usan la ruta y la bolsa). */
+export type PedidoRes =
+  | ({ ok: true; vence: string } & Registrado)
+  | { ok: false; motivo: 'solicitud_invalida' | 'sin_stock' | 'demasiados_pedidos'; productos?: string[] };
 
 /**
  * Mensaje de compra que se abre en WhatsApp: no se cobra nada online. Si el pedido quedó registrado, lleva su código y
