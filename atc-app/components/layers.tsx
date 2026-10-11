@@ -6,20 +6,7 @@ import { Icon, Render, Wa } from './ui';
 import { byId, CATS, PAGES, PRODUCTS, stockInfo } from '@/lib/data/catalog';
 import { fmt, norm } from '@/lib/format';
 import { bagMessage, bagSubtotal, PAYS, waLink, type Registrado } from '@/lib/whatsapp';
-
-/* Turnstile del pedido (solo si hay clave): se dibuja al finalizar, invisible salvo que haga falta interactuar. */
-type TS = { render?: (el: HTMLElement, o: Record<string, unknown>) => string; remove?: (id: string) => void };
-const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
-function tokenPedido(el: HTMLElement | null): Promise<string | null> {
-  const ts = (window as unknown as { turnstile?: TS }).turnstile;
-  if (!SITE_KEY || !el || !ts?.render) return Promise.resolve(null);
-  return new Promise(res => {
-    const fin = setTimeout(() => res(null), 8000);
-    el.replaceChildren();
-    ts.render!(el, { sitekey: SITE_KEY, action: 'pedido', appearance: 'interaction-only', size: 'flexible', language: 'es',
-      callback: (t: string) => { clearTimeout(fin); res(t); }, 'error-callback': () => { clearTimeout(fin); res(null); } });
-  });
-}
+import { tokenTurnstile } from '@/lib/turnstile-client';
 
 /** Lleva el foco a un elemento de la ventana cuando se abre. */
 function useFocusOnOpen(open: boolean, root: React.RefObject<HTMLElement | null>, sel: string) {
@@ -97,7 +84,7 @@ function Bag() {
     setEnviando(true); setAviso('');
     let reg: Registrado | null = null, faltan: string[] | null = null;
     try {
-      const token = await tokenPedido(tsRef.current);
+      const token = await tokenTurnstile(tsRef.current, 'pedido');
       const r = await fetch('/api/pedidos', {
         method: 'POST', headers: { 'content-type': 'application/json' }, signal: AbortSignal.timeout(8000),
         body: JSON.stringify({ items: Object.entries(bag.items).map(([slug, qty]) => ({ slug, qty })), entrega: bag.entrega, pago: bag.pago,

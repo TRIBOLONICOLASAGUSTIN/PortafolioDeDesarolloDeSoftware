@@ -22,7 +22,7 @@
 .inp input,.inp textarea{flex:1;min-width:0;width:100%;height:100%;border:0;outline:0;background:none;font-size:17px}
 .inp input::placeholder{color:var(--text-3)}
 .hint{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:16px;font-size:13px;color:var(--text-2)}
-.hint button{min-height:34px;padding:0 13px;border-radius:999px;background:var(--fill-2);font-size:13px;font-weight:500;transition:background-color .2s}
+.hint button{min-height:34px;padding:0 13px;border-radius:999px;background:var(--fill-2);color:var(--text);font-size:13px;font-weight:500;transition:background-color .2s}
 .hint button:hover{background:var(--fill)}
 .err{display:flex;gap:8px;align-items:center;margin-top:16px;font-size:15px;color:var(--danger)}
 .shake{animation:shake .45s}

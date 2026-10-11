@@ -64,3 +64,7 @@ img{max-width:100%}
 .nf{min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:48px 22px;text-align:center}
 .nf h1{font-size:clamp(34px,5.2vw,48px);letter-spacing:-.03em;text-wrap:balance}
 .nf .lede{margin:0 0 8px}
+/* Área táctil de 44 px sin cambiar el dibujo (CLAUDE.md): los controles chicos de la tienda se agrandan con un ::before
+   invisible, centrado sobre el control (si ya miden 44 px o más, no cambia nada). */
+:is(.ib,.btn-sm,.lnk,.hint button,.wa-greet button,.links a,a.brand,.c-list a){position:relative}
+:is(.ib,.btn-sm,.lnk,.hint button,.wa-greet button,.links a,a.brand,.c-list a)::before{content:"";position:absolute;--h:min(0px,calc((100% - 44px) / 2));top:var(--h);bottom:var(--h);left:var(--h);right:var(--h)}

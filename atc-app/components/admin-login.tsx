@@ -4,8 +4,6 @@ import Script from 'next/script';
 import Link from 'next/link';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 
-declare global { interface Window { turnstile?: { reset: (el?: string | HTMLElement) => void } } }
-
 const MOTIVOS: Record<string, string> = {
   credenciales: 'Los datos no son correctos.',
   demasiados_intentos: 'Demasiados intentos. Esperá unos minutos y probá de nuevo.',
@@ -45,7 +43,7 @@ export function AdminLogin({ turnstileKey, nonce }: { turnstileKey?: string; non
     }
     const code = form.current.elements.namedItem('codigo') as HTMLInputElement | null;
     if (code) { code.value = ''; code.focus(); }
-    if (turnstileKey) window.turnstile?.reset();
+    if (turnstileKey) window.turnstile?.reset?.();
     setBusy(false);
   };
 

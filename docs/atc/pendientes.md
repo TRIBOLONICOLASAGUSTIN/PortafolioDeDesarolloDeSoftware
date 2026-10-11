@@ -112,7 +112,7 @@ Varios hallazgos repiten el mismo problema visto desde distintos ángulos. En el
 - [x] **Hojas del panel prolijas:** la X centrada con el título y al ras del contenido, sin barra de scroll nativa, campos en `#2c2c2e` en oscuro (no negros), Precio y Costo a la misma altura, contador como un solo control, medios de pago en recuadros 2 × 2, flecha propia en el selector y el botón principal siempre a la vista (e2e "panel-hojas-*").
 - [x] **Gráfico de Ganancia estilo Bolsa:** grilla suave con montos a la derecha ("$ 500 mil", "$ 1,5 M"), fechas abajo, el período anterior en gris punteado con leyenda, el último punto marcado y el detalle (acumulado, del día y período anterior) dentro del dibujo. La tabla para lectores suma el período anterior.
 - [x] **Panel más prolijo:** el período arriba junto al título (manda en todas las tarjetas); en compu las tarjetas de cada fila terminan juntas con espacios iguales; aviso de maqueta en una línea calma y aviso del día como tarjeta normal (sin verde); montos en la línea de cada título; separadores solo entre filas; categorías en un solo tono azul (sin verde ni rojo, que quedan para subir y bajar) y en dos columnas en compu; más vendidos con barras finas sobre un riel; Movimientos en una columna centrada con pestañas segmentadas.
-- [ ] **Áreas táctiles de la tienda < 44 px** (lote aparte): `.btn-sm` (34), `.ib` (40/38), `.duo .ib` (36/34), `.x-btn` (36), `.qty.sm button` (32×34), `.pays button` (38), `.hint button` (34), `.wa-greet button` (26), links del menú (≈32) y `.shop-links .lnk`. Sumar el chequeo de 44 px a la tienda (hoy solo corre en el panel y `/ingresar`).
+- [x] **Áreas táctiles de la tienda (octubre 2026):** los controles chicos llegan a 44 px con un `::before` invisible (sin cambiar el dibujo); en pantallas táctiles, los enlaces del pie también. El e2e lo mide en la tienda, la bolsa, la ficha y el menú (`tienda-a11y-*`), junto con el contraste por elemento y axe-core.
 - [ ] **Hito 3 — Panel del dueño.**
   - [x] **Etapa 1 — Maqueta** en `/panel`, con datos de ejemplo marcados:
     - Resumen: ganancia del período con gráfico de ganancia acumulada, desglose, categorías, más vendidos, últimos movimientos y aviso de la orden lista.
@@ -149,6 +149,14 @@ Varios hallazgos repiten el mismo problema visto desde distintos ángulos. En el
   - Apagadas (solo con /nombre) y con nota del proyecto: pbakaus/impeccable 4.5.2 (sin `scripts/` ni `agents/`: su lanzador baja y ejecuta un binario sin firma e instala hooks), Leonxlnx/taste-skill (design-taste-frontend, redesign-existing-projects: chocan con la tipografía, la paleta y la CSP) y vercel-labs/skills (find-skills: instalaba global con `-y`).
   - Afuera: vercel-labs/agent-browser (stub sin contenido revisable que preautoriza `npx agent-browser`). "Prompt de diseños": falta el link.
   - Para actualizarlas: `npx skills@latest add <repo> --agent claude-code --copy` en una carpeta aparte, leer el diff entero y recién ahí copiar.
+- [x] **Legal y buscadores (octubre 2026):** `/privacidad` al día, `/cookies`, `/terminos` y `/arrepentimiento` (borradores con datos de ejemplo marcados), Turnstile solo cuando hace falta, `robots.txt`, `sitemap.xml`, Open Graph, ícono y JSON-LD.
+- [ ] **Antes de publicar lo legal:**
+  - Que un abogado revise privacidad, cookies, términos y arrepentimiento.
+  - Datos reales: titular, CUIT, domicilio, mail y el QR de Data Fiscal (ARCA) en el pie.
+  - Arrepentimiento: el dueño confirma cómo manda el código de arrepentimiento dentro de las 24 h (Res. 424/2020).
+  - Turnstile: desde la nube no se pudo revisar qué guarda en el navegador (la red bloquea `challenges.cloudflare.com`). Con la clave real, mirarlo en las herramientas del navegador y ajustar `/cookies` si hiciera falta.
+  - `ATC_SITE_URL` con la dirección real y recién ahí `ATC_INDEXAR=1`.
+- [ ] **axe-core, avisos moderados (no bloquean):** la cinta superior y el saludo de WhatsApp quedan fuera de un landmark, y el resumen de la tienda es un `aside` dentro de otro landmark. Revisar en un lote de pulido.
 - [ ] **Antes de producción:**
   - Checklist de `seguridad.md` §8.
   - Datos reales del dueño.

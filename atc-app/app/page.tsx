@@ -15,6 +15,7 @@ import { WhatsAppWidget } from '@/components/whatsapp-widget';
 import { Layers } from '@/components/layers';
 import { OwnerSwitch } from '@/components/owner-switch';
 import { esSuperadmin } from '@/lib/server/admin';
+import { DatosEstructurados } from '@/components/datos-estructurados';
 
 // Página dinámica: cada pedido trae su nonce (CSP) y el estado "abierto/cerrado" del momento.
 export default async function Home() {
@@ -25,6 +26,7 @@ export default async function Home() {
   const owner = await esSuperadmin();
   return (
     <AppShell>
+      <DatosEstructurados nonce={nonce} />
       <Sprites />
       <Nav />
       <Ribbon />
@@ -34,7 +36,7 @@ export default async function Home() {
         <Shop />
         <Tiers />
         <Service />
-        <Tracker demo={demo} turnstileKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} nonce={nonce} />
+        <Tracker demo={demo} />
         <Estimator />
         <Reviews />
         <Faq />

@@ -4,6 +4,9 @@ export const CONFIG = {
   phone: '+5493420000000',
   email: 'hola@atcomputacion.com',
   address: 'Av. Ejemplo 1234, Santa Fe',
+  addr: { street: 'Av. Ejemplo 1234', city: 'Santa Fe', region: 'Santa Fe' },
+  titular: 'Nombre del titular',
+  cuit: '20-00000000-0',
   // Zona horaria del local: el estado "abierto/cerrado" se calcula siempre en hora de Santa Fe.
   timeZone: 'America/Argentina/Cordoba',
   // Horarios por día de la semana (0 = domingo), en horas [desde, hasta).

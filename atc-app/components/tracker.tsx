@@ -1,13 +1,11 @@
 'use client';
 
-import Script from 'next/script';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Icon, Wa } from './ui';
 import { STEPS, type TrackFound, type TrackResult } from '@/lib/data/tracking';
 import { fmt, vars } from '@/lib/format';
 import { longDate, shortDateTime } from '@/lib/hours';
-
-declare global { interface Window { turnstile?: { reset: (el?: string | HTMLElement) => void } } }
+import { tokenTurnstile } from '@/lib/turnstile-client';
 
 const MSG = {
   incompleto: 'Completá el código de tu comprobante (por ejemplo 7KQ2-9M) y los últimos 3 números de tu teléfono.',
@@ -69,7 +67,7 @@ function Order({ o, onAgain }: { o: TrackFound; onAgain: () => void }) {
   );
 }
 
-export function Tracker({ demo, turnstileKey, nonce }: { demo: boolean; turnstileKey?: string; nonce?: string }) {
+export function Tracker({ demo }: { demo: boolean }) {
   const [code, setCode] = useState('');
   const [tel, setTel] = useState('');
   const [busy, setBusy] = useState(false);
@@ -77,6 +75,7 @@ export function Tracker({ demo, turnstileKey, nonce }: { demo: boolean; turnstil
   const form = useRef<HTMLFormElement>(null);
   const telRef = useRef<HTMLInputElement>(null);
   const codeRef = useRef<HTMLInputElement>(null);
+  const tsRef = useRef<HTMLDivElement>(null);
 
   const fail = (err: string) => {
     setOut({ err });
@@ -87,10 +86,11 @@ export function Tracker({ demo, turnstileKey, nonce }: { demo: boolean; turnstil
     if (c.length < 7 || t.length < 3) { fail(MSG.incompleto); return; }
     setBusy(true);
     try {
-      const token = form.current ? new FormData(form.current).get('cf-turnstile-response') : null;
+      // Turnstile se carga recién acá (no en cada visita a la home): datos mínimos
+      const token = await tokenTurnstile(tsRef.current, 'seguimiento');
       const res = await fetch('/api/seguimiento', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ codigo: `AT-${c}`, telefono3: t, ...(typeof token === 'string' ? { turnstileToken: token } : {}) }),
+        body: JSON.stringify({ codigo: `AT-${c}`, telefono3: t, ...(token ? { turnstileToken: token } : {}) }),
       });
       const r: TrackResult | null = await res.json().catch(() => null);
       if (r?.ok) setOut({ order: r });
@@ -99,7 +99,6 @@ export function Tracker({ demo, turnstileKey, nonce }: { demo: boolean; turnstil
       fail(MSG.no_disponible);
     } finally {
       setBusy(false);
-      if (turnstileKey) window.turnstile?.reset();
     }
   }
 
@@ -130,7 +129,7 @@ export function Tracker({ demo, turnstileKey, nonce }: { demo: boolean; turnstil
             <label className="field"><span>Últimos 3 dígitos del teléfono</span><span className="inp"><Icon n="phone" cls="i sm" />
               <input id="tTel" ref={telRef} inputMode="numeric" autoComplete="off" maxLength={3} placeholder="321"
                 value={tel} onChange={e => setTel(e.target.value.replace(/\D/g, '').slice(0, 3))} /></span></label>
-            {turnstileKey && <div className="cf-turnstile" data-sitekey={turnstileKey} data-action="seguimiento" data-size="flexible" data-language="es"></div>}
+            <div className="tf-ts" ref={tsRef} />
             <button className="btn" id="tBtn" type="submit" disabled={busy}>{busy ? <><span className="spin"></span><span>Buscando…</span></> : <span>Rastrear</span>}</button>
           </form>
           {demo && (
@@ -146,7 +145,6 @@ export function Tracker({ demo, turnstileKey, nonce }: { demo: boolean; turnstil
           </div>
         </div>
       </div>
-      {turnstileKey && <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="afterInteractive" nonce={nonce} />}
     </section>
   );
 }

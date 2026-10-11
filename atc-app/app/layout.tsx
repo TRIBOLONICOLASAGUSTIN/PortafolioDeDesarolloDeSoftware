@@ -14,17 +14,27 @@ import './styles/10-info.css';
 import './styles/11-overlays.css';
 import './styles/12-responsive.css';
 import './styles/13-teardown.css';
+import { indexar, sitioUrl } from '@/lib/sitio';
 
 // Inter se sirve desde el propio sitio (next/font): sin pedidos a Google y compatible con la CSP.
 // En Apple se ve SF Pro (-apple-system), que nunca se sirve como fuente web por su licencia.
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-inter', display: 'swap' });
 
-export const metadata: Metadata = {
-  title: 'AT Computación — Tienda y servicio técnico',
-  description: 'Notebooks, PCs, impresoras, insumos y accesorios. Servicio técnico con presupuesto antes de reparar y seguimiento online de tu reparación.',
-  // Con datos de ejemplo, el sitio no se indexa (ATC_INDEXAR=1 cuando estén los reales).
-  robots: process.env.ATC_INDEXAR === '1' ? undefined : { index: false, follow: false },
-};
+const DESCRIPCION = 'Notebooks, PCs, impresoras, insumos y accesorios en Santa Fe. Servicio técnico con presupuesto antes de reparar y seguimiento online de tu reparación.';
+
+// Se arma en cada pedido (la página es dinámica por el nonce): ATC_SITE_URL y ATC_INDEXAR valen sin volver a compilar.
+export function generateMetadata(): Metadata {
+  return {
+    metadataBase: new URL(sitioUrl()),
+    title: { default: 'AT Computación — Tienda y servicio técnico en Santa Fe', template: '%s · AT Computación' },
+    description: DESCRIPCION,
+    alternates: { canonical: '/' },
+    openGraph: { type: 'website', locale: 'es_AR', siteName: 'AT Computación', title: 'AT Computación — Tienda y servicio técnico en Santa Fe', description: DESCRIPCION, url: '/' },
+    twitter: { card: 'summary_large_image' },
+    // Con datos de ejemplo, el sitio no se indexa (ATC_INDEXAR=1 cuando estén los reales).
+    robots: indexar() ? undefined : { index: false, follow: false },
+  };
+}
 
 export const viewport: Viewport = {
   width: 'device-width', initialScale: 1, viewportFit: 'cover',

@@ -21,7 +21,7 @@ export function Reviews() {
           <h2 className="h2">Lo que dicen <span className="muted">nuestros clientes.</span></h2>
           <a className="lnk" href="#" id="reviewLink">Dejanos tu reseña en Google</a>
         </div>
-        <div className="revs" data-ejemplo="reseñas de ejemplo">
+        <div className="revs" data-ejemplo="reseñas de ejemplo" tabIndex={0} role="region" aria-label="Reseñas">
           {REVIEWS.map(([q, ini, who, what], i) => (
             <figure key={ini} className="rev rv" style={i ? vars({ '--d': `${(i * .08).toFixed(2)}s` }) : undefined}>
               <Stars /><blockquote>{q}</blockquote>
@@ -123,6 +123,8 @@ export function Footer() {
           <div>
             <a className="brand" href="#inicio"><span className="mark">AT</span>AT Computación</a>
             <p>Venta de tecnología y servicio técnico de computadoras, notebooks e impresoras en Santa Fe.</p>
+            {/* Res. 424/2020: el botón de arrepentimiento, visible desde el inicio y sin registrarse */}
+            <a className="regret-btn" href="/arrepentimiento">Botón de arrepentimiento</a>
           </div>
           <div><h2>Tienda</h2><ul>{[['notebooks', 'Notebooks'], ['impresoras', 'Impresoras'], ['insumos', 'Insumos'], ['perifericos', 'Periféricos'], ['componentes', 'Componentes']].map(([c, t]) => <li key={c}><GoCat cat={c}>{t}</GoCat></li>)}</ul></div>
           <div><h2>Servicio</h2><ul><li><a href="#servicio">Servicio técnico</a></li><li><a href="#seguimiento">Seguir mi reparación</a></li><li><a href="#presupuesto">Calcular presupuesto</a></li><li><a href="#faq">Preguntas frecuentes</a></li></ul></div>
@@ -131,9 +133,10 @@ export function Footer() {
         <div className="f-bot">
           <div className="legal">
             <span>© {storeNow().year} AT Computación</span>
-            <Wa className="regret" text="Hola, quiero arrepentirme de una compra (Botón de arrepentimiento). Mi pedido es: ">Botón de arrepentimiento</Wa>
             <a href="https://www.argentina.gob.ar/produccion/defensadelconsumidor" target="_blank" rel="noopener">Defensa del Consumidor</a>
-            <a href="/privacidad">Privacidad y cookies</a>
+            <a href="/privacidad">Privacidad</a>
+            <a href="/cookies">Cookies</a>
+            <a href="/terminos">Términos y condiciones</a>
             <a href="#" title="Reemplazar por el QR de Data Fiscal de ARCA">Data fiscal</a>
           </div>
           <span>Santa Fe, Argentina</span>

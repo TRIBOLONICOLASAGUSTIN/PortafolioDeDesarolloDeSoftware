@@ -60,7 +60,7 @@ Las reglas de abajo aplican a todo lo de AT Computación.
 ## Responsive y accesibilidad
 - Matriz de pruebas: 320 · 375 · 390 · 820 · 1024 · 1440 px × claro/oscuro × con y sin "reducir movimiento".
 - Sin scroll horizontal en ningún ancho.
-- Áreas táctiles de 44 px o más.
+- Áreas táctiles de 44 px o más (los controles chicos de la tienda llegan con un `::before` invisible; los enlaces del pie, en pantallas táctiles).
 - Foco visible.
 - Las ventanas cerradas llevan `inert`.
 - Las maquetas decorativas llevan `aria-hidden`.
@@ -94,14 +94,14 @@ Las reglas de abajo aplican a todo lo de AT Computación.
 
 ## `atc-app/` (proyecto real)
 - **Estructura:**
-  - `app/`: la página, los estilos por sección en `app/styles/`, las rutas `api/seguimiento` y `api/pedidos` (la bolsa), `privacidad/` y el panel del dueño en `app/panel/` (menú lateral con Catálogo: productos, inventario, proveedores, lista de precios, categorías y marcas; Ganancias: resumen y movimientos; Pedidos: pendientes, pagados, retrasados y autocancelados; solo el superadmin con sesión: contraseña + código del celular, `lib/server/admin.ts`; sin sesión da 404; datos de ejemplo hasta conectar la base) y su ingreso en `app/ingresar/`.
+  - `app/`: la página, los estilos por sección en `app/styles/`, las rutas `api/seguimiento` y `api/pedidos` (la bolsa), las páginas legales (`privacidad/`, `cookies/`, `terminos/`, `arrepentimiento/`), `robots.ts`, `sitemap.ts` y el panel del dueño en `app/panel/` (menú lateral con Catálogo: productos, inventario, proveedores, lista de precios, categorías y marcas; Ganancias: resumen y movimientos; Pedidos: pendientes, pagados, retrasados y autocancelados; solo el superadmin con sesión: contraseña + código del celular, `lib/server/admin.ts`; sin sesión da 404; datos de ejemplo hasta conectar la base) y su ingreso en `app/ingresar/`.
   - `components/`: un componente por pieza; `'use client'` solo donde hay interacción.
   - `lib/data/`: datos de ejemplo.
   - `lib/server/`: código que solo corre en el servidor.
   - `supabase/`: migraciones.
   - `tests/`: pruebas.
 - **Antes de cada commit:** `npm test`.
-  - Corre tipos, build, base (27), API (27), e2e (499) y `check:docs`.
+  - Corre tipos, build, base (27), API (29), e2e (515) y `check:docs`.
   - Usa un Postgres 16 temporal que imita Supabase; `npm run db:stop` lo borra.
   - En la nube, el e2e necesita `PW="$(npm root -g)/playwright/index.mjs"`.
 - **Cada cambio de base lleva:**

@@ -15,6 +15,7 @@
 .lg h2{font-size:24px;letter-spacing:-.025em;line-height:1.2;text-wrap:balance}
 .lg section p{margin-top:12px;font-size:17px;line-height:1.47;color:var(--text);text-wrap:pretty}
 .lg a:not(.brand){color:var(--link)}
+.lg :is(p,li) a{text-decoration:underline;text-underline-offset:2px}
 .lg-list{list-style:none;margin:16px 0 0;padding:0;border-radius:18px;background:var(--bg-alt)}
 .lg-list li{padding:16px 20px}
 .lg-list li+li{box-shadow:inset 0 1px 0 var(--line-2)}
@@ -27,3 +28,13 @@
 .lg section .lg-ley{font-size:15px;color:var(--text-2)}
 /* El logo "AT" del encabezado: 13 px como mínimo fuera del pie (como en el panel) */
 .lg .mark{font-size:13px}
+.lg-list li p+p{margin-top:2px}
+/* Las otras políticas, al final de cada página */
+.lg-otras{display:flex;flex-wrap:wrap;gap:0 24px;margin-top:64px;padding-top:16px;box-shadow:inset 0 1px 0 var(--line-2)}
+.lg-otras a{display:inline-flex;align-items:center;min-height:44px;font-size:15px}
+/* Botón de arrepentimiento: dos campos opcionales y WhatsApp */
+.lg-form{display:grid;gap:16px;max-width:480px;margin-top:24px}
+.lg-campo{display:grid;gap:6px;font-size:15px;font-weight:600}
+.lg-campo small{font-weight:400}
+.lg-campo input{height:48px;padding:0 16px;border-radius:12px;border:1px solid var(--field);background:var(--bg);color:var(--text);font:inherit;font-size:17px;font-weight:400}
+.lg-form .btn{justify-self:start;max-width:100%}

@@ -56,7 +56,7 @@
 .qv-buy{display:flex;align-items:center;gap:12px;margin-top:28px}
 .qv-buy .btn{flex:1}
 .qty{display:inline-flex;align-items:center;height:46px;border-radius:999px;background:var(--fill-2)}
-.qty button{width:40px;height:46px;display:grid;place-items:center;color:var(--text-2)}
+.qty button{width:44px;height:46px;display:grid;place-items:center;color:var(--text-2)}
 .qty button:hover{color:var(--text)}
 .qty button[disabled]{opacity:.3;pointer-events:none}
 .qty span{min-width:22px;text-align:center;font-weight:600}

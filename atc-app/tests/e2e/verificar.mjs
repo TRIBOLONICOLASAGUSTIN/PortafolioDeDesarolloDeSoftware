@@ -5,7 +5,7 @@
 // Sale con código 1 si algún chequeo falla. Los errores de consola incluyen las violaciones de CSP.
 
 import { fileURLToPath } from 'node:url';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
 import { startServer, LOCAL_ENV } from '../helpers/server.mjs';
 import { ADMIN, adminEnv, stableNow, totpCode } from '../helpers/admin.mjs';
 
@@ -592,13 +592,110 @@ const panelA11y = (root = '.pn') => {
   }
 }
 
-// Privacidad y cookies: página propia, enlazada en el pie, legible (AA, letra ≥ 13 px, 44 px) y sin scroll horizontal
+// Páginas legales: privacidad, cookies, términos y arrepentimiento. Enlazadas desde el pie, legibles (AA, letra
+// ≥ 13 px, 44 px), sin saltos de títulos ni scroll horizontal, y con lo que cada una tiene que decir.
 for (const [w, scheme] of [[390, 'light'], [1440, 'dark']]) {
-  const { ctx, p, errs } = await panelPage(w, 900, scheme, { anon: true });
-  const r = await p.goto(server.base + '/privacidad'); await p.waitForTimeout(400);
-  const d = await p.evaluate(() => ({ h1: document.querySelector('h1')?.textContent, claves: ['atc-theme', 'atc-bag', 'atc-greet'].every(k => document.body.textContent.includes(k)), ley: /25\.326/.test(document.body.textContent), ow: document.documentElement.scrollWidth - innerWidth }));
-  const c = await p.evaluate(panelContrast, '.lg *'), a = await p.evaluate(panelA11y, '.lg');
-  check(`privacidad-${w}`, '/privacidad explica qué se guarda (sin cartel), con la Ley 25.326, AA, letra ≥ 13 px y 44 px', r.status() === 200 && d.h1 === 'Privacidad y cookies' && d.claves && d.ley && d.ow <= 0 && c.length === 0 && a.tiny.length === 0 && a.small.length === 0 && a.h1 === 1 && !a.jump && errs.length === 0, JSON.stringify({ d, c: c.slice(0, 3), a: [...a.tiny, ...a.small].slice(0, 4), errs: errs.slice(0, 2) }));
+  const { ctx, p, errs } = await panelPage(w, 900, scheme, { anon: true, hasTouch: w < 900 });
+  await p.goto(HTML); await p.waitForTimeout(300);
+  const pie = await p.evaluate(() => ['/privacidad', '/cookies', '/terminos', '/arrepentimiento'].filter(h => !document.querySelector(`footer a[href="${h}"]`)));
+  check(`legal-${w}`, 'el pie enlaza privacidad, cookies, términos y el botón de arrepentimiento', pie.length === 0, JSON.stringify(pie));
+  const PAGINAS = [
+    ['/privacidad', 'Privacidad', () => /25\.326/.test(document.body.textContent) && /Pedidos de la bolsa/.test(document.body.textContent) && /inicial del apellido/.test(document.body.textContent)],
+    ['/cookies', 'Cookies', () => ['atc-theme', 'atc-bag', 'atc-greet', '__Host-atc_s'].every(k => document.body.textContent.includes(k)) && /no hay cartel/i.test(document.body.textContent)],
+    ['/terminos', 'Términos y condiciones', () => /24\.240/.test(document.body.textContent) && /10 días corridos/.test(document.body.textContent) && /48 horas/.test(document.body.textContent)],
+    ['/arrepentimiento', 'Botón de arrepentimiento', () => !!document.querySelector('#arr-ok') && /24 horas/.test(document.body.textContent)],
+  ];
+  for (const [path, h1, dice] of PAGINAS) {
+    errs.length = 0;
+    const r = await p.goto(server.base + path); await p.waitForTimeout(300);
+    const d = await p.evaluate(() => ({ h1: document.querySelector('h1')?.textContent, ow: document.documentElement.scrollWidth - innerWidth }));
+    const ok = await p.evaluate(dice);
+    const c = await p.evaluate(panelContrast, '.lg *'), a = await p.evaluate(panelA11y, '.lg');
+    check(`legal-${w}`, `${path}: dice lo que tiene que decir, AA, letra ≥ 13 px, 44 px y sin scroll horizontal`, r.status() === 200 && d.h1 === h1 && ok && d.ow <= 0 && c.length === 0 && a.tiny.length === 0 && a.small.length === 0 && a.h1 === 1 && !a.jump && errs.length === 0, JSON.stringify({ d, ok, c: c.slice(0, 3), a: [...a.tiny, ...a.small].slice(0, 4), errs: errs.slice(0, 2) }));
+  }
+  // Arrepentimiento: arma el pedido para WhatsApp (el sitio no guarda nada)
+  await ctx.route('https://wa.me/**', r => r.fulfill({ contentType: 'text/html', body: '<!doctype html><title>WhatsApp</title>' }));
+  await p.fill('#arr-codigo', 'p-7kq2-4m'); await p.fill('#arr-prod', 'Mouse G203');
+  const [wa] = await Promise.all([ctx.waitForEvent('page'), p.click('#arr-ok')]);
+  await wa.waitForURL(/wa\.me/, { timeout: 15000 }).catch(() => {});
+  const txt = wa.url().includes('wa.me') ? new URL(wa.url()).searchParams.get('text') ?? '' : '';
+  await wa.close().catch(() => {});
+  check(`legal-${w}`, 'el botón de arrepentimiento abre WhatsApp con el pedido armado (código y producto)', /arrepentirme/.test(txt) && /Pedido: P-7KQ2-4M/.test(txt) && /Producto: Mouse G203/.test(txt), txt.slice(0, 120));
+  await ctx.close();
+}
+
+// Cookies: un cliente que recorre la tienda (bolsa, ficha, seguimiento y páginas legales) termina sin ninguna cookie
+// y sin datos personales en el navegador. Por eso no hace falta un cartel de consentimiento (ver /cookies).
+{
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
+  const p = await ctx.newPage(); await p.goto(HTML); await p.waitForTimeout(400);
+  await p.locator('#shelf [data-add]').first().click(); await p.waitForTimeout(200);
+  await p.click('#bagBtn'); await p.waitForTimeout(500); await p.fill('#bName', 'Nico Pérez'); await p.keyboard.press('Escape'); await p.waitForTimeout(300);
+  await p.locator('#shelf [data-open]').first().click(); await p.waitForTimeout(400); await p.keyboard.press('Escape'); await p.waitForTimeout(300);
+  await p.click('[data-demo]'); await p.waitForTimeout(1200);
+  for (const path of ['/privacidad', '/cookies', '/terminos', '/arrepentimiento']) { await p.goto(server.base + path); await p.waitForTimeout(200); }
+  const cookies = await ctx.cookies();
+  const guardado = await p.evaluate(() => JSON.stringify({ ...localStorage, ...sessionStorage }));
+  check('cookies', 'un cliente recorre la tienda y termina con 0 cookies y sin datos personales en el navegador', cookies.length === 0 && !/Nico|Pérez/.test(guardado) && /atc-bag/.test(guardado), JSON.stringify({ cookies: cookies.map(c => c.name), guardado: guardado.slice(0, 120) }));
+  await ctx.close();
+}
+
+// Tienda: áreas táctiles de 44 px (contando el ::before invisible que agranda los controles chicos) y contraste AA
+// por elemento (las maquetas decorativas, con aria-hidden, no cuentan). Con mouse, los enlaces del pie quedan compactos.
+const tiendaTactil = (sinPie) => {
+  const small = [];
+  for (const el of document.querySelectorAll('a, button, summary, select, input:not([type=hidden])')) {
+    if (!el.getClientRects().length || getComputedStyle(el).visibility !== 'visible' || el.closest('[inert], [aria-hidden="true"], .sr')) continue;
+    if (sinPie && el.matches('.f-cols li a, .legal a')) continue;
+    if (el.tagName === 'A' && el.closest('p') && el.closest('p').textContent.trim().length > el.textContent.trim().length + 3) continue;
+    const r = el.getBoundingClientRect(); let w = r.width, h = r.height;
+    for (const ps of ['::before', '::after']) {
+      const q = getComputedStyle(el, ps); if (q.content === 'none' || q.position !== 'absolute') continue;
+      const n = v => (v === 'auto' ? 0 : Math.max(0, -parseFloat(v)));
+      w = Math.max(w, r.width + n(q.left) + n(q.right)); h = Math.max(h, r.height + n(q.top) + n(q.bottom));
+    }
+    if (w < 43.5 || h < 43.5) small.push(`${(el.className && el.className.toString().split(' ')[0]) || el.tagName}:"${(el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 16)}" ${Math.round(w)}×${Math.round(h)}`);
+  }
+  return [...new Set(small)];
+};
+for (const [w, scheme] of [[390, 'light'], [1440, 'dark']]) {
+  const ctx = await browser.newContext({ viewport: { width: w, height: 900 }, colorScheme: scheme, reducedMotion: 'reduce', hasTouch: w < 900 });
+  const p = await ctx.newPage(); await p.goto(HTML); await p.waitForTimeout(600);
+  await p.evaluate(() => document.querySelectorAll('.rv').forEach(e => e.classList.add('in')));
+  const t0 = await p.evaluate(tiendaTactil, w >= 900);
+  const c0 = await p.evaluate(panelContrast, ':is(main, footer, header) *:not([aria-hidden="true"], [aria-hidden="true"] *)');
+  await p.evaluate(() => document.querySelector('#tienda').scrollIntoView()); await p.locator('#shelf [data-add]').first().click(); await p.click('#bagBtn'); await p.waitForTimeout(600);
+  const t1 = await p.evaluate(tiendaTactil, true);
+  await p.keyboard.press('Escape'); await p.waitForTimeout(300);
+  await p.locator('#shelf [data-open]').first().click(); await p.waitForTimeout(600);
+  const t2 = await p.evaluate(tiendaTactil, true);
+  await p.keyboard.press('Escape'); await p.waitForTimeout(300);
+  let t3 = [];
+  if (w < 900) { await p.click('#menuBtn'); await p.waitForTimeout(500); t3 = await p.evaluate(tiendaTactil, true); await p.click('#menuBtn'); }
+  const chicos = [...new Set([...t0, ...t1, ...t2, ...t3])];
+  check(`tienda-a11y-${w}`, 'tienda, bolsa, ficha y menú: áreas táctiles de 44 px y contraste AA por elemento', chicos.length === 0 && c0.length === 0, JSON.stringify({ chicos: chicos.slice(0, 6), c: c0.slice(0, 4) }));
+  await ctx.close();
+}
+
+// axe-core: sin problemas serios ni críticos de accesibilidad en la tienda, las páginas legales, el ingreso y el panel
+// (el contraste lo mide el chequeo propio, que también ve los fondos semitransparentes).
+{
+  const AXE = readFileSync(fileURLToPath(new URL('../../node_modules/axe-core/axe.min.js', import.meta.url)), 'utf8');
+  const axe = async p => { await p.evaluate(AXE); return p.evaluate(async () => (await window.axe.run(document, { resultTypes: ['violations'], rules: { 'color-contrast': { enabled: false } } })).violations.filter(v => v.impact === 'serious' || v.impact === 'critical').map(v => `${v.id}: ${v.nodes.slice(0, 2).map(n => n.target.join(' ')).join(', ')}`)); };
+  for (const [w, scheme] of [[390, 'light'], [1440, 'dark']]) {
+    const { ctx, p } = await panelPage(w, 900, scheme, { hasTouch: w < 900, reducedMotion: 'reduce' });
+    const malos = [];
+    for (const path of ['/', '/privacidad', '/cookies', '/terminos', '/arrepentimiento', '/panel', '/panel/pedidos', '/panel/productos', '/panel/precios', '/panel/marcas', '/panel/proveedores', '/panel/categorias']) {
+      await p.goto(server.base + path); await p.waitForTimeout(400);
+      for (const v of await axe(p)) malos.push(`${path} ${v}`);
+    }
+    check(`axe-${w}`, 'axe-core: sin problemas serios ni críticos en la tienda, las páginas legales y el panel', malos.length === 0, JSON.stringify(malos.slice(0, 5)));
+    await ctx.close();
+  }
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } }); const p = await ctx.newPage();
+  await p.goto(server.base + '/ingresar'); await p.waitForTimeout(400);
+  const v = await axe(p);
+  check('axe-ingresar', 'axe-core: /ingresar sin problemas serios ni críticos', v.length === 0, JSON.stringify(v));
   await ctx.close();
 }
 
