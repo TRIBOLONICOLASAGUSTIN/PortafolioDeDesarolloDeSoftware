@@ -1,12 +1,15 @@
 import 'server-only';
+import { localPermitido } from './config';
 
 // Verificación de Cloudflare Turnstile del lado del servidor (el resultado del navegador solo no alcanza).
 // Además de `success`, se controla:
 // - action: cada formulario tiene la suya (seguimiento / ingresar / pedido); un token resuelto en uno no sirve en otro.
 // - hostname: el sitio donde se resolvió tiene que ser este mismo.
-// Solo para pruebas locales (ATC_LOCAL=1, nunca en producción) se puede apuntar a un verificador falso.
+// Solo para pruebas locales (ATC_LOCAL=1 fuera de un hosting) se puede apuntar a un verificador falso, y solo en esta
+// compu (127.0.0.1): así la clave secreta nunca viaja a otro servidor.
 const URL_CF = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
-const verificador = () => (process.env.ATC_LOCAL === '1' && process.env.ATC_TURNSTILE_URL) || URL_CF;
+const falso = () => { const u = process.env.ATC_TURNSTILE_URL; try { return u && ['127.0.0.1', 'localhost'].includes(new URL(u).hostname) ? u : null; } catch { return null; } };
+const verificador = () => (localPermitido() && falso()) || URL_CF;
 const host = (req: Request) => (req.headers.get('host') ?? '').replace(/:\d+$/, '').toLowerCase();
 
 export type Accion = 'seguimiento' | 'ingresar' | 'pedido';

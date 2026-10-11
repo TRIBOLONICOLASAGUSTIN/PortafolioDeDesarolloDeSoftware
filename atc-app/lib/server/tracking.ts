@@ -1,25 +1,11 @@
 import 'server-only';
-import pg from 'pg';
+import { rpc } from './db';
 import type { TrackResult } from '@/lib/data/tracking';
 import { DEMO_ORDERS } from '@/lib/data/demo-orders';
 
-// Conexión como atc_tracker: un rol que SOLO puede ejecutar public.track_order (seguridad.md §4).
-// La contraseña vive en ATC_TRACKER_DATABASE_URL, una variable de entorno del servidor: nunca en el repo.
-// El pool se cachea una vez por proceso con la PRIMERA url. En producción hay una sola
-// ATC_TRACKER_DATABASE_URL por proceso, así que es correcto; si alguna vez conviviera más de una,
-// habría que cachear por url.
-// En producción, siempre por TLS verificado con la CA de Supabase (ATC_DB_CA): nunca en claro ni sin verificar.
-// En local (base en 127.0.0.1) no hace falta.
-const g = globalThis as unknown as { atcTrackerPool?: pg.Pool };
-const pool = (url: string, mode: 'local' | 'prod') =>
-  (g.atcTrackerPool ??= new pg.Pool({
-    connectionString: url, max: 3, idleTimeoutMillis: 10_000, connectionTimeoutMillis: 3_000, application_name: 'atc-web-seguimiento',
-    ssl: mode === 'prod' ? { ca: process.env.ATC_DB_CA, rejectUnauthorized: true } : false,
-  }));
-
+// Conexión como atc_tracker (lib/server/db.ts): un rol que SOLO puede ejecutar public.track_order (seguridad.md §4).
 export async function trackOrder(url: string, mode: 'local' | 'prod', code: string, phone3: string, ip: string): Promise<TrackResult> {
-  const { rows } = await pool(url, mode).query('select public.track_order($1, $2, $3) as r', [code, phone3, ip]);
-  return rows[0].r as TrackResult;
+  return rpc<TrackResult>('seguimiento', url, mode, 'select public.track_order($1, $2, $3) as r', [code, phone3, ip]);
 }
 
 /** Modo demo (solo fuera de producción y sin base): misma normalización y misma respuesta uniforme que la base.

@@ -3,7 +3,7 @@ import type { OrderStatus, TrackFound } from './tracking';
 
 // Vive aparte de tracking.ts: este objeto se arma con llamadas a funciones y el empaquetador no lo puede descartar,
 // así que si estuviera junto a STEPS (que usa el navegador) viajaría en el JS de la tienda. Solo lo importa el servidor.
-// Órdenes DE EJEMPLO para el modo demo (solo fuera de producción y sin base): espejo de supabase/seed.sql.
+// Órdenes DE EJEMPLO para el modo demo (solo fuera de producción y sin base): espejo de tests/db/seed.sql.
 const ev = (estado: OrderStatus, fecha: string, nota: string) => ({ estado, nota, fecha });
 export const DEMO_ORDERS: Record<string, { tel: string; r: TrackFound }> = {
   'AT-7KQ2-9M': { tel: '321', r: { ok: true, codigo: 'AT-7KQ2-9M', equipo: 'Notebook Lenovo IdeaPad 3', cliente: 'Nicolás T.', estado: 'listo', presupuesto: 45000, garantia_hasta: '2027-01-04', novedades: [

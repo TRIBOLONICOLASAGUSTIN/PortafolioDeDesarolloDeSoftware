@@ -163,3 +163,33 @@ test('RET-2 · Retención de pedidos: la red se borra a los 30 días y los pedid
     assert.equal(rows[nuevo.codigo].customer_name, 'Lucía M.', 'un pedido abierto conserva el nombre');
   });
 });
+
+test('FN-9 · Topes del pedido: como mucho 3 unidades de cada producto y 10 en total (para más, se coordina por WhatsApp)', async () => {
+  await inTx(c, async () => {
+    await setRole(c, 'atc_tienda');
+    assert.deepEqual(await pedir(c, [{ slug: 'red-hdmi', qty: 4 }]), { ok: false, motivo: 'solicitud_invalida' });
+    assert.deepEqual(await pedir(c, [{ slug: 'red-hdmi', qty: 3 }, { slug: 'ins-105a', qty: 3 }, { slug: 'ins-t544', qty: 3 }, { slug: 'comp-nv2', qty: 2 }]), { ok: false, motivo: 'solicitud_invalida' }, '11 unidades en total');
+    assert.equal((await pedir(c, [{ slug: 'red-hdmi', qty: 3 }])).ok, true, '3 de un producto se puede');
+  });
+});
+
+test('FN-10 · Los pedidos sin pagar apartan como mucho la mitad de cada producto: pedidos falsos no dejan sin stock a quien compra', async () => {
+  await inTx(c, async () => {
+    await c.query(`update public.products set stock = 4 where slug = 'nb-ideapad'`);
+    await setRole(c, 'atc_tienda');
+    // 4 unidades: se pueden apartar 2 (la mitad)
+    assert.equal((await pedir(c, [{ slug: 'nb-ideapad', qty: 2 }], { ip: '198.51.100.31' })).ok, true);
+    assert.deepEqual(await pedir(c, [{ slug: 'nb-ideapad', qty: 1 }], { ip: '198.51.100.32' }), { ok: false, motivo: 'sin_stock', productos: ['nb-ideapad'] });
+    await asAdmin(c);
+    assert.equal(await stock(c, 'nb-ideapad'), 2, 'quedan 2 para quien compra en el local o por WhatsApp');
+    // Cuando el pedido se paga, deja de ser una reserva y se puede apartar de nuevo (la mitad de lo que queda)
+    await c.query(`update public.sales_orders set status = 'pagado' where status = 'pendiente'`);
+    await setRole(c, 'atc_tienda');
+    assert.equal((await pedir(c, [{ slug: 'nb-ideapad', qty: 1 }], { ip: '198.51.100.33' })).ok, true);
+    // Con 1 sola unidad, se puede apartar (mínimo 1)
+    await asAdmin(c);
+    await c.query(`update public.products set stock = 1 where slug = 'per-g203'`);
+    await setRole(c, 'atc_tienda');
+    assert.equal((await pedir(c, [{ slug: 'per-g203', qty: 1 }], { ip: '198.51.100.34' })).ok, true);
+  });
+});

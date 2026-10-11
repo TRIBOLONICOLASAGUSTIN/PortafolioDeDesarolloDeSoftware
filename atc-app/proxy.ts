@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { adminConfig, cookieSpec, sesionValida } from '@/lib/server/admin';
+import { localPermitido } from '@/lib/server/config';
 
 // CSP con nonce por pedido (guía de Next 16: node_modules/next/dist/docs/01-app/02-guides/content-security-policy.md).
 // - Scripts: solo los que llevan el nonce de este pedido ('strict-dynamic' deja que esos carguen los suyos).
@@ -19,7 +20,7 @@ export function proxy(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
   const dev = process.env.NODE_ENV === 'development';
   const turnstile = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
-  const https = !dev && process.env.ATC_LOCAL !== '1';
+  const https = !dev && !localPermitido();
   const csp = [
     `default-src 'self'`,
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? ` 'unsafe-eval'` : ''}`,

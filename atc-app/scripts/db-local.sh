@@ -68,7 +68,7 @@ reset() {
   "${PSQL[@]}" -d postgres -c "drop role if exists atc_tracker, atc_tienda, anon, authenticated, service_role"
   "${PSQL[@]}" -d "$DB" -f tests/db/shim-supabase.sql
   for f in supabase/migrations/*.sql; do "${PSQL[@]}" -d "$DB" -f "$f"; done
-  "${PSQL[@]}" -d "$DB" -f supabase/seed.sql
+  "${PSQL[@]}" -d "$DB" -f tests/db/seed.sql
   # SOLO en este cluster de pruebas (127.0.0.1): atc_tracker y atc_tienda inician sesión con la contraseña al azar
   # del cluster, para probar /api/seguimiento y /api/pedidos contra la base real. En producción: seguridad.md §8 punto 4.
   "${PSQL[@]}" -d postgres -c "alter role atc_tracker login password '$PGPASSWORD'" -c "alter role atc_tienda login password '$PGPASSWORD'"

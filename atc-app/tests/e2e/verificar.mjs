@@ -732,8 +732,8 @@ for (const [w, scheme] of [[390, 'light'], [1440, 'dark']]) {
     await p.route('**/api/pedidos', r => r.fulfill({ status: 409, contentType: 'application/json', body: '{"ok":false,"motivo":"sin_stock","productos":["nb-ideapad"]}' }));
     const [w2] = await Promise.all([ctx.waitForEvent('page'), p.click('#checkout')]);
     await p.waitForTimeout(600);
-    const err = await p.evaluate(() => document.querySelector('#bag .bag-err')?.textContent ?? '');
-    check('bolsa-pedido', 'si falta stock, avisa en la bolsa y no manda el pedido', /Ya no alcanza el stock de IdeaPad/.test(err) && w2.isClosed(), err);
+    const err = await p.evaluate(() => ({ t: document.querySelector('#bag .bag-err')?.textContent ?? '', wa: document.querySelector('#bag .bag-err a[data-act="consultar"]')?.getAttribute('href') ?? '' }));
+    check('bolsa-pedido', 'si falta stock, avisa en la bolsa, no aparta nada y ofrece consultarlo igual por WhatsApp', /Ya no alcanza el stock de IdeaPad/.test(err.t) && /^https:\/\/wa\.me\//.test(err.wa) && w2.isClosed(), JSON.stringify(err));
     // 3) Con la base: el pedido queda registrado y WhatsApp lleva su código
     await p.unroute('**/api/pedidos');
     const con = await finalizar();

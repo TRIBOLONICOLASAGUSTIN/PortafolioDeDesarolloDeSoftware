@@ -3,6 +3,7 @@ import { createHash, createHmac, randomBytes, scrypt as scryptCb, timingSafeEqua
 import { promisify } from 'node:util';
 import { cookies } from 'next/headers';
 import { base32 } from './totp';
+import { localPermitido } from './config';
 
 /* =========================================================
    Superadmin único del panel (docs/atc/seguridad.md §3 y §5, fila 17).
@@ -28,7 +29,7 @@ export type AdminConfig =
 export function adminConfig(): AdminConfig {
   const e = process.env;
   const missing = ADMIN_VARS.filter(k => !e[k]);
-  const prod = e.NODE_ENV === 'production' && e.ATC_LOCAL !== '1';
+  const prod = e.NODE_ENV === 'production' && !localPermitido();
   if (prod) missing.push(...PROD_VARS.filter(k => !e[k]));
   if (prod && (e.ATC_IP_HEADER ?? '').toLowerCase() === 'x-forwarded-for') missing.push('ATC_IP_HEADER (no puede ser x-forwarded-for)');
   if (e.ATC_ADMIN_PASS_HASH && !HASH_RE.test(e.ATC_ADMIN_PASS_HASH)) missing.push('ATC_ADMIN_PASS_HASH (formato inválido: generalo con npm run admin:setup)');
@@ -40,8 +41,27 @@ export function adminConfig(): AdminConfig {
   return { ok: true, mode: prod ? 'prod' : 'local', user: e.ATC_ADMIN_USER!, passHash: e.ATC_ADMIN_PASS_HASH!, totp: totp!, secret: secret! };
 }
 
+/**
+ * El scrypt usa 128 MiB y casi medio segundo: como mucho 2 a la vez por proceso y 8 esperando turno (un doble clic no
+ * da error). Con la cola llena se rechaza sin calcular y la ruta responde 503 (seguridad.md §5, fila 23).
+ */
+export class Ocupado extends Error {}
+const A_LA_VEZ = 2, EN_COLA = 8;
+let calculando = 0;
+const cola: (() => void)[] = [];
+async function turno() {
+  if (calculando < A_LA_VEZ) { calculando++; return; }
+  if (cola.length >= EN_COLA) throw new Ocupado();
+  await new Promise<void>(r => cola.push(r)); // el lugar lo pasa liberar() sin bajar el contador
+}
+function liberar() { const sig = cola.shift(); if (sig) sig(); else calculando--; }
+
 /** Compara usuario y contraseña en tiempo parejo: siempre calcula el scrypt, aunque el usuario no coincida. */
 export async function credencialesOk(cfg: Extract<AdminConfig, { ok: true }>, user: string, pass: string) {
+  await turno();
+  try { return await comparar(cfg, user, pass); } finally { liberar(); }
+}
+async function comparar(cfg: Extract<AdminConfig, { ok: true }>, user: string, pass: string) {
   const [, ln, r, p, salt, hash] = HASH_RE.exec(cfg.passHash)!;
   const want = Buffer.from(hash, 'base64url');
   const got = await scrypt(pass.normalize('NFC'), Buffer.from(salt, 'base64url'), want.length, { N: 2 ** Number(ln), r: Number(r), p: Number(p), maxmem: 256 * 1024 * 1024 });

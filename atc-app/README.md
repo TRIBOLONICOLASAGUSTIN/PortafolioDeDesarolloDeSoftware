@@ -11,7 +11,7 @@ El sitio de AT Computación en **Next.js 16 + React 19**, sobre una base Postgre
 - Seguridad, con cada control y la prueba que lo demuestra: [`docs/atc/seguridad.md`](../docs/atc/seguridad.md).
 - Reglas del proyecto: [`CLAUDE.md`](../CLAUDE.md).
 
-> **Datos de ejemplo.** El catálogo, los precios, los tiempos, las reseñas, el WhatsApp y la dirección son de prueba, y `supabase/seed.sql` también. Mientras sea así, la página lleva `noindex` y **no se mergea a `main`**.
+> **Datos de ejemplo.** El catálogo, los precios, los tiempos, las reseñas, el WhatsApp y la dirección son de prueba, y `tests/db/seed.sql` también (vive con las pruebas, fuera de `supabase/`, para que el CLI de Supabase nunca lo aplique). Mientras sea así, la página lleva `noindex` y **no se mergea a `main`**.
 
 ## Verlo en la Mac
 
@@ -48,9 +48,10 @@ npm test             # todo: tipos, build, base, API, e2e y check:docs
 | `npm run typecheck` | Tipos de TypeScript |
 | `npm run build` | Que compile para producción |
 | `npm run test:db` | Base: RLS, permisos, `track_order`, bloqueos y retención (RLS/FN/TRK/GEN/RET) |
-| `npm run test:api` | Ruta y encabezados: respuesta mínima, uniforme, origen, límite, IP, falla cerrada y CSP (API-1…7); panel solo con sesión del superadmin, ingreso con contraseña + código de un solo uso, límite, mismo sitio y falla cerrada (API-8…14) |
+| `npm run test:api` | Ruta y encabezados: respuesta mínima, uniforme, origen, límite, IP, falla cerrada y CSP (API-1…7); panel solo con sesión del superadmin, ingreso con contraseña + código de un solo uso, límite, mismo sitio y falla cerrada (API-8…14); F12, bolsa, buscadores, avalanchas y modos (API-15…33) |
 | `npm run test:e2e` | El sitio en el navegador: flujos, responsive, contraste AA, movimiento, accesibilidad, notebook visible y sin errores de consola |
 | `npm run check:docs` | Que `seguridad.md` y las pruebas citen los mismos IDs |
+| `npm run carga` | Fuera de `npm test`: prueba de carga con autocannon contra `next start` (Linux o WSL, después del build y con la base local). Los números están en `seguridad.md` §11. **No** prueba resistencia a DDoS |
 
 - **Base temporal:** las pruebas usan un Postgres 16 temporal (`scripts/db-local.sh`) que imita Supabase, incluidos sus permisos de fábrica. Escucha solo en `127.0.0.1:54329` y solo se toca a sí mismo.
 - **`atc_tracker` en las pruebas:** solo en ese cluster local puede iniciar sesión sin contraseña.

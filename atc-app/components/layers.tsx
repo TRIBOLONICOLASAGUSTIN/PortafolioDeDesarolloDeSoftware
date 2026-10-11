@@ -5,7 +5,7 @@ import { useBag, useReducedMotion, useUI } from './app-shell';
 import { Icon, Render, Wa } from './ui';
 import { byId, CATS, PAGES, PRODUCTS, stockInfo } from '@/lib/data/catalog';
 import { fmt, norm } from '@/lib/format';
-import { bagMessage, bagSubtotal, PAYS, waLink, type Registrado } from '@/lib/whatsapp';
+import { bagMessage, bagSubtotal, PAYS, topeBolsa, waLink, type Registrado } from '@/lib/whatsapp';
 import { tokenTurnstile } from '@/lib/turnstile-client';
 
 /** Lleva el foco a un elemento de la ventana cuando se abre. */
@@ -23,7 +23,7 @@ function QuickView() {
   useEffect(() => { if (open) setQ(1); }, [open, qvId]);
   useFocusOnOpen(open, ref, '[data-close]');
   const p = qvId ? byId[qvId] : null;
-  const max = p ? Math.max(0, p.stock - (bag.items[p.id] || 0)) : 0;
+  const max = p ? Math.max(0, topeBolsa(p.stock) - (bag.items[p.id] || 0)) : 0;
   const qq = Math.min(q, Math.max(1, max));
   const st = p ? stockInfo(p.stock) : null;
   return (
@@ -96,7 +96,8 @@ function Bag() {
     setEnviando(false);
     if (faltan) {
       w?.close();
-      setAviso(`Ya no alcanza el stock de ${faltan.map(s => byId[s]?.name ?? s).join(', ')}. Ajustá la cantidad o consultanos por WhatsApp.`);
+      // No se aparta nada, pero la venta no se pierde: el aviso trae el enlace para consultarlo igual por WhatsApp.
+      setAviso(`Ya no alcanza el stock de ${faltan.map(s => byId[s]?.name ?? s).join(', ')} para reservarlo. Ajustá la cantidad o consultalo igual por WhatsApp.`);
       return;
     }
     const url = waLink(bagMessage(bag, reg));
@@ -126,7 +127,7 @@ function Bag() {
                 <div className="bi-row">
                   <div className="qty sm" role="group" aria-label={`Cantidad de ${p.name}: ${q}`}>
                     <button data-bq="-1" data-id={id} aria-label="Quitar uno" onClick={() => { setQty(id, q - 1); if (q === 1) ref.current?.querySelector<HTMLElement>('[data-close]')?.focus(); }}><Icon n="minus" /></button><span>{q}</span>
-                    <button data-bq="1" data-id={id} aria-label="Agregar uno" disabled={q >= p.stock} onClick={() => setQty(id, q + 1)}><Icon n="plus" /></button>
+                    <button data-bq="1" data-id={id} aria-label="Agregar uno" disabled={q >= topeBolsa(p.stock)} onClick={() => setQty(id, q + 1)}><Icon n="plus" /></button>
                   </div>
                   <span className="pr">{fmt(p.price * q)}</span>
                 </div>
@@ -148,7 +149,7 @@ function Bag() {
       </div>
       <div className="bag-f" id="bagFoot">{ids.length > 0 && <>
         <div className="tot"><span>Subtotal</span><b>{fmt(bagSubtotal(bag))}</b></div>
-        {aviso && <p className="bag-err" role="alert">{aviso}</p>}
+        {aviso && <p className="bag-err" role="alert">{aviso} <a href={waLink(bagMessage(bag))} target="_blank" rel="noopener" data-act="consultar">Consultar por WhatsApp</a></p>}
         <a className="btn btn-wa btn-full" id="checkout" href={waLink(bagMessage(bag))} target="_blank" rel="noopener" onClick={finalizar} aria-disabled={enviando || undefined}><Icon n="wa" />{enviando ? 'Registrando tu pedido…' : 'Finalizar pedido por WhatsApp'}</a>
         <p className="bag-note">Registramos tu pedido y te lo reservamos 48 h. Envío, pago y total, por chat. No se cobra nada online.</p>
       </>}</div>

@@ -1,6 +1,6 @@
 import { createHmac } from 'node:crypto';
 import { z } from 'zod';
-import { adminConfig, cookieSpec, credencialesOk, cuentaId, nuevaSesion, SESSION_HOURS } from '@/lib/server/admin';
+import { adminConfig, cookieSpec, credencialesOk, cuentaId, nuevaSesion, SESSION_HOURS, Ocupado } from '@/lib/server/admin';
 import { clientIp, redLimite } from '@/lib/server/config';
 import { readLimited, sameSite } from '@/lib/server/http';
 import { fallos2fa, limit, primeraVez } from '@/lib/server/ratelimit';
@@ -75,7 +75,8 @@ export async function POST(req: Request) {
 
   // Se calculan las dos cosas siempre (tiempo parejo) y recién después se decide.
   const step = verificar(cfg.totp, codigo);
-  const ok = await credencialesOk(cfg, usuario, clave);
+  let ok: boolean;
+  try { ok = await credencialesOk(cfg, usuario, clave); } catch (e) { if (e instanceof Ocupado) return unavailable(); throw e; }
   // Contraseña correcta con un código equivocado: solo lo provoca quien ya tiene la contraseña. A los 10 en 24 h (desde
   // cualquier red) no entra nadie hasta que pasen las 24 h o el dueño corra admin:setup; el log lo avisa.
   // Se consulta siempre (también con la clave mal) para que el tiempo no delate la contraseña.

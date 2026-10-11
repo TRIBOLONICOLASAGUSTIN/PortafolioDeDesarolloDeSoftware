@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { byId } from '@/lib/data/catalog';
-import { bagCount, type BagState } from '@/lib/whatsapp';
+import { bagCount, topeBolsa, POR_PRODUCTO, type BagState } from '@/lib/whatsapp';
 import { bloquearScroll } from '@/lib/scroll-lock';
 
 /* =========================================================
@@ -98,14 +98,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   const add = useCallback((id: string, q = 1) => {
     const p = byId[id]; if (!p || p.stock <= 0) return;
     const cur = bag.items[id] || 0;
-    if (cur >= p.stock) { toast('Ya tenés en tu bolsa todo el stock de este producto.'); return; }
-    setBag(b => ({ ...b, items: { ...b.items, [id]: Math.min(p.stock, cur + q) } }));
+    if (cur >= topeBolsa(p.stock)) { toast(p.stock > POR_PRODUCTO ? `Hasta ${POR_PRODUCTO} por producto en la bolsa: si necesitás más, consultanos por WhatsApp.` : 'Ya tenés en tu bolsa todo el stock de este producto.'); return; }
+    setBag(b => ({ ...b, items: { ...b.items, [id]: Math.min(topeBolsa(p.stock), cur + q) } }));
     setBump(n => n + 1);
     toast(<><b>{p.name}</b> se agregó a tu bolsa</>, { label: 'Ver bolsa', run: () => open('bag') });
   }, [bag.items, toast, open]);
   const setQty = useCallback((id: string, n: number) => setBag(b => {
     const items = { ...b.items };
-    if (n <= 0) delete items[id]; else items[id] = Math.min(n, byId[id].stock);
+    if (n <= 0) delete items[id]; else items[id] = Math.min(n, topeBolsa(byId[id].stock));
     return { ...b, items };
   }), []);
   const remove = useCallback((id: string) => setBag(b => { const items = { ...b.items }; delete items[id]; return { ...b, items }; }), []);

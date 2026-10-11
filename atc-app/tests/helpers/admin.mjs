@@ -4,13 +4,16 @@ import { createHash, createHmac, randomBytes, scryptSync } from 'node:crypto';
 
 export const ADMIN = { user: 'dueno', pass: 'clave-de-prueba-123', totp: 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP' };
 
-/** Variables de entorno de un superadmin de prueba (hash scrypt más liviano que el de producción, para que sea rápido). */
-export function adminEnv() {
+/**
+ * Variables de entorno de un superadmin de prueba. Por defecto, hash scrypt más liviano que el de producción (para que
+ * sea rápido); `ln` = 17 usa el de producción (128 MiB por cálculo).
+ */
+export function adminEnv(ln = 14) {
   const salt = randomBytes(16);
-  const hash = scryptSync(ADMIN.pass, salt, 32, { N: 2 ** 14, r: 8, p: 1 });
+  const hash = scryptSync(ADMIN.pass, salt, 32, { N: 2 ** ln, r: 8, p: 1, maxmem: 256 * 1024 * 1024 });
   return {
     ATC_ADMIN_USER: ADMIN.user,
-    ATC_ADMIN_PASS_HASH: `scrypt:14:8:1:${salt.toString('base64url')}:${hash.toString('base64url')}`,
+    ATC_ADMIN_PASS_HASH: `scrypt:${ln}:8:1:${salt.toString('base64url')}:${hash.toString('base64url')}`,
     ATC_ADMIN_TOTP_SECRET: ADMIN.totp,
     ATC_SESSION_SECRET: randomBytes(32).toString('base64url'),
   };

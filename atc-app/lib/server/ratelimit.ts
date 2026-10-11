@@ -13,11 +13,11 @@ const maxTrk = () => { const m = Number(process.env.ATC_RL_MAX); return Number.i
 // su propio dominio; fuera de producción el contador está en memoria y alcanza con uno al azar por proceso.
 const LOCAL_KEY = randomBytes(32);
 const rlKey = () => { const t = process.env.TURNSTILE_SECRET_KEY; return t ? createHmac('sha256', t).update('atc-rl-v1').digest() : LOCAL_KEY; };
-const red = (ip: string) => createHmac('sha256', rlKey()).update(`rl-v1\n${redLimite(ip)}`).digest('hex').slice(0, 32);
-const keyFor = (ip: string, ns: string, win: number) => {
+const red = (ip: string, bits: 48 | 64) => createHmac('sha256', rlKey()).update(`rl-v1\n${redLimite(ip, bits)}`).digest('hex').slice(0, 32);
+const keyFor = (ip: string, ns: string, win: number, bits: 48 | 64) => {
   const bucket = Math.floor(Date.now() / 1000 / win);
-  // En IPv6 cuenta el /64 entero (redLimite).
-  return { key: `atc:${ns}:${red(ip)}:${bucket}`, retry: win - (Math.floor(Date.now() / 1000) % win) };
+  // En IPv6 cuenta el /64 entero (o el /48, si la ruta lo pide: redLimite).
+  return { key: `atc:${ns}:${red(ip, bits)}:${bucket}`, retry: win - (Math.floor(Date.now() / 1000) % win) };
 };
 const upstash = (cmds: string[][]) => fetch(`${process.env.UPSTASH_REDIS_REST_URL}/pipeline`, {
   method: 'POST',
@@ -29,40 +29,57 @@ const upstash = (cmds: string[][]) => fetch(`${process.env.UPSTASH_REDIS_REST_UR
 // Redes que ya pasaron el límite en esta ventana: hasta que vence, no se le pregunta a Upstash (un atacante con una
 // sola IP no puede gastar el cupo de Upstash ni, por la falla cerrada, tirar el servicio para todos).
 const bloqueadas = new Map<string, number>();
-type Opts = { ns?: string; max?: number; window?: number };
+type Opts = { ns?: string; max?: number; window?: number; bits?: 48 | 64 };
 
-const mem = new Map<string, { n: number; exp: number }>();
+type Cuenta = { n: number; exp: number };
+const mem = new Map<string, Cuenta>();
+// En producción, primero se cuenta en este proceso (sin esperar a nadie): con muchos pedidos simultáneos de la misma
+// red, como mucho `max` llegan a Upstash por instancia y el resto se corta acá (antes, todos consultaban a la vez).
+const locales = new Map<string, Cuenta>();
+
+// Memoria acotada: lo vencido se saca como mucho una vez por segundo; si igual queda demasiado (direcciones IPv6 que
+// rotan), se descarta lo más viejo. Así cada pedido cuesta lo mismo aunque haya miles de redes distintas.
+const TOPE = 20_000;
+const podas = new WeakMap<Map<string, unknown>, number>();
+function podar<V>(m: Map<string, V>, now: number, exp: (v: V) => number) {
+  if (m.size <= 5000 || now - (podas.get(m) ?? 0) < 1000) return;
+  podas.set(m, now);
+  for (const [k, v] of m) if (exp(v) < now) m.delete(k);
+  let sobran = m.size - TOPE;
+  for (const k of m.keys()) { if (sobran-- <= 0) break; m.delete(k); }
+}
+function contar(m: Map<string, Cuenta>, key: string, now: number, exp: number) {
+  podar(m, now, v => v.exp);
+  const e = m.get(key);
+  const v = e && e.exp > now ? e : { n: 0, exp };
+  v.n += 1; m.set(key, v);
+  return v.n;
+}
 
 export type Limit = { allowed: boolean; retry: number } | 'error';
 
 export async function limit(ip: string, mode: 'demo' | 'local' | 'prod', o: Opts = {}): Promise<Limit> {
   const win = o.window ?? 600, max = () => o.max ?? maxTrk();
-  const { key, retry } = keyFor(ip, o.ns ?? 'trk', win);
-  if (mode !== 'prod') {
-    const now = Date.now();
-    if (mem.size > 5000) for (const [k, v] of mem) if (v.exp < now) mem.delete(k);
-    const e = mem.get(key) ?? { n: 0, exp: now + retry * 1000 };
-    e.n += 1; mem.set(key, e);
-    return { allowed: e.n <= max(), retry };
-  }
-  const now = Date.now();
+  const { key, retry } = keyFor(ip, o.ns ?? 'trk', win, o.bits ?? 64);
+  const now = Date.now(), exp = now + retry * 1000;
+  if (mode !== 'prod') return { allowed: contar(mem, key, now, exp) <= max(), retry };
+  podar(bloqueadas, now, v => v);
   if ((bloqueadas.get(key) ?? 0) > now) return { allowed: false, retry };
-  if (bloqueadas.size > 5000) for (const [k, exp] of bloqueadas) if (exp < now) bloqueadas.delete(k);
+  if (contar(locales, key, now, exp) > max()) { bloqueadas.set(key, exp); return { allowed: false, retry }; }
   try {
-    // Un comando por pedido: el vencimiento se fija solo la primera vez (la clave ya lleva la ventana).
-    const res = await upstash([['INCR', key]]);
+    // Una sola llamada por pedido: suma uno y fija el vencimiento si todavía no lo tiene (NX), juntos.
+    const res = await upstash([['INCR', key], ['EXPIRE', key, String(win), 'NX']]);
     if (!res.ok) return 'error';
     const n = Number(((await res.json()) as { result?: number }[])?.[0]?.result);
     if (!Number.isFinite(n)) return 'error';
-    if (n === 1 && !(await upstash([['EXPIRE', key, String(win)]])).ok) return 'error';
-    if (n > max()) bloqueadas.set(key, now + retry * 1000);
+    if (n > max()) bloqueadas.set(key, exp);
     return { allowed: n <= max(), retry };
   } catch {
     return 'error'; // sin contador compartido no se atiende (falla cerrado)
   }
 }
 
-const fallas = new Map<string, { n: number; exp: number }>();
+const fallas = new Map<string, Cuenta>();
 /**
  * Códigos del celular fallidos con la contraseña correcta, por cuenta y desde cualquier red, en 24 h. Solo los puede
  * provocar quien ya tiene la contraseña, así que no sirve para bloquear al dueño desde afuera. `sumar`: cuenta uno más;
@@ -72,7 +89,9 @@ const fallas = new Map<string, { n: number; exp: number }>();
 export async function fallos2fa(cuenta: string, mode: 'demo' | 'local' | 'prod', sumar: boolean): Promise<number | 'error'> {
   const key = `atc:adm:2fa:${cuenta}`, ttl = 86400;
   if (mode !== 'prod') {
-    const now = Date.now(), e = fallas.get(key);
+    const now = Date.now();
+    podar(fallas, now, v => v.exp);
+    const e = fallas.get(key);
     const v = e && e.exp > now ? e : { n: 0, exp: now + ttl * 1000 };
     if (sumar) v.n += 1;
     fallas.set(key, v);
@@ -98,8 +117,8 @@ const seen = new Map<string, number>();
 export async function primeraVez(key: string, ttl: number, mode: 'demo' | 'local' | 'prod'): Promise<boolean> {
   if (mode !== 'prod') {
     const now = Date.now();
-    for (const [k, exp] of seen) if (exp < now) seen.delete(k);
-    if (seen.has(key)) return false;
+    podar(seen, now, v => v);
+    if ((seen.get(key) ?? 0) > now) return false;
     seen.set(key, now + ttl * 1000);
     return true;
   }

@@ -17,7 +17,20 @@ const REQUIRED_PROD = ['ATC_TRACKER_DATABASE_URL', 'TURNSTILE_SECRET_KEY', 'NEXT
 // Parámetros de TLS en la URL: pg-connection-string pisaría la configuración del servidor (por ejemplo sslmode=disable).
 const SSL_PARAMS = ['sslmode', 'ssl', 'sslrootcert', 'sslcert', 'sslkey', 'uselibpqcompat', 'sslnegotiation'];
 
-const isLocalDb = (url: string) => {
+// Marcas que dejan las plataformas de hosting: ahí ATC_LOCAL no vale aunque alguien la copie por error.
+const HOSTING = ['VERCEL', 'NETLIFY', 'CF_PAGES', 'RENDER', 'FLY_APP_NAME', 'RAILWAY_ENVIRONMENT', 'K_SERVICE', 'AWS_LAMBDA_FUNCTION_NAME'];
+let avisoHosting = false;
+/** ATC_LOCAL=1 (pruebas en esta compu): solo vale fuera de una plataforma de hosting. */
+export function localPermitido() {
+  if (process.env.ATC_LOCAL !== '1') return false;
+  if (HOSTING.some(k => process.env[k])) {
+    if (!avisoHosting) { avisoHosting = true; console.error('[config] ATC_LOCAL=1 en una plataforma de hosting: se ignora (rige producción)'); }
+    return false;
+  }
+  return true;
+}
+
+export const isLocalDb = (url: string) => {
   try { return ['127.0.0.1', 'localhost', '[::1]'].includes(new URL(url).hostname); } catch { return false; }
 };
 
@@ -27,7 +40,9 @@ function configDe(urlVar: string): TrackingConfig {
   const prod = process.env.NODE_ENV === 'production';
   const dbUrl = process.env[urlVar];
   if (!dbUrl) return prod ? { ok: false, missing: required.filter(k => !process.env[k]) } : { ok: true, mode: 'demo' };
-  if (!prod || (process.env.ATC_LOCAL === '1' && isLocalDb(dbUrl))) return { ok: true, mode: 'local', dbUrl };
+  // Modo local solo con la base en esta compu (127.0.0.1). Una base remota exige siempre lo de producción (TLS incluido),
+  // aunque se haya corrido `next dev` por error.
+  if ((!prod || localPermitido()) && isLocalDb(dbUrl)) return { ok: true, mode: 'local', dbUrl };
   const missing = required.filter(k => !process.env[k]);
   // El primer valor de X-Forwarded-For lo escribe el cliente: no sirve para limitar por IP.
   if ((process.env.ATC_IP_HEADER ?? '').toLowerCase() === 'x-forwarded-for') missing.push('ATC_IP_HEADER (no puede ser x-forwarded-for)');
@@ -46,16 +61,17 @@ export const tiendaConfig = () => configDe('ATC_TIENDA_DATABASE_URL');
 
 /**
  * Red que se usa para limitar: la IPv4 tal cual; en IPv6, el /64 (una conexión hogareña o un servidor recibe un /64
- * entero, así que limitar por dirección exacta se esquiva cambiando los últimos 64 bits).
+ * entero, así que limitar por dirección exacta se esquiva cambiando los últimos 64 bits). Con `bits` = 48, el /48
+ * (lo que reparte un proveedor o un túnel gratuito: 65.536 redes /64).
  */
-export function redLimite(ip: string): string {
+export function redLimite(ip: string, bits: 48 | 64 = 64): string {
   const v4 = /^(?:::ffff:)?(\d{1,3}(?:\.\d{1,3}){3})$/i.exec(ip);
   if (v4) return v4[1];
   if (!ip.includes(':')) return ip;
   const [a, b = ''] = ip.toLowerCase().split('::');
   const izq = a ? a.split(':') : [], der = b ? b.split(':') : [];
   const full = [...izq, ...Array(Math.max(0, 8 - izq.length - der.length)).fill('0'), ...der];
-  return `${full.slice(0, 4).map(h => (h || '0').replace(/^0+(?=.)/, '')).join(':')}::/64`;
+  return `${full.slice(0, bits / 16).map(h => (h || '0').replace(/^0+(?=.)/, '')).join(':')}::/${bits}`;
 }
 
 /** IP del visitante desde el encabezado que fija la plataforma de hosting. Nunca del primer valor de X-Forwarded-For. */

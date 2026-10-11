@@ -16,8 +16,12 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  // pg queda fuera del bundle: se usa solo en el servidor (lib/server/tracking.ts).
+  // pg queda fuera del bundle: se usa solo en el servidor (lib/server/db.ts).
   serverExternalPackages: ['pg'],
+  // Un POST con cuerpo a una página (no a /api) pasa por proxy.ts y Next copia el cuerpo en memoria: por defecto, hasta
+  // 10 MB por pedido. El sitio no tiene server actions, así que ninguna página necesita cuerpo: 1 KB alcanza y cien
+  // pedidos simultáneos ya no ocupan 1 GB (seguridad.md §5, fila 23).
+  experimental: { proxyClientMaxBodySize: '1kb' },
   reactStrictMode: true,
   // Solo en desarrollo: sin el botón flotante de Next (la vista previa se ve como el sitio real; los errores igual se muestran)
   // y con acceso desde la red local, para probar en el celular por Wi-Fi (http://192.168.x.x:3000).

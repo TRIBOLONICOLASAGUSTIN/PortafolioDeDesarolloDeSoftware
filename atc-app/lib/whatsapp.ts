@@ -9,6 +9,10 @@ export type PayId = (typeof PAYS)[number][0];
 
 export type BagState = { items: Record<string, number>; entrega: 'retiro' | 'envio'; pago: PayId; nombre: string; dir: string };
 
+/** Como mucho 3 unidades de cada producto por pedido (lo mismo controla la base): para más, se coordina por WhatsApp. */
+export const POR_PRODUCTO = 3;
+export const topeBolsa = (stock: number) => Math.min(stock, POR_PRODUCTO);
+
 export const bagCount = (b: BagState) => Object.values(b.items).reduce((a, n) => a + n, 0);
 export const bagSubtotal = (b: BagState) => Object.entries(b.items).reduce((a, [id, q]) => a + (byId[id]?.price ?? 0) * q, 0);
 
