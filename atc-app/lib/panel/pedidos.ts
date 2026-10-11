@@ -9,12 +9,18 @@
 // - entregado, o cancelado por el dueño antes del pago (también libera la reserva).
 // Fechas como "YYYY-MM-DD HH:MM" en hora del local, con aritmética en UTC (igual en el servidor y en el navegador).
 import type { BagState, PayId } from '@/lib/whatsapp';
+import type { TipoComprobante } from '@/lib/comprobante';
 
 export type EstadoPedido = 'pendiente' | 'pagado' | 'retrasado' | 'autocancelado' | 'entregado' | 'cancelado';
 export type PedidoItem = { productId: string; qty: number; unit: number };
+/**
+ * Transferencia registrada por el dueño: nombre de quien pagó y monto (siempre mayor a 0). El comprobante lo ve solo el
+ * dueño (en la maqueta queda en memoria durante la visita; en la base se borra a los 90 días). Nunca CBU, alias ni cuenta.
+ */
+export type Transferencia = { pagador: string; monto: number; comprobante: { url: string; tipo: TipoComprobante; nombre: string } };
 export type Pedido = {
   codigo: string; creado: string; cliente: string; entrega: BagState['entrega']; pago: PayId; items: PedidoItem[];
-  pagado?: string; entregado?: string; cancelado?: string;
+  pagado?: string; entregado?: string; cancelado?: string; transferencia?: Transferencia;
 };
 export type Reglas = { autoH: number; retrasoD: number };
 /** Autocancelación a las 48 h (decisión del dueño); "retrasado" desde los 3 días (de ejemplo, editable). */

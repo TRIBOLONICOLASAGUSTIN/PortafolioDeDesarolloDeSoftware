@@ -32,7 +32,9 @@ const nextConfig: NextConfig = {
   async rewrites() {
     const missing = [{ type: 'cookie' as const, key: 'atc_s' }, { type: 'cookie' as const, key: '__Host-atc_s' }];
     // El destino usa :path* (si no, Next agrega los tramos como ?path=… y el 404 se distinguiría).
-    return { beforeFiles: [{ source: '/panel', missing, destination: '/_no-existe' }, { source: '/panel/:path*', missing, destination: '/_no-existe/:path*' }], afterFiles: [], fallback: [] };
+    // Lo mismo para las rutas del panel (/api/panel/…: pagos y comprobantes).
+    return { beforeFiles: [{ source: '/panel', missing, destination: '/_no-existe' }, { source: '/panel/:path*', missing, destination: '/_no-existe/:path*' },
+      { source: '/api/panel/:path*', missing, destination: '/_no-existe/:path*' }], afterFiles: [], fallback: [] };
   },
   async headers() {
     return [

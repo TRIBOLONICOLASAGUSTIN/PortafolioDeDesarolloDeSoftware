@@ -2,7 +2,7 @@ import 'server-only';
 import type { z } from 'zod';
 import type { Limit } from './ratelimit';
 
-// Controles HTTP compartidos por las rutas del servidor (seguimiento, pedidos e ingreso del superadmin).
+// Controles HTTP compartidos por las rutas del servidor (seguimiento, pedidos, ingreso del superadmin y pagos del panel).
 // Cada ruta sigue escribiendo su orden de controles completo: acá solo vive cómo se hace cada paso.
 
 /** Mismo sitio: Sec-Fetch-Site same-origin y Origin igual al Host (si vienen). */
@@ -19,6 +19,12 @@ export function sameSite(req: Request) {
  * gota para retener la conexión), null: sin leer de más ni esperar de más.
  */
 export async function readLimited(req: Request, max: number, ms = 5000): Promise<string | null> {
+  const b = await readBytes(req, max, ms);
+  return b && new TextDecoder().decode(b);
+}
+
+/** Lo mismo que readLimited, pero devuelve los bytes (un archivo adjunto). */
+export async function readBytes(req: Request, max: number, ms = 5000): Promise<Buffer | null> {
   if (Number(req.headers.get('content-length') ?? 0) > max) return null;
   const reader = req.body?.getReader();
   if (!reader) return null;
@@ -35,7 +41,7 @@ export async function readLimited(req: Request, max: number, ms = 5000): Promise
       if (size > max) { await reader.cancel(); return null; }
       chunks.push(value);
     }
-    return new TextDecoder().decode(Buffer.concat(chunks));
+    return Buffer.concat(chunks);
   } catch {
     return null;
   } finally {

@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '../ui';
 import { Chips } from './chips';
 import { Field, aria } from './field';
 import { usePanel } from './panel-shell';
 import { PAYS, type PayId } from '@/lib/whatsapp';
-import { CATS_NUEVO, cobroSchema, editarSchema, errores, gastoSchema, nuevoSchema, repoSchema, toInt, ventaSchema } from '@/lib/panel/schemas';
+import { CATS_NUEVO, cobroSchema, editarSchema, errores, gastoSchema, nuevoSchema, pagoSchema, repoSchema, sinNegativo, toInt, ventaSchema } from '@/lib/panel/schemas';
+import { COMPROBANTE_MAX, tipoComprobante } from '@/lib/comprobante';
+import type { Pedido, Transferencia } from '@/lib/panel/pedidos';
 import { UMBRAL } from '@/lib/data/inventario';
 import { GRUPOS } from './inventario';
 import { GASTO_CATS, type GastoCat } from '@/lib/panel/types';
@@ -60,7 +62,7 @@ function Plata({ id, label, value, onChange, error, hint }: { id: string; label:
   return (
     <Field id={id} label={label} error={error} hint={hint}>
       <span className="pn-money"><span aria-hidden="true">$</span>
-        <input className="pn-in pn-num" inputMode="numeric" autoComplete="off" value={value} onChange={e => onChange(e.target.value)} {...aria(id, error, !!hint)} />
+        <input className="pn-in pn-num" inputMode="numeric" autoComplete="off" value={value} onChange={e => onChange(sinNegativo(e.target.value))} {...aria(id, error, !!hint)} />
       </span>
     </Field>
   );
@@ -72,7 +74,7 @@ function Cantidad({ id, label, value, onChange, error, max = 999, autoFocus, hin
     <Field id={id} label={label} error={error} hint={hint}>
       <span className="pn-qty">
         <button type="button" aria-label="Una menos" onClick={() => onChange(String(Math.max(1, (q || 1) - 1)))}><Icon n="minus" /></button>
-        <input className="pn-in pn-num" inputMode="numeric" value={value} onChange={e => onChange(e.target.value)} data-autofocus={autoFocus || undefined} {...aria(id, error, !!hint)} />
+        <input className="pn-in pn-num" inputMode="numeric" value={value} onChange={e => onChange(sinNegativo(e.target.value))} data-autofocus={autoFocus || undefined} {...aria(id, error, !!hint)} />
         <button type="button" aria-label="Una más" onClick={() => onChange(String(Math.min(max, (q || 0) + 1)))}><Icon n="plus" /></button>
       </span>
     </Field>
@@ -345,11 +347,11 @@ export function EditarForm({ id }: { id: string }) {
       <div className="pn-2">
         {conCosto && (
           <Field id="f-estock" label="Stock contado" error={err.stock} hint="Si no coincide, queda un ajuste">
-            <input className="pn-in pn-num" inputMode="numeric" value={stock} onChange={e => limpiar('stock', setStock)(e.target.value)} {...aria('f-estock', err.stock, true)} />
+            <input className="pn-in pn-num" inputMode="numeric" value={stock} onChange={e => limpiar('stock', setStock)(sinNegativo(e.target.value))} {...aria('f-estock', err.stock, true)} />
           </Field>
         )}
         <Field id="f-eumb" label="Avisar desde" error={err.umbral} hint="Unidades: stock bajo">
-          <input className="pn-in pn-num" inputMode="numeric" value={umbral} onChange={e => limpiar('umbral', setUmbral)(e.target.value)} {...aria('f-eumb', err.umbral, true)} />
+          <input className="pn-in pn-num" inputMode="numeric" value={umbral} onChange={e => limpiar('umbral', setUmbral)(sinNegativo(e.target.value))} {...aria('f-eumb', err.umbral, true)} />
         </Field>
       </div>
       <div className="pn-foot"><button className="btn btn-full" type="submit">Aplicar cambios</button></div>
@@ -404,14 +406,71 @@ export function NuevoForm() {
       </div>
       <div className="pn-2">
         <Field id="f-nstock" label="Stock inicial" error={err.stock}>
-          <input className="pn-in pn-num" inputMode="numeric" value={stock} onChange={e => limpiar('stock', setStock)(e.target.value)} {...aria('f-nstock', err.stock)} />
+          <input className="pn-in pn-num" inputMode="numeric" value={stock} onChange={e => limpiar('stock', setStock)(sinNegativo(e.target.value))} {...aria('f-nstock', err.stock)} />
         </Field>
         <Field id="f-numb" label="Avisar desde" error={err.umbral} hint="Unidades: stock bajo">
-          <input className="pn-in pn-num" inputMode="numeric" value={umbral} onChange={e => limpiar('umbral', setUmbral)(e.target.value)} {...aria('f-numb', err.umbral, true)} />
+          <input className="pn-in pn-num" inputMode="numeric" value={umbral} onChange={e => limpiar('umbral', setUmbral)(sinNegativo(e.target.value))} {...aria('f-numb', err.umbral, true)} />
         </Field>
       </div>
       {u > 0 && c >= 0 && <p className="pn-prev" id="pn-prev">Ganancia por unidad <b className="pn-num">{fmtMonto(u - c)}</b> ({fmtMargen((u - c) / u)})</p>}
       <div className="pn-foot"><button className="btn btn-full" type="submit">Agregar producto</button></div>
+    </form>
+  );
+}
+
+/* Transferencia de un pedido: el dueño adjunta el comprobante que el cliente le mandó por WhatsApp. Se guardan el nombre
+   de quien pagó y el monto (siempre mayor a 0); el comprobante lo ve solo el dueño. Nunca CBU, alias ni número de cuenta.
+   Maqueta: el archivo queda en memoria durante la visita (en la etapa 2 va a POST /api/panel/pagos, que ya está lista). */
+export function TransferenciaForm({ pedido, total, onVolver }: { pedido: Pedido; total: number; onVolver: () => void }) {
+  const { hoy, pagarPedido, toast, closeSheet } = usePanel();
+  const [pagador, setPagador] = useState('');
+  const [monto, setMonto] = useState(String(total));
+  const [comp, setComp] = useState<Transferencia['comprobante'] | null>(null);
+  const { err, setErr, limpiar, fallar, alerta } = useErr();
+  useEffect(() => () => { if (comp) URL.revokeObjectURL(comp.url); }, [comp]);
+  const m = toInt(monto);
+
+  const elegir = async (e: ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    setComp(null);
+    if (!f) return;
+    const tipo = tipoComprobante(new Uint8Array(await f.slice(0, 8).arrayBuffer()));
+    const error = f.size > COMPROBANTE_MAX ? 'Hasta 2 MB: sacale una captura o exportalo más liviano' : !tipo ? 'Tiene que ser una foto (JPG o PNG) o un PDF' : '';
+    setErr(x => { const n = { ...x }; delete n.comp; return error ? { ...n, comp: error } : n; });
+    if (error || !tipo) { e.target.value = ''; return; }
+    setComp({ url: URL.createObjectURL(f), tipo, nombre: f.name });
+  };
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    const r = pagoSchema.safeParse({ pagador, monto: m });
+    const ex = r.success ? {} : errores(r.error);
+    if (!comp && !ex.comp) ex.comp = err.comp || 'Adjuntá el comprobante';
+    if (!r.success || Object.keys(ex).length) { fallar(ex, [['pagador', 'f-tpag'], ['monto', 'f-tmonto'], ['comp', 'f-tcomp']]); return; }
+    const now = ahoraReal(hoy, toast);
+    if (!now || !comp) return;
+    pagarPedido(pedido.codigo, now.hm, { pagador: r.data.pagador, monto: r.data.monto, comprobante: comp });
+    toast(`Transferencia de ${r.data.pagador} registrada: el pedido ${pedido.codigo} quedó pagado y la venta entró en Ganancias. Maqueta: no se guardó.`);
+    closeSheet();
+  };
+  const dif = Number.isFinite(m) && m > 0 && m !== total ? m - total : 0;
+  return (
+    <form className="pn-form pn-tform" noValidate onSubmit={submit} aria-label={`Registrar la transferencia del pedido ${pedido.codigo}`}>
+      {alerta}
+      <Field id="f-tpag" label="Quién pagó" error={err.pagador} hint="El nombre que figura en la transferencia. No hace falta CBU, alias ni número de cuenta.">
+        <input className="pn-in" maxLength={80} autoComplete="off" value={pagador} data-autofocus onChange={e => limpiar('pagador', setPagador)(e.target.value)} {...aria('f-tpag', err.pagador, true)} />
+      </Field>
+      <Plata id="f-tmonto" label="Monto transferido" value={monto} onChange={limpiar('monto', setMonto)} error={err.monto}
+        hint={dif ? `Es ${fmt(Math.abs(dif))} ${dif > 0 ? 'más' : 'menos'} que el total del pedido (${fmt(total)}).` : `El total del pedido es ${fmt(total)}.`} />
+      <Field id="f-tcomp" label="Comprobante" error={err.comp} hint="Foto (JPG o PNG) o PDF, hasta 2 MB. Lo ves solo vos y se borra a los 90 días.">
+        <input className="pn-in pn-file" type="file" accept="image/jpeg,image/png,application/pdf" onChange={elegir} {...aria('f-tcomp', err.comp, true)} />
+      </Field>
+      {comp && (comp.tipo === 'application/pdf'
+        ? <p className="pn-hint pn-tprev-pdf"><Icon n="receipt" cls="i sm" /> {comp.nombre}</p>
+        : <img className="pn-tprev" src={comp.url} alt="Vista previa del comprobante" />)}
+      <div className="pn-foot pn-pdet-acts">
+        <button className="btn btn-full" type="submit" data-act="registrar-transferencia"><Icon n="check" />Registrar y marcar como pagado</button>
+        <button className="btn btn-gray btn-full" type="button" onClick={onVolver}>Volver al pedido</button>
+      </div>
     </form>
   );
 }

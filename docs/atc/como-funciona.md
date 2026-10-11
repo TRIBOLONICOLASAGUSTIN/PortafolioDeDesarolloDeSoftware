@@ -90,6 +90,18 @@ Por el nonce, cada página se arma en el momento (no hay HTML guardado de antema
 6. **La respuesta** vuelve con el código, y la bolsa escribe en WhatsApp el mensaje con el pedido. Si el servidor falla, WhatsApp se abre igual, sin código: la venta no se pierde. Si no alcanza el stock, se avisa con un enlace para consultarlo por WhatsApp.
 7. **Después:** si no se paga en 48 h, `autocancelar_pedidos()` (pg_cron cada 10 minutos) lo cancela y el stock vuelve. Pagado y entregado lo marca el dueño. A los 30 días se borra la red de origen y a los 24 meses se anonimiza.
 
+**Pago por transferencia.** El cliente le manda el comprobante al dueño por WhatsApp; nadie sube archivos desde la tienda.
+1. En el panel, la hoja del pedido tiene **"Registrar transferencia"** (`TransferenciaForm` en `components/panel/forms.tsx`). Pide:
+   - el nombre de quien pagó;
+   - el monto, que arranca en el total, siempre es mayor a 0 y no deja escribir el signo menos;
+   - el comprobante: foto JPG o PNG, o PDF, de hasta 2 MB. El tipo se reconoce por los primeros bytes (`lib/comprobante.ts`), nunca por la extensión.
+2. El pedido pasa a pagado y la venta entra en Ganancias con el medio "Transferencia" y el nombre de quien pagó.
+3. Hoy el panel muestra pedidos de ejemplo, así que el comprobante queda solo en memoria durante la visita.
+4. **Lo real ya está hecho para la Etapa 2:**
+   - `POST /api/panel/pagos` (solo con la sesión del dueño) llama a `registrar_pago` con el rol `atc_panel`, que vuelve a validar todo y guarda el archivo en `private.comprobantes`.
+   - `GET /api/panel/pagos/[id]/comprobante` lo devuelve aislado: sin caché, `nosniff` y CSP `sandbox`.
+   - El comprobante se borra a los 90 días. Quedan el nombre y el monto. Nunca se piden CBU, alias ni número de cuenta.
+
 ---
 
 ## 6. Una consulta de reparación, paso a paso

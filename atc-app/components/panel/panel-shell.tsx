@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { usePathname, useSearchParams } from 'next/navigation';
 import { COSTOS, generar, precioEn } from '@/lib/data/panel';
 import { pedidosDemo } from '@/lib/data/pedidos';
-import { contar, ESTADOS, estado as estadoDe, eventosStock, REGLAS, reservado, stamp, type EstadoPedido, type Pedido, type Reglas } from '@/lib/panel/pedidos';
+import { contar, ESTADOS, estado as estadoDe, eventosStock, REGLAS, reservado, stamp, type EstadoPedido, type Pedido, type Reglas, type Transferencia } from '@/lib/panel/pedidos';
 import { BOM } from '@/lib/data/armado';
 import { indexar, type Index } from '@/lib/panel/stats';
 import { historialBase, inventario, movsDeVenta, type Ajuste, type Inventario, type Item, type StockIn } from '@/lib/panel/inventario';
@@ -46,7 +46,7 @@ type Panel = {
   estadoPedido: (p: Pedido) => EstadoPedido;
   /** Unidades apartadas por pedidos pendientes */
   reservas: Map<string, number>;
-  pagarPedido: (codigo: string, hm: string) => void; entregarPedido: (codigo: string, hm: string) => void; cancelarPedido: (codigo: string, hm: string) => void;
+  pagarPedido: (codigo: string, hm: string, t?: Transferencia) => void; entregarPedido: (codigo: string, hm: string) => void; cancelarPedido: (codigo: string, hm: string) => void;
 };
 const PanelCtx = createContext<Panel | null>(null);
 const PED_IC: Record<string, string> = { pendiente: 'clock', pagado: 'check-c', retrasado: 'bell', autocancelado: 'refresh' };
@@ -57,7 +57,7 @@ export function PanelShell({ ahora, listas: todas, children }: { ahora: Ahora; l
   const ahoraS = stamp(ymd, hm);
   // Pedidos de ejemplo (relativos a "ahora") y lo que el dueño hizo con ellos en esta visita
   const pedidosBase = useMemo(() => pedidosDemo({ ymd, hm }), [ymd, hm]);
-  const [cambios, setCambios] = useState<Record<string, Partial<Pick<Pedido, 'pagado' | 'entregado' | 'cancelado'>>>>({});
+  const [cambios, setCambios] = useState<Record<string, Partial<Pick<Pedido, 'pagado' | 'entregado' | 'cancelado' | 'transferencia'>>>>({});
   const pedidos = useMemo(() => pedidosBase.map(p => (cambios[p.codigo] ? { ...p, ...cambios[p.codigo] } : p)), [pedidosBase, cambios]);
   const [retrasoD, setRetraso] = useState(REGLAS.retrasoD);
   const reglas = useMemo<Reglas>(() => ({ ...REGLAS, retrasoD }), [retrasoD]);
@@ -116,11 +116,13 @@ export function PanelShell({ ahora, listas: todas, children }: { ahora: Ahora; l
   // Pedidos (maqueta): pagar lo convierte en venta (entra en Ganancias), entregar lo cierra, cancelar devuelve el stock.
   const estadoPedido = useCallback((p: Pedido) => estadoDe(p, ahoraS, reglas), [ahoraS, reglas]);
   const reservas = useMemo(() => reservado(pedidos, ahoraS, reglas), [pedidos, ahoraS, reglas]);
-  const pagarPedido = useCallback((codigo: string, hmP: string) => {
+  // Con una transferencia registrada, la venta va con ese medio y el nombre de quien pagó (se ve en Ganancias).
+  const pagarPedido = useCallback((codigo: string, hmP: string, t?: Transferencia) => {
     const p = pedidos.find(x => x.codigo === codigo);
     if (!p || p.pagado || p.cancelado) return;
-    setCambios(c => ({ ...c, [codigo]: { ...c[codigo], pagado: stamp(ymd, hmP) } }));
-    agregar({ kind: 'venta', id: nuevoId('V'), ymd, hm: hmP, pay: p.pago, status: 'sin-guardar', pedido: codigo, note: `Pedido ${codigo}`,
+    setCambios(c => ({ ...c, [codigo]: { ...c[codigo], pagado: stamp(ymd, hmP), ...(t ? { transferencia: t } : {}) } }));
+    agregar({ kind: 'venta', id: nuevoId('V'), ymd, hm: hmP, pay: t ? 'transferencia' : p.pago, status: 'sin-guardar', pedido: codigo,
+      note: t ? `Pedido ${codigo} · transferencia de ${t.pagador}` : `Pedido ${codigo}`,
       items: p.items.map(i => ({ ...i, unitCost: inv.byId.get(i.productId)?.cost ?? 0 })) });
   }, [pedidos, ymd, agregar, nuevoId, inv]);
   const entregarPedido = useCallback((codigo: string, hmP: string) => setCambios(c => ({ ...c, [codigo]: { ...c[codigo], entregado: stamp(ymd, hmP) } })), [ymd]);

@@ -17,7 +17,8 @@ Las reglas de abajo aplican a todo lo de AT Computación.
 - Datos de ejemplo hasta que el dueño pase los reales: WhatsApp `5493420000000`, dirección, mail, precios, tiempos del cotizador, stock y reseñas.
 - **No mergear a `main`** mientras haya datos de ejemplo: GitHub Pages lo publicaría. Se trabaja en ramas.
 - La compra no cobra online. La bolsa registra el pedido (código `P-XXXX-XX`), la base aparta el stock 48 h y se abre WhatsApp con el código (entrega, pago y nombre). Si no se paga, se cancela solo y el stock vuelve. Si el servidor falla, WhatsApp se abre igual sin código. Nada de datos de tarjeta.
-- Transferencias (cuando se programen): del pago se guarda solo el nombre de quien pagó y el monto. Nunca CBU, alias, banco ni número de cuenta del cliente, ni comprobantes.
+- Transferencias: del pago se guardan el nombre de quien pagó y el monto (siempre mayor a 0). El comprobante lo sube **solo el dueño** desde el panel (el cliente se lo manda por WhatsApp; no hay subida pública), lo ve solo él y se borra a los 90 días. Nunca se piden ni se escriben CBU, alias, banco ni número de cuenta del cliente.
+- Ningún campo de plata ni de cantidades acepta montos negativos (el panel no deja escribir el signo menos y la base los rechaza).
 
 ## Estilo (inspirado en apple.com, calmo, que no canse la vista)
 - **Espacio:**
@@ -94,14 +95,14 @@ Las reglas de abajo aplican a todo lo de AT Computación.
 
 ## `atc-app/` (proyecto real)
 - **Estructura:**
-  - `app/`: la página, los estilos por sección en `app/styles/`, las rutas `api/seguimiento` y `api/pedidos` (la bolsa), las páginas legales (`privacidad/`, `cookies/`, `terminos/`, `arrepentimiento/`), `robots.ts`, `sitemap.ts` y el panel del dueño en `app/panel/` (menú lateral con Catálogo: productos, inventario, proveedores, lista de precios, categorías y marcas; Ganancias: resumen y movimientos; Pedidos: pendientes, pagados, retrasados y autocancelados; solo el superadmin con sesión: contraseña + código del celular, `lib/server/admin.ts`; sin sesión da 404; datos de ejemplo hasta conectar la base) y su ingreso en `app/ingresar/`.
+  - `app/`: la página, los estilos por sección en `app/styles/`, las rutas `api/seguimiento`, `api/pedidos` (la bolsa) y `api/panel/pagos` (transferencias, solo el dueño), las páginas legales (`privacidad/`, `cookies/`, `terminos/`, `arrepentimiento/`), `robots.ts`, `sitemap.ts` y el panel del dueño en `app/panel/` (menú lateral con Catálogo: productos, inventario, proveedores, lista de precios, categorías y marcas; Ganancias: resumen y movimientos; Pedidos: pendientes, pagados, retrasados y autocancelados; solo el superadmin con sesión: contraseña + código del celular, `lib/server/admin.ts`; sin sesión da 404; datos de ejemplo hasta conectar la base) y su ingreso en `app/ingresar/`.
   - `components/`: un componente por pieza; `'use client'` solo donde hay interacción.
   - `lib/data/`: datos de ejemplo.
   - `lib/server/`: código que solo corre en el servidor.
   - `supabase/`: migraciones.
   - `tests/`: pruebas.
 - **Antes de cada commit:** `npm test`.
-  - Corre tipos, build, base (29), API (33), e2e (515) y `check:docs`.
+  - Corre tipos, build, base (33), API (36), e2e (519) y `check:docs`.
   - Aparte, `npm run carga` es la prueba de carga (Linux o WSL). No prueba resistencia a DDoS: eso es del borde (`seguridad.md` §8 punto 10).
   - Usa un Postgres 16 temporal que imita Supabase; `npm run db:stop` lo borra.
   - En la nube, el e2e necesita `PW="$(npm root -g)/playwright/index.mjs"`.

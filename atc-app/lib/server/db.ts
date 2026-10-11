@@ -1,12 +1,12 @@
 import 'server-only';
 import pg from 'pg';
 
-// Conexiones a la base, una por rol del servidor: atc_tracker (seguimiento, solo ejecuta track_order) y atc_tienda
-// (pedidos, solo ejecuta crear_pedido) — seguridad.md §4. Cada contraseña vive en su variable de entorno: nunca en el repo.
+// Conexiones a la base, una por rol del servidor: atc_tracker (seguimiento, solo ejecuta track_order), atc_tienda
+// (pedidos, solo ejecuta crear_pedido) y atc_panel (pagos, solo con la sesión del superadmin) — seguridad.md §4. Cada contraseña vive en su variable de entorno: nunca en el repo.
 // En producción, siempre por TLS verificado con la CA de Supabase (ATC_DB_CA); en local (base en 127.0.0.1) no hace falta.
 // Topes para que una avalancha no cuelgue el servidor: 3 conexiones por proceso, 3 s para conseguir una y 4 s por
 // consulta (la base, además, corta cada sentencia a los 2-3 s y cada rol tiene un tope de 10 conexiones).
-export type Rol = 'seguimiento' | 'pedidos';
+export type Rol = 'seguimiento' | 'pedidos' | 'panel';
 const g = globalThis as unknown as { atcPools?: Map<string, pg.Pool> };
 
 function pool(rol: Rol, url: string, mode: 'local' | 'prod') {

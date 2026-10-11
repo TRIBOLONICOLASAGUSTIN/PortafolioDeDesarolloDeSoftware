@@ -9,12 +9,12 @@ const db = process.env.ATC_DB ?? 'atc_test';
 function clusterPass() {
   try { return encodeURIComponent(readFileSync(`${process.env.ATC_PGDATA ?? '/tmp/atc-pgdata'}/.atc-pass`, 'utf8').trim()); } catch { return ''; }
 }
-/** Conexión a la base local de pruebas con ese rol (postgres, atc_tracker o atc_tienda). */
+/** Conexión a la base local de pruebas con ese rol (postgres, atc_tracker, atc_tienda o atc_panel). */
 export const localDbUrl = rol => `postgres://${rol}:${clusterPass()}@127.0.0.1:${port}/${db}`;
 export const DB_URL = process.env.ATC_DB_URL ?? localDbUrl('postgres');
 
 // Solo estos roles se pueden asumir en las pruebas (evita interpolar texto arbitrario).
-const ROLES = new Set(['anon', 'authenticated', 'atc_tracker', 'atc_tienda', 'service_role']);
+const ROLES = new Set(['anon', 'authenticated', 'atc_tracker', 'atc_tienda', 'atc_panel', 'service_role']);
 
 export async function connect() {
   const c = new pg.Client({ connectionString: DB_URL });

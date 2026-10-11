@@ -61,8 +61,20 @@ export const nuevoSchema = z.object({
   umbral,
 });
 
-/** "$ 849.999", "849999" o "849.999" → 849999. Vacío o sin números → NaN (lo marca el esquema). */
-export const toInt = (s: string) => { const d = s.replace(/\D/g, ''); return d ? Number(d) : NaN; };
+/**
+ * "$ 849.999", "849999" o "849.999" → 849999. Vacío, sin números o con un signo menos → NaN (lo marca el esquema): un
+ * "-500" nunca se convierte en 500 sin avisar.
+ */
+export const toInt = (s: string) => { if (/[-−–]/.test(s)) return NaN; const d = s.replace(/\D/g, ''); return d ? Number(d) : NaN; };
+/** En los campos de plata y cantidades no se puede escribir ni pegar un signo menos: no existen montos negativos. */
+export const sinNegativo = (s: string) => s.replace(/[-−–]/g, '');
+
+/** Transferencia de un pedido: nombre de quien pagó (como figura en la transferencia) y monto. Nunca CBU, alias ni cuenta. */
+export const pagoSchema = z.object({
+  pagador: z.string().trim().min(2, 'Escribí el nombre de quien pagó').max(80, 'Hasta 80 caracteres'),
+  monto,
+});
+export const CODIGO_PEDIDO_RE = /^P-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{2}$/;
 
 /** Primer mensaje de error por campo. */
 export function errores(e: z.ZodError) {

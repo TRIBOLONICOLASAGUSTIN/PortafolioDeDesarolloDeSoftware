@@ -6,6 +6,7 @@ import { Icon } from '../ui';
 import { Chips } from './chips';
 import { usePanel } from './panel-shell';
 import { DemoBanner } from './demo-banner';
+import { TransferenciaForm } from './forms';
 import { ESTADO_IDS, ESTADO_PEDIDO, ESTADOS, minutosEntre, total, vence, type EstadoPedido, type Pedido, type Vista } from '@/lib/panel/pedidos';
 import { productName, payLabel } from '@/lib/panel/labels';
 import { diaLargo, long, short } from '@/lib/panel/dates';
@@ -91,9 +92,17 @@ function hmAhora(hoy: string, toast: (m: string) => void) {
 export function PedidoDetalle({ codigo }: { codigo: string }) {
   const { pedidos, estadoPedido, ahoraS, hoy, toast, closeSheet, pagarPedido, entregarPedido, cancelarPedido } = usePanel();
   const [confirmar, setConfirmar] = useState(false);
+  const [transferir, setTransferir] = useState(false);
   const p = pedidos.find(x => x.codigo === codigo);
   if (!p) return <h2 id="pn-sh-h" className="pn-sh-t">No encontramos ese pedido</h2>;
   const e = estadoPedido(p);
+  if (transferir && e === 'pendiente') return (
+    <div className="pn-det pn-pdet" data-codigo={p.codigo}>
+      <h2 id="pn-sh-h" className="pn-sh-t">Transferencia del pedido {p.codigo}</h2>
+      <TransferenciaForm pedido={p} total={total(p)} onVolver={() => setTransferir(false)} />
+    </div>
+  );
+  const t = p.transferencia;
   const accion = (fn: (c: string, hm: string) => void, msg: string) => () => {
     const hm = hmAhora(hoy, toast);
     if (!hm) return;
@@ -116,12 +125,16 @@ export function PedidoDetalle({ codigo }: { codigo: string }) {
         <div><dt>Pago elegido</dt><dd>{payLabel(p.pago)}</dd></div>
         <div><dt>Pedido</dt><dd>{fecha(p.creado)}</dd></div>
         {p.pagado && <div><dt>Pagado</dt><dd>{fecha(p.pagado)}</dd></div>}
+        {t && <div><dt>Transferencia</dt><dd>{t.pagador} · <span className="pn-num">{fmt(t.monto)}</span></dd></div>}
+        {t && <div><dt>Comprobante</dt><dd><a className="lnk" href={t.comprobante.url} target="_blank" rel="noopener" {...(t.comprobante.tipo === 'application/pdf' ? { download: t.comprobante.nombre } : {})}>Ver comprobante</a> <small>(solo lo ves vos)</small></dd></div>}
         {p.entregado && <div><dt>Entregado</dt><dd>{fecha(p.entregado)}</dd></div>}
         {e === 'autocancelado' && <div><dt>Se canceló solo</dt><dd>{fecha(vence(p))} · el stock volvió</dd></div>}
         {p.cancelado && <div><dt>Cancelado</dt><dd>{fecha(p.cancelado)} · el stock volvió</dd></div>}
       </dl>
       <div className="pn-foot pn-pdet-acts">
-        {e === 'pendiente' && <button type="button" className="btn btn-full" data-act="pagar" data-autofocus onClick={accion(pagarPedido, `Pedido ${codigo} pagado: la venta entró en Ganancias.`)}><Icon n="check" />Marcar como pagado</button>}
+        {e === 'pendiente' && p.pago === 'transferencia' && <button type="button" className="btn btn-full" data-act="transferencia" data-autofocus onClick={() => setTransferir(true)}><Icon n="receipt" />Registrar transferencia</button>}
+        {e === 'pendiente' && <button type="button" className={`btn btn-full${p.pago === 'transferencia' ? ' btn-gray' : ''}`} data-act="pagar" data-autofocus={p.pago !== 'transferencia' || undefined} onClick={accion(pagarPedido, `Pedido ${codigo} pagado: la venta entró en Ganancias.`)}><Icon n="check" />Marcar como pagado</button>}
+        {e === 'pendiente' && p.pago !== 'transferencia' && <button type="button" className="btn btn-gray btn-full" data-act="transferencia" onClick={() => setTransferir(true)}><Icon n="receipt" />Registrar transferencia</button>}
         {e === 'pendiente' && !confirmar && <button type="button" className="btn btn-gray btn-full" data-act="cancelar" onClick={() => setConfirmar(true)}>Cancelar pedido</button>}
         {e === 'pendiente' && confirmar && <button type="button" className="btn btn-gray btn-full pn-danger" data-act="cancelar-ok" autoFocus onClick={accion(cancelarPedido, `Pedido ${codigo} cancelado: el stock volvió.`)}>Sí, cancelar y devolver el stock</button>}
         {(e === 'pagado' || e === 'retrasado') && <button type="button" className="btn btn-full" data-act="entregar" data-autofocus onClick={accion(entregarPedido, `Pedido ${codigo} entregado.`)}><Icon n="check" />Marcar como entregado</button>}

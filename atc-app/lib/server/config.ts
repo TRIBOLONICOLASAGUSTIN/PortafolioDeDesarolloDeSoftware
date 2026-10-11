@@ -58,6 +58,8 @@ function configDe(urlVar: string): TrackingConfig {
 export const trackingConfig = () => configDe('ATC_TRACKER_DATABASE_URL');
 /** Pedidos de la bolsa (POST /api/pedidos): misma exigencia, con la conexión de atc_tienda. */
 export const tiendaConfig = () => configDe('ATC_TIENDA_DATABASE_URL');
+/** Pagos del panel (solo con la sesión del superadmin): misma exigencia, con la conexión de atc_panel. */
+export const panelConfig = () => configDe('ATC_PANEL_DATABASE_URL');
 
 /**
  * Red que se usa para limitar: la IPv4 tal cual; en IPv6, el /64 (una conexión hogareña o un servidor recibe un /64

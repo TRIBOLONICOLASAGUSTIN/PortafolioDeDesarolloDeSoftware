@@ -984,15 +984,39 @@ for (const [w, h, scheme] of [[390, 844, 'dark'], [1440, 900, 'light']]) {
     const g0 = await p.evaluate(() => +document.querySelector('.pn-inv[data-id="per-g203"]').dataset.stock);
     await ir('/panel/pedidos?estado=pendiente');
     await accion('P-3HXD-9T', 'cancelar'); await p.click('.pn-sheet [data-act="cancelar-ok"]'); await p.waitForTimeout(500);
-    // Pagar otro: la venta entra en Ganancias (Movimientos) y el pedido pasa a Pagados
-    await accion('P-7KQ2-4M', 'pagar');
+    // Transferencia (pedido pagado por transferencia): nombre de quien pagó, monto sin signo menos y comprobante validado
+    // por sus primeros bytes; queda pagado, la venta entra en Ganancias con el nombre y el comprobante lo ve solo el dueño.
+    await accion('P-7KQ2-4M', 'transferencia');
+    await p.fill('#f-tmonto', ''); await p.type('#f-tmonto', '-500');
+    const sinMenos = await p.inputValue('#f-tmonto');
+    await p.click('[data-act="registrar-transferencia"]'); await p.waitForTimeout(300);
+    const errVacio = await p.evaluate(() => [...document.querySelectorAll('.pn-tform .pn-err')].map(e => e.textContent));
+    await p.setInputFiles('#f-tcomp', { name: 'comprobante.png', mimeType: 'image/png', buffer: Buffer.from('<script>alert(1)</script>') }); await p.waitForTimeout(300);
+    const errFalso = await p.evaluate(() => document.querySelector('#f-tcomp-e')?.textContent ?? '');
+    const PNG1 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+    await p.setInputFiles('#f-tcomp', { name: 'comprobante.png', mimeType: 'image/png', buffer: PNG1 }); await p.waitForTimeout(300);
+    await p.fill('#f-tpag', 'Lucía Martínez'); await p.fill('#f-tmonto', '49998');
+    const form = await p.evaluate(() => ({ prev: !!document.querySelector('.pn-tprev'), err: document.querySelectorAll('.pn-tform .pn-err').length, ancho: document.documentElement.scrollWidth - innerWidth }));
+    const ta = await p.evaluate(panelA11y, '.pn-sheet.open'), tc = await p.evaluate(panelContrast, '.pn-sheet.open *');
+    await p.click('[data-act="registrar-transferencia"]'); await p.waitForTimeout(500);
+    check(tag, 'transferencia: no se puede escribir un monto negativo, pide el comprobante y rechaza un archivo que no es foto ni PDF',
+      sinMenos === '500' && errVacio.some(t => /Escribí el nombre/.test(t)) && errVacio.some(t => /Adjuntá el comprobante/.test(t)) && /foto \(JPG o PNG\) o un PDF/.test(errFalso)
+      && form.prev && form.err === 0 && form.ancho <= 0 && ta.tiny.length === 0 && ta.small.length === 0 && tc.length === 0, JSON.stringify({ sinMenos, errVacio, errFalso, form, tiny: ta.tiny, small: ta.small, c: tc.slice(0, 3) }));
+    // Pagar el otro pendiente con "Marcar como pagado"
+    await accion('P-8WRB-2C', 'pagar');
     const n1 = await cuenta(), fl = await filas();
+    await p.click('label.pn-chip:has(input[name="pn-ped"][value="pagado"])'); await p.waitForTimeout(300);
+    await p.click('.pn-ped[data-codigo="P-7KQ2-4M"]'); await p.waitForTimeout(450);
+    const detT = await p.evaluate(() => { const s = document.querySelector('.pn-sheet.open'); const a = s?.querySelector('a[href^="blob:"]'); return { txt: s?.textContent ?? '', blob: !!a, alto: a ? Math.round(a.getBoundingClientRect().height) : 0 }; });
+    await p.keyboard.press('Escape'); await p.waitForTimeout(400);
     await ir('/panel/inventario');
     const g1 = await p.evaluate(() => +document.querySelector('.pn-inv[data-id="per-g203"]').dataset.stock);
     await ir('/panel/movimientos');
     const mov = await p.evaluate(() => [...document.querySelectorAll('.pn-mov')].slice(0, 3).map(r => r.textContent).join(' | '));
-    check(tag, 'cancelar devuelve el stock; pagar pasa el pedido a Pagados y su venta entra en Movimientos',
-      g1 - g0 === 1 && fl.join() === 'P-8WRB-2C' && n1.pendiente === 1 && n1.pagado === 3 && /49\.998/.test(mov), JSON.stringify({ g0, g1, n1, fl, mov: mov.slice(0, 160) }));
+    check(tag, 'cancelar devuelve el stock; pagar (con transferencia o sin ella) pasa el pedido a Pagados y su venta entra en Movimientos',
+      g1 - g0 === 1 && fl.join() === '' && n1.pendiente === 0 && n1.pagado === 4 && /49\.998/.test(mov) && /729\.999/.test(mov), JSON.stringify({ g0, g1, n1, fl, mov: mov.slice(0, 200) }));
+    check(tag, 'el pedido pagado por transferencia muestra quién pagó, el monto y el comprobante (solo en el panel, 44 px)',
+      /Transferencia/.test(detT.txt) && /Lucía Martínez/.test(detT.txt) && /49\.998/.test(detT.txt) && /Ver comprobante/.test(detT.txt) && detT.blob && detT.alto >= 44, JSON.stringify({ blob: detT.blob, alto: detT.alto, txt: detT.txt.slice(0, 200) }));
 
     // Retrasados: el umbral se cambia (con 7 días queda uno) y "Marcar como entregado" lo saca de la lista
     await ir('/panel/pedidos?estado=retrasado');
