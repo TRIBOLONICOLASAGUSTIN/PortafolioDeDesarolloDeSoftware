@@ -130,5 +130,6 @@ Las reglas de abajo aplican a todo lo de AT Computación.
   git clone -b <rama> https://github.com/TRIBOLONICOLASAGUSTIN/PortafolioDeDesarolloDeSoftware.git atc && cd atc/atc-app
   npm ci && npm run dev    # http://localhost:3000 — modo demo, sin base
   ```
-  - En Windows PowerShell: `npm.cmd` en lugar de `npm`.
+  - En Windows PowerShell: `npm.cmd` en lugar de `npm`. Los pasos completos para VS Code (y WSL para las pruebas) están en `atc-app/README.md`.
+  - Cómo funciona el código, de punta a punta: `docs/atc/como-funciona.md`.
   - Panel: una vez `npm run admin:setup` (escribe `.env.local`, que nunca se sube) y después entrar por `/ingresar`. Las claves del superadmin nunca van al repo ni al chat.

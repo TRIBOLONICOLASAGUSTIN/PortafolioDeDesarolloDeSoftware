@@ -110,6 +110,9 @@ Varios hallazgos repiten el mismo problema visto desde distintos ángulos. En el
   - [ ] **Falta configurar** (necesita cuentas): Turnstile, Upstash, hosting (Vercel/Netlify/Cloudflare) y `ATC_IP_HEADER` según el hosting (`seguridad.md` §8 punto 8).
   - [ ] **Borde (CDN/WAF)** antes de publicar: límites por IP, solo GET/HEAD fuera de `/api`, tope de cuerpo, desafío a bots, topes de gasto y la Data API de Supabase apagada (`seguridad.md` §8 punto 10). Sin esto, una sola compu pone lenta la home (unos 2,6 s, §11).
 - [x] **Avalanchas y puertas traseras (L11):** topes de la bolsa (3 por producto, 10 por pedido, la mitad del stock para los pendientes), límite por /48 y techo del sitio después de Turnstile, cuerpos con tope y corte a los 5 s, Upstash consultado como mucho el máximo por instancia, base con `query_timeout`, scrypt de a 2 con cola, modos que no abren de más y `seed.sql` fuera de `supabase/`. Prueba de carga con `npm run carga`. Pruebas FN-9, FN-10 y API-30 a API-33.
+- [x] **Documentación para el dueño (L14):** `docs/atc/como-funciona.md` explica el código de punta a punta (carpetas, cómo se arma la página, pedido, seguimiento, ingreso, panel, base, modos y pruebas). El README trae los pasos para Windows con VS Code y WSL para las pruebas, y las variables al día.
+  - [ ] **Repo propio `ATComputacion`:** la integración de GitHub no puede crear repositorios; el dueño lo crea vacío y privado, y después se sube la historia filtrada (solo `atc-app/`, `docs/atc/`, `CLAUDE.md` y `.claude/`).
+  - [ ] **Borrar la rama `mejoras-visuales`** en GitHub (es idéntica a `main`; este entorno solo puede escribir en su rama).
 - [x] **Sin código duplicado ni muerto (L12, mismo comportamiento):**
   - Hecho:
     - Las rutas POST comparten la lectura del cuerpo, las respuestas sin caché, el aviso de configuración, el corte por límite y Turnstile (`lib/server/http.ts`, `turnstileOk`); cada ruta sigue escribiendo su orden de controles.
