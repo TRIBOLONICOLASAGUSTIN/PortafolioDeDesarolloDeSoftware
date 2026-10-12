@@ -66,7 +66,9 @@ test('FN-12 · Solo atc_panel registra pagos y ve comprobantes; atc_panel no lee
   const exec = async role => (await c.query(`
     select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
      where n.nspname in ('public', 'private') and has_function_privilege($1, p.oid, 'EXECUTE') order by 1`, [role])).rows.map(r => r.proname);
-  assert.deepEqual(await exec('atc_panel'), ['borrar_comprobante', 'registrar_pago', 'ver_comprobante']);
+  // Las de pagos más las del panel real (FN-14, tests/db/panel.test.mjs)
+  assert.deepEqual(await exec('atc_panel'), ['borrar_comprobante', 'panel_catalogo', 'panel_cobro', 'panel_gasto', 'panel_movimientos', 'panel_pedido_estado',
+    'panel_pedidos', 'panel_precios', 'panel_producto_guardar', 'panel_proveedor_guardar', 'panel_stock', 'panel_venta', 'registrar_pago', 'ver_comprobante']);
   for (const role of ['anon', 'authenticated', 'atc_tracker', 'atc_tienda']) {
     const fs = await exec(role);
     assert.ok(!['borrar_comprobante', 'registrar_pago', 'ver_comprobante'].some(f => fs.includes(f)), `${role} ejecuta funciones de pagos`);

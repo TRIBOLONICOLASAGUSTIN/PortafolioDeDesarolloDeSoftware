@@ -147,7 +147,9 @@ Varios hallazgos repiten el mismo problema visto desde distintos ángulos. En el
   - [x] **Diseño estilo Apple:** cada tarjeta con gráfico lleva su monto junto al título; barra de reparto por categoría con un color fijo por categoría; tendencias en el desglose; período como control segmentado; fecha del día sobre el título. Animaciones de una sola vez (aparición escalonada, el gráfico se descubre, las barras crecen, el monto cuenta hasta el valor nuevo al cambiar de período), quietas con "reducir movimiento".
   - [ ] **Configurar el superadmin real** con `npm run admin:setup` y cargar sus 4 variables en el hosting (`seguridad.md` §8).
   - [ ] **Aprobación del dueño** del diseño (capturas del panel en la rama).
-  - [ ] **Etapa 2 — Panel real:**
+  - [ ] **Etapa 2 — Panel real** (lotes E1 a E7, en curso):
+    - [x] **E1 · Base:** costos, proveedores, piezas y kits, movimientos de dinero y de stock en `private`, con 11 funciones `panel_*` solo para `atc_panel`; un pedido pagado entra solo en Ganancias (FN-14 a FN-17, RLS-10).
+    - [ ] **E2** pedidos reales en el panel · **E3** catálogo · **E4** reparaciones · **E5** ganancias · **E6** revisión · **E7** puesta en marcha.
     - Rol propio del servidor para las tablas del panel (como `atc_tracker`), usado solo después de verificar la sesión del superadmin.
     - Migración nueva: ventas, ítems (precio y costo al vender), gastos, cobros de reparaciones y costos de productos (solo el dueño: `products` es pública).
     - Registrar de verdad (descuenta stock), ABM de productos y órdenes, novedades y mensaje de WhatsApp armado.
