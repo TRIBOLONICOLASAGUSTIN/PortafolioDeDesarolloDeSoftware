@@ -7,14 +7,15 @@
 import { fileURLToPath } from 'node:url';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { startServer, LOCAL_ENV } from '../helpers/server.mjs';
-import { ADMIN, adminEnv, stableNow, totpCode } from '../helpers/admin.mjs';
+import { ADMIN, adminEnv, forgeSession, sesionHace, stableNow, totpCode } from '../helpers/admin.mjs';
 
 let pw;
 try { pw = await import('playwright'); } catch { pw = await import(process.env.PW || 'playwright'); }
 const { chromium } = pw;
 
 // ATC_DEMO=1: botones de demo del seguimiento. El superadmin de prueba es para entrar al panel (tests/helpers/admin.mjs).
-const server = await startServer({ port: 3110, env: { ...LOCAL_ENV, ATC_DEMO: '1', ...adminEnv() } });
+const ADMIN_ENV = adminEnv();
+const server = await startServer({ port: 3110, env: { ...LOCAL_ENV, ATC_DEMO: '1', ...ADMIN_ENV } });
 const HTML = server.base + '/';
 const SHOTS = fileURLToPath(new URL('./capturas/', import.meta.url));
 const WANT_SHOTS = process.argv.includes('--capturas');
@@ -501,9 +502,13 @@ for (const w of [1440, 1920, 390]) {
 const PANEL = server.base + '/panel';
 const PANEL_VPS = [[320, 568, 'light'], [390, 844, 'light'], [820, 1180, 'dark'], [1440, 900, 'light']];
 let PANEL_COOKIES = [];
-const panelPage = async (w, h, scheme, { anon, ...opts } = {}) => {
+// `fresca`: una sesión recién abierta (ver o borrar un comprobante pide haber ingresado hace menos de 15 minutos, y la
+// batería puede tardar más que eso desde el ingreso); `cookie`: una sesión armada a mano (por ejemplo, de hace 16 minutos).
+const panelPage = async (w, h, scheme, { anon, fresca, cookie, ...opts } = {}) => {
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, colorScheme: scheme, hasTouch: w < 900, acceptDownloads: true, ...opts });
-  if (!anon) await ctx.addCookies(PANEL_COOKIES);
+  const propia = cookie ?? (fresca ? `atc_s=${forgeSession(ADMIN_ENV, Math.floor(Date.now() / 1000) + 8 * 3600)}` : null);
+  if (propia) await ctx.addCookies([{ name: 'atc_s', value: propia.slice(6), url: server.base, httpOnly: true, sameSite: 'Strict' }]);
+  else if (!anon) await ctx.addCookies(PANEL_COOKIES);
   const p = await ctx.newPage();
   const errs = [];
   p.on('pageerror', e => errs.push(e.message));
@@ -952,7 +957,7 @@ for (const [w, h, scheme] of [[390, 844, 'light'], [1440, 900, 'dark']]) {
 // y autocancelados (el stock volvió). Pagar suma la venta a Ganancias, cancelar devuelve el stock, entregar lo cierra.
 for (const [w, h, scheme] of [[390, 844, 'dark'], [1440, 900, 'light']]) {
   const tag = `panel-pedidos-${w}-${scheme === 'dark' ? 'oscuro' : 'claro'}`;
-  const { ctx, p, errs } = await panelPage(w, h, scheme);
+  const { ctx, p, errs } = await panelPage(w, h, scheme, { fresca: true });
   const abrirMenu = async () => { if (await p.locator('.pn-menu').isVisible()) { await p.click('.pn-menu'); await p.waitForTimeout(450); } };
   const ir = async href => { await abrirMenu(); await Promise.all([p.waitForURL(u => u.pathname + u.search === href), p.click(`.pn-nav-a[href="${href}"]`)]); await p.waitForTimeout(600); };
   const cuenta = () => p.evaluate(() => Object.fromEntries(['pendiente', 'pagado', 'retrasado', 'autocancelado'].map(e => [e, +(document.querySelector(`.pn-nav-a[href="/panel/pedidos?estado=${e}"] .pn-nav-n`)?.textContent ?? 0)])));
@@ -991,10 +996,26 @@ for (const [w, h, scheme] of [[390, 844, 'dark'], [1440, 900, 'light']]) {
     const sinMenos = await p.inputValue('#f-tmonto');
     await p.click('[data-act="registrar-transferencia"]'); await p.waitForTimeout(300);
     const errVacio = await p.evaluate(() => [...document.querySelectorAll('.pn-tform .pn-err')].map(e => e.textContent));
-    await p.setInputFiles('#f-tcomp', { name: 'comprobante.png', mimeType: 'image/png', buffer: Buffer.from('<script>alert(1)</script>') }); await p.waitForTimeout(300);
+    await p.setInputFiles('#f-tcomp-in', { name: 'comprobante.png', mimeType: 'image/png', buffer: Buffer.from('<script>alert(1)</script>') }); await p.waitForTimeout(300);
     const errFalso = await p.evaluate(() => document.querySelector('#f-tcomp-e')?.textContent ?? '');
-    const PNG1 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
-    await p.setInputFiles('#f-tcomp', { name: 'comprobante.png', mimeType: 'image/png', buffer: PNG1 }); await p.waitForTimeout(300);
+    // Botón propio en castellano (el del navegador dice "Choose File"); el campo nativo queda oculto y fuera del Tab
+    const boton = await p.evaluate(() => { const b = document.querySelector('#f-tcomp'), i = document.querySelector('#f-tcomp-in'), s = document.querySelector('.pn-sheet.open');
+      return { txt: b?.textContent, tag: b?.tagName, alto: Math.round(b?.getBoundingClientRect().height ?? 0), inTab: i?.tabIndex, inOculto: i?.getAttribute('aria-hidden'), choose: /Choose File|No file chosen/i.test(s?.innerText ?? '') }; });
+    // Una foto de celular girada (Orientation = 6) con GPS y marca en el Exif: la vista previa queda sin esos datos y derecha
+    const jpg = Buffer.from((await p.evaluate(() => { const c = document.createElement('canvas'); c.width = 16; c.height = 8; const g = c.getContext('2d');
+      g.fillStyle = '#0071e3'; g.fillRect(0, 0, 8, 8); g.fillStyle = '#1d7a35'; g.fillRect(8, 0, 8, 8); return c.toDataURL('image/jpeg', .9); })).split(',')[1], 'base64');
+    const t = Buffer.alloc(80); t.write('II*\0', 0, 'latin1'); t.writeUInt32LE(8, 4); t.writeUInt16LE(2, 8);
+    t.writeUInt16LE(0x010f, 10); t.writeUInt16LE(2, 12); t.writeUInt32LE(13, 14); t.writeUInt32LE(40, 18); // Make → 40
+    t.writeUInt16LE(0x0112, 22); t.writeUInt16LE(3, 24); t.writeUInt32LE(1, 26); t.writeUInt32LE(6, 30); // Orientation = 6
+    t.write('MarcaSecreta\0', 40, 'latin1'); t.write('GPS-31.6333', 60, 'latin1');
+    const exif = Buffer.concat([Buffer.from('Exif\0\0', 'latin1'), t]);
+    const app1 = Buffer.concat([Buffer.of(0xff, 0xe1, (exif.length + 2) >> 8, (exif.length + 2) & 0xff), exif]);
+    const FOTO = Buffer.concat([jpg.subarray(0, 2), app1, jpg.subarray(2)]);
+    await p.setInputFiles('#f-tcomp-in', { name: 'foto.jpg', mimeType: 'image/jpeg', buffer: FOTO }); await p.waitForTimeout(500);
+    const prev = await p.evaluate(() => { const i = document.querySelector('.pn-tprev'); return { w: i?.naturalWidth, h: i?.naturalHeight, nota: document.querySelector('.pn-tq')?.textContent ?? '', nombre: document.querySelector('#f-tcomp-n')?.textContent }; });
+    const [dl] = await Promise.all([p.waitForEvent('download'), p.evaluate(() => { const a = document.createElement('a'); a.href = document.querySelector('.pn-tprev').src; a.download = 'previa.jpg'; document.body.append(a); a.click(); a.remove(); })]);
+    const limpia = readFileSync(await dl.path());
+    const sinDatos = limpia.indexOf('MarcaSecreta') < 0 && limpia.indexOf('GPS-31') < 0 && limpia.indexOf(Buffer.from('0112000300000001' + '0006', 'hex')) > 0 && limpia.subarray(-2).toString('hex') === 'ffd9';
     await p.fill('#f-tpag', 'Lucía Martínez'); await p.fill('#f-tmonto', '49998');
     const form = await p.evaluate(() => ({ prev: !!document.querySelector('.pn-tprev'), err: document.querySelectorAll('.pn-tform .pn-err').length, ancho: document.documentElement.scrollWidth - innerWidth }));
     const ta = await p.evaluate(panelA11y, '.pn-sheet.open'), tc = await p.evaluate(panelContrast, '.pn-sheet.open *');
@@ -1002,12 +1023,27 @@ for (const [w, h, scheme] of [[390, 844, 'dark'], [1440, 900, 'light']]) {
     check(tag, 'transferencia: no se puede escribir un monto negativo, pide el comprobante y rechaza un archivo que no es foto ni PDF',
       sinMenos === '500' && errVacio.some(t => /Escribí el nombre/.test(t)) && errVacio.some(t => /Adjuntá el comprobante/.test(t)) && /foto \(JPG o PNG\) o un PDF/.test(errFalso)
       && form.prev && form.err === 0 && form.ancho <= 0 && ta.tiny.length === 0 && ta.small.length === 0 && tc.length === 0, JSON.stringify({ sinMenos, errVacio, errFalso, form, tiny: ta.tiny, small: ta.small, c: tc.slice(0, 3) }));
+    check(tag, 'comprobante: botón "Elegir archivo" en castellano (44 px, el campo nativo oculto y fuera del Tab); a la foto se le quitan marca y GPS y queda derecha',
+      boton.tag === 'BUTTON' && boton.txt === 'Elegir archivo' && boton.alto >= 44 && boton.inTab === -1 && boton.inOculto === 'true' && !boton.choose
+      && prev.w === 8 && prev.h === 16 && /datos ocultos/.test(prev.nota) && prev.nombre === 'foto.jpg' && sinDatos, JSON.stringify({ boton, prev, sinDatos, bytes: limpia.length }));
     // Pagar el otro pendiente con "Marcar como pagado"
     await accion('P-8WRB-2C', 'pagar');
     const n1 = await cuenta(), fl = await filas();
     await p.click('label.pn-chip:has(input[name="pn-ped"][value="pagado"])'); await p.waitForTimeout(300);
     await p.click('.pn-ped[data-codigo="P-7KQ2-4M"]'); await p.waitForTimeout(450);
     const detT = await p.evaluate(() => { const s = document.querySelector('.pn-sheet.open'); const a = s?.querySelector('a[href^="blob:"]'); return { txt: s?.textContent ?? '', blob: !!a, alto: a ? Math.round(a.getBoundingClientRect().height) : 0 }; });
+    // "Ver comprobante" abre la foto de verdad (en L15 la vista previa se liberaba al cerrar el formulario y el enlace no abría)
+    const [ventana] = await Promise.all([ctx.waitForEvent('page'), p.click('.pn-sheet.open [data-act="ver-comp"]')]);
+    await ventana.waitForLoadState().catch(() => {});
+    const abre = await ventana.evaluate(() => { const i = document.images[0]; return i ? { w: i.naturalWidth, h: i.naturalHeight } : null; }).catch(e => e.message);
+    await ventana.close();
+    // "Ya lo revisé": se borra el comprobante; quedan el nombre y el monto
+    await p.click('.pn-sheet.open [data-act="borrar-comp"]'); await p.waitForTimeout(250);
+    await p.click('.pn-sheet.open [data-act="borrar-comp-ok"]'); await p.waitForTimeout(400);
+    const borrado = await p.evaluate(() => { const s = document.querySelector('.pn-sheet.open'); return { txt: s?.textContent ?? '', blob: !!s?.querySelector('a[href^="blob:"]'), acts: [...(s?.querySelectorAll('[data-act]') ?? [])].map(b => b.dataset.act) }; });
+    check(tag, 'el comprobante registrado se abre en otra pestaña y "Ya lo revisé" lo borra (quedan quién pagó y el monto)',
+      abre?.w === 8 && abre?.h === 16 && /Borrado \(quedan el nombre y el monto\)/.test(borrado.txt) && !borrado.blob && /Lucía Martínez/.test(borrado.txt) && !borrado.acts.includes('borrar-comp'),
+      JSON.stringify({ abre, borrado: { blob: borrado.blob, acts: borrado.acts, txt: borrado.txt.slice(0, 160) } }));
     await p.keyboard.press('Escape'); await p.waitForTimeout(400);
     await ir('/panel/inventario');
     const g1 = await p.evaluate(() => +document.querySelector('.pn-inv[data-id="per-g203"]').dataset.stock);
@@ -1038,6 +1074,40 @@ for (const [w, h, scheme] of [[390, 844, 'dark'], [1440, 900, 'light']]) {
     check(tag, 'sin errores de consola', errs.length === 0, errs.slice(0, 3).join(' | '));
   } catch (e) {
     check(tag, 'pedidos sin excepciones', false, e.message.split('\n')[0]);
+  }
+  await ctx.close();
+}
+
+// Ver o borrar un comprobante pide haber ingresado hace menos de 15 minutos: con una sesión de hace 16, registrar se
+// puede, pero "Ver comprobante" y "Ya lo revisé" avisan que hay que volver a ingresar, y el botón lleva al ingreso.
+{
+  const tag = 'panel-reingreso-390-claro';
+  const { ctx, p, errs } = await panelPage(390, 844, 'light', { cookie: sesionHace(ADMIN_ENV, 16) });
+  try {
+    await p.goto(PANEL + '/pedidos?estado=pendiente'); await p.waitForTimeout(600);
+    await p.click('.pn-ped[data-codigo="P-7KQ2-4M"]'); await p.waitForTimeout(450);
+    await p.click('.pn-sheet [data-act="transferencia"]'); await p.waitForTimeout(450);
+    const PNG1 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+    await p.setInputFiles('#f-tcomp-in', { name: 'comprobante.png', mimeType: 'image/png', buffer: PNG1 }); await p.waitForTimeout(300);
+    await p.fill('#f-tpag', 'Lucía Martínez');
+    await p.click('[data-act="registrar-transferencia"]'); await p.waitForTimeout(500);
+    await p.click('label.pn-chip:has(input[name="pn-ped"][value="pagado"])'); await p.waitForTimeout(300);
+    await p.click('.pn-ped[data-codigo="P-7KQ2-4M"]'); await p.waitForTimeout(450);
+    let ventanas = 0; ctx.on('page', () => ventanas++);
+    await p.click('.pn-sheet.open [data-act="ver-comp"]'); await p.waitForTimeout(400);
+    const aviso = await p.evaluate(() => document.querySelector('.pn-sheet.open .pn-reing')?.textContent ?? '');
+    await p.click('.pn-sheet.open [data-act="borrar-comp"]'); await p.waitForTimeout(250);
+    const sigue = await p.evaluate(() => ({ ok: !!document.querySelector('.pn-sheet.open [data-act="borrar-comp-ok"]'), blob: !!document.querySelector('.pn-sheet.open a[href^="blob:"]') }));
+    const c = await p.evaluate(panelContrast, '.pn-sheet.open *'), a = await p.evaluate(panelA11y, '.pn-sheet.open');
+    await Promise.all([p.waitForURL('**/ingresar', { timeout: 15000 }), p.click('.pn-sheet.open [data-act="reingresar"]')]);
+    await p.waitForTimeout(400);
+    const ingreso = await p.evaluate(() => ({ h1: document.querySelector('h1')?.textContent, url: location.pathname }));
+    check(tag, 'con una sesión de hace 16 minutos se registra la transferencia, pero ver o borrar el comprobante pide volver a ingresar (sale y va al ingreso)',
+      ventanas === 0 && /volvé a ingresar/.test(aviso) && /15 minutos/.test(aviso) && !sigue.ok && sigue.blob && ingreso.h1 === 'Ingresar' && ingreso.url === '/ingresar'
+      && c.length === 0 && a.tiny.length === 0 && a.small.length === 0, JSON.stringify({ ventanas, aviso: aviso.slice(0, 80), sigue, ingreso, c: c.slice(0, 3), tiny: a.tiny, small: a.small }));
+    check(tag, 'sin errores de consola', errs.length === 0, errs.slice(0, 3).join(' | '));
+  } catch (e) {
+    check(tag, 'reingreso sin excepciones', false, e.message.split('\n')[0]);
   }
   await ctx.close();
 }

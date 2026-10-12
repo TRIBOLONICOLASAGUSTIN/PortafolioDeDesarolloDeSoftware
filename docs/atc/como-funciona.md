@@ -94,13 +94,15 @@ Por el nonce, cada página se arma en el momento (no hay HTML guardado de antema
 1. En el panel, la hoja del pedido tiene **"Registrar transferencia"** (`TransferenciaForm` en `components/panel/forms.tsx`). Pide:
    - el nombre de quien pagó;
    - el monto, que arranca en el total, siempre es mayor a 0 y no deja escribir el signo menos;
-   - el comprobante: foto JPG o PNG, o PDF, de hasta 2 MB. El tipo se reconoce por los primeros bytes (`lib/comprobante.ts`), nunca por la extensión.
+   - el comprobante: foto JPG o PNG, o PDF, de hasta 2 MB, con el botón "Elegir archivo". El tipo se reconoce por los primeros bytes, nunca por la extensión, y a las fotos se les quitan los datos ocultos (ubicación, modelo del celular, miniatura) con `limpiarComprobante` (`lib/comprobante.ts`): se copian solo los bloques de la imagen, sin decodificarla ni usar librerías. La vista previa ya es la foto limpia.
 2. El pedido pasa a pagado y la venta entra en Ganancias con el medio "Transferencia" y el nombre de quien pagó.
-3. Hoy el panel muestra pedidos de ejemplo, así que el comprobante queda solo en memoria durante la visita.
-4. **Lo real ya está hecho para la Etapa 2:**
-   - `POST /api/panel/pagos` (solo con la sesión del dueño) llama a `registrar_pago` con el rol `atc_panel`, que vuelve a validar todo y guarda el archivo en `private.comprobantes`.
-   - `GET /api/panel/pagos/[id]/comprobante` lo devuelve aislado: sin caché, `nosniff` y CSP `sandbox`.
-   - El comprobante se borra a los 90 días. Quedan el nombre y el monto. Nunca se piden CBU, alias ni número de cuenta.
+3. En el detalle del pedido: "Ver comprobante" y "Ya lo revisé: borrar comprobante" (quedan el nombre y el monto). Las dos cosas piden haber ingresado hace menos de 15 minutos: el servidor pasa hace cuánto se ingresó (`sesionActual` en `lib/server/admin.ts`, desde `app/panel/layout.tsx`) y, si pasó más, el panel ofrece "Volver a ingresar" (cierra la sesión y va a `/ingresar`).
+4. Hoy el panel muestra pedidos de ejemplo, así que el comprobante queda solo en memoria durante la visita.
+5. **Lo real ya está hecho para la Etapa 2:**
+   - `POST /api/panel/pagos` (solo con la sesión del dueño) limpia el archivo otra vez, lo cifra con AES-256-GCM (`lib/server/cifrado.ts`, clave `ATC_COMPROBANTES_KEY`) y llama a `registrar_pago` con el rol `atc_panel`, que vuelve a validar todo, rechaza un archivo sin cifrar y lo guarda en `private.comprobantes`.
+   - `GET /api/panel/pagos/[id]/comprobante` lo descifra, controla que siga siendo el tipo guardado y lo devuelve aislado: sin caché, `nosniff` y CSP `sandbox`. `DELETE` lo borra (`borrar_comprobante`). Las dos piden el ingreso de menos de 15 minutos (si no, 403 `reingresar`).
+   - Sin sesión, esas rutas responden con cualquier método lo mismo que una dirección inexistente: `lib/server/no-existe.ts` y `app/api/[...resto]/route.ts`.
+   - El comprobante se borra a los 90 días, o antes a mano. Quedan el nombre y el monto. Nunca se piden CBU, alias ni número de cuenta.
 
 ---
 

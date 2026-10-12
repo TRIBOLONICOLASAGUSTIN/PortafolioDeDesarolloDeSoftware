@@ -7,6 +7,7 @@ import { Chips } from './chips';
 import { usePanel } from './panel-shell';
 import { DemoBanner } from './demo-banner';
 import { TransferenciaForm } from './forms';
+import { cerrarSesion } from './salir';
 import { ESTADO_IDS, ESTADO_PEDIDO, ESTADOS, minutosEntre, total, vence, type EstadoPedido, type Pedido, type Vista } from '@/lib/panel/pedidos';
 import { productName, payLabel } from '@/lib/panel/labels';
 import { diaLargo, long, short } from '@/lib/panel/dates';
@@ -90,9 +91,12 @@ function hmAhora(hoy: string, toast: (m: string) => void) {
 
 // Detalle de un pedido, con lo que se puede hacer según su estado.
 export function PedidoDetalle({ codigo }: { codigo: string }) {
-  const { pedidos, estadoPedido, ahoraS, hoy, toast, closeSheet, pagarPedido, entregarPedido, cancelarPedido } = usePanel();
+  const { pedidos, estadoPedido, ahoraS, hoy, toast, closeSheet, pagarPedido, entregarPedido, cancelarPedido, borrarComprobante, reciente } = usePanel();
   const [confirmar, setConfirmar] = useState(false);
   const [transferir, setTransferir] = useState(false);
+  // Ver o borrar el comprobante pide haber ingresado hace menos de 15 minutos (lo exige el servidor; acá se avisa antes).
+  const [reingresar, setReingresar] = useState(false);
+  const [borrar, setBorrar] = useState(false);
   const p = pedidos.find(x => x.codigo === codigo);
   if (!p) return <h2 id="pn-sh-h" className="pn-sh-t">No encontramos ese pedido</h2>;
   const e = estadoPedido(p);
@@ -126,11 +130,18 @@ export function PedidoDetalle({ codigo }: { codigo: string }) {
         <div><dt>Pedido</dt><dd>{fecha(p.creado)}</dd></div>
         {p.pagado && <div><dt>Pagado</dt><dd>{fecha(p.pagado)}</dd></div>}
         {t && <div><dt>Transferencia</dt><dd>{t.pagador} · <span className="pn-num">{fmt(t.monto)}</span></dd></div>}
-        {t && <div><dt>Comprobante</dt><dd><a className="lnk" href={t.comprobante.url} target="_blank" rel="noopener" {...(t.comprobante.tipo === 'application/pdf' ? { download: t.comprobante.nombre } : {})}>Ver comprobante</a> <small>(solo lo ves vos)</small></dd></div>}
+        {t && <div><dt>Comprobante</dt><dd>{t.comprobante
+          ? <><a className="lnk" href={t.comprobante.url} target="_blank" rel="noopener" data-act="ver-comp" {...(t.comprobante.tipo === 'application/pdf' ? { download: t.comprobante.nombre } : {})}
+            onClick={ev => { if (!reciente()) { ev.preventDefault(); setReingresar(true); } }}>Ver comprobante</a> <small>(solo lo ves vos)</small></>
+          : 'Borrado (quedan el nombre y el monto)'}</dd></div>}
         {p.entregado && <div><dt>Entregado</dt><dd>{fecha(p.entregado)}</dd></div>}
         {e === 'autocancelado' && <div><dt>Se canceló solo</dt><dd>{fecha(vence(p))} · el stock volvió</dd></div>}
         {p.cancelado && <div><dt>Cancelado</dt><dd>{fecha(p.cancelado)} · el stock volvió</dd></div>}
       </dl>
+      {reingresar && <div className="pn-hint pn-pdet-aviso pn-reing" role="status">
+        <p>Por seguridad, para ver o borrar el comprobante volvé a ingresar: pasaron más de 15 minutos desde que entraste. Maqueta: lo que cargaste en esta visita se pierde al volver a ingresar.</p>
+        <button type="button" className="btn btn-full" data-act="reingresar" onClick={() => cerrarSesion('/ingresar', toast)}>Volver a ingresar</button>
+      </div>}
       <div className="pn-foot pn-pdet-acts">
         {e === 'pendiente' && p.pago === 'transferencia' && <button type="button" className="btn btn-full" data-act="transferencia" data-autofocus onClick={() => setTransferir(true)}><Icon n="receipt" />Registrar transferencia</button>}
         {e === 'pendiente' && <button type="button" className={`btn btn-full${p.pago === 'transferencia' ? ' btn-gray' : ''}`} data-act="pagar" data-autofocus={p.pago !== 'transferencia' || undefined} onClick={accion(pagarPedido, `Pedido ${codigo} pagado: la venta entró en Ganancias.`)}><Icon n="check" />Marcar como pagado</button>}
@@ -138,6 +149,11 @@ export function PedidoDetalle({ codigo }: { codigo: string }) {
         {e === 'pendiente' && !confirmar && <button type="button" className="btn btn-gray btn-full" data-act="cancelar" onClick={() => setConfirmar(true)}>Cancelar pedido</button>}
         {e === 'pendiente' && confirmar && <button type="button" className="btn btn-gray btn-full pn-danger" data-act="cancelar-ok" autoFocus onClick={accion(cancelarPedido, `Pedido ${codigo} cancelado: el stock volvió.`)}>Sí, cancelar y devolver el stock</button>}
         {(e === 'pagado' || e === 'retrasado') && <button type="button" className="btn btn-full" data-act="entregar" data-autofocus onClick={accion(entregarPedido, `Pedido ${codigo} entregado.`)}><Icon n="check" />Marcar como entregado</button>}
+        {t?.comprobante && !borrar && <button type="button" className="btn btn-gray btn-full" data-act="borrar-comp" onClick={() => (reciente() ? setBorrar(true) : setReingresar(true))}>Ya lo revisé: borrar comprobante</button>}
+        {t?.comprobante && borrar && <button type="button" className="btn btn-gray btn-full pn-danger" data-act="borrar-comp-ok" autoFocus onClick={() => {
+          if (!reciente()) { setBorrar(false); setReingresar(true); return; }
+          borrarComprobante(codigo); setBorrar(false); toast('Comprobante borrado: quedan el nombre de quien pagó y el monto. Maqueta: no se guardó.');
+        }}>Sí, borrar el comprobante</button>}
       </div>
     </div>
   );

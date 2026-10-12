@@ -17,7 +17,9 @@ export type PedidoItem = { productId: string; qty: number; unit: number };
  * Transferencia registrada por el dueño: nombre de quien pagó y monto (siempre mayor a 0). El comprobante lo ve solo el
  * dueño (en la maqueta queda en memoria durante la visita; en la base se borra a los 90 días). Nunca CBU, alias ni cuenta.
  */
-export type Transferencia = { pagador: string; monto: number; comprobante: { url: string; tipo: TipoComprobante; nombre: string } };
+export type Comprobante = { url: string; tipo: TipoComprobante; nombre: string };
+/** `comprobante: null`: el dueño ya lo revisó y lo borró (quedan el nombre y el monto). */
+export type Transferencia = { pagador: string; monto: number; comprobante: Comprobante | null };
 export type Pedido = {
   codigo: string; creado: string; cliente: string; entrega: BagState['entrega']; pago: PayId; items: PedidoItem[];
   pagado?: string; entregado?: string; cancelado?: string; transferencia?: Transferencia;

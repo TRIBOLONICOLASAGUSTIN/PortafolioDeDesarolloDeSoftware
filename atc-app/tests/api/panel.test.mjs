@@ -6,6 +6,8 @@ import assert from 'node:assert/strict';
 import { createServer, request } from 'node:http';
 import { startServer, LOCAL_ENV } from '../helpers/server.mjs';
 import { ADMIN, adminEnv, forgeSession, login, stableNow, totpCode } from '../helpers/admin.mjs';
+import { crudo, enOrden } from '../helpers/http.mjs';
+import { readFileSync } from 'node:fs';
 
 const ENV = adminEnv();
 let adm, prod, ts, fakeTs;
@@ -224,11 +226,28 @@ test('API-15 · Manipular el navegador (F12) no da acceso: cookies, encabezados 
     assert.equal(r.status, 404, `${p} ${JSON.stringify(headers)} respondió ${r.status}`);
     assert.doesNotMatch(html, PANEL_TEXT, `${p} muestra contenido del panel`);
   }
-  // Sin cookie de sesión: idéntico a cualquier 404 (encabezados y página), también en una navegación del router (rsc).
-  for (const [p, q, extra] of [['/panel', '/zzzzz', {}], ['/panel/inventario/ins-105a', '/zzzzz/aaaaaaaaa/bbbbbbbb', {}], ['/panel', '/zzzzz', { rsc: '1' }]]) {
+  // Sin cookie de sesión, o con una que no tiene la forma de una sesión (inventada): idéntico a cualquier 404 (encabezados
+  // y página), también en una navegación del router (rsc).
+  for (const [p, q, extra] of [['/panel', '/zzzzz', {}], ['/panel/inventario/ins-105a', '/zzzzz/aaaaaaaaa/bbbbbbbb', {}], ['/panel', '/zzzzz', { rsc: '1' }],
+    ['/panel', '/zzzzz', { cookie: 'atc_s=admin' }], ['/panel/pedidos', '/zzzzz/aaaaaaa', { cookie: 'atc_s=v1.123.abc.def; __Host-atc_s=admin' }]]) {
     const [a, b] = await Promise.all([fetch(adm.base + p, { headers: extra }), fetch(adm.base + q, { headers: extra })]);
     assert.deepEqual(encabezados(a, !!extra.rsc), encabezados(b, !!extra.rsc), `encabezados distintos entre ${p} y ${q}`);
     assert.equal(pagina(await a.text(), p), pagina(await b.text(), q), `la página de ${p} se distingue de la de ${q}`);
+  }
+  // Por caminos que se saltean la reescritura: la dirección en %XX (/%70anel), el encabezado x-middleware-prefetch y
+  // /_next/data (Next nombraba la ruta encontrada) con una cookie que tiene la forma de una sesión. Mismo estado, mismos
+  // encabezados en el mismo orden y la misma página (salvo el eco de la dirección)
+  const BID = readFileSync(new URL('../../.next/BUILD_ID', import.meta.url), 'utf8').trim();
+  const forma = { cookie: `atc_s=v1.1999999999.AAAAAAAAAAAAAAAA.${'A'.repeat(43)}` };
+  for (const [p, q, o, rp, rq] of [['/%70anel', '/%7Azzzz', {}], ['/%70anel/pedidos', '/%7Azzzz/aaaaaaa', { headers: forma }], ['/%69ngresar', '/%69zzzzzzz', {}],
+    ['/panel', '/zzzzz', { headers: { 'x-middleware-prefetch': '1', ...forma } }], ['/panel/pedidos', '/zzzzz/aaaaaaa', { headers: { 'x-middleware-prefetch': '1' } }],
+    [`/_next/data/${BID}/panel.json`, `/_next/data/${BID}/zzzzz.json`, { headers: forma }, '/panel', '/zzzzz']]) {
+    const [a, b] = await Promise.all([crudo(adm.base, p, o), crudo(adm.base, q, o)]);
+    assert.equal(a.status, b.status, `${p}: estado`);
+    assert.deepEqual(enOrden(a.crudos), enOrden(b.crudos), `${p}: encabezados o su orden`);
+    assert.ok(!enOrden(a.crudos).some(l => /matched-path: \/panel/.test(l)), `${p}: nombra el panel`);
+    const eco = (h, r) => h.replaceAll(encodeURIComponent(r.slice(1)), r.slice(1)); // ?path=… repite la dirección pedida
+    assert.equal(pagina(eco(a.body, rp ?? p), rp ?? p), pagina(eco(b.body, rq ?? q), rq ?? q), `${p}: la página se distingue`);
   }
 });
 

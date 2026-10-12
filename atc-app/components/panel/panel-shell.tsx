@@ -14,6 +14,7 @@ import { Sheets } from './sheets';
 import { NAV, PanelBar, PanelNav, type NavGrupo } from './panel-nav';
 import { Icon } from '../ui';
 import { bloquearScroll } from '@/lib/scroll-lock';
+import { REINGRESO_MS } from '@/lib/sesion-forma';
 
 /* =========================================================
    Panel del dueño (maqueta): estado compartido entre Resumen, Movimientos e Inventario.
@@ -47,12 +48,16 @@ type Panel = {
   /** Unidades apartadas por pedidos pendientes */
   reservas: Map<string, number>;
   pagarPedido: (codigo: string, hm: string, t?: Transferencia) => void; entregarPedido: (codigo: string, hm: string) => void; cancelarPedido: (codigo: string, hm: string) => void;
+  /** "Ya lo revisé": borra el comprobante de la transferencia de un pedido (quedan el nombre y el monto). */
+  borrarComprobante: (codigo: string) => void;
+  /** ¿Ingresó hace menos de 15 minutos? Ver o borrar un comprobante lo pide (el servidor lo controla igual). */
+  reciente: () => boolean;
 };
 const PanelCtx = createContext<Panel | null>(null);
 const PED_IC: Record<string, string> = { pendiente: 'clock', pagado: 'check-c', retrasado: 'bell', autocancelado: 'refresh' };
 export const usePanel = () => useContext(PanelCtx)!;
 
-export function PanelShell({ ahora, listas: todas, children }: { ahora: Ahora; listas: Lista[]; children: ReactNode }) {
+export function PanelShell({ ahora, listas: todas, ingresoHaceMs, children }: { ahora: Ahora; listas: Lista[]; ingresoHaceMs: number; children: ReactNode }) {
   const { ymd, hm } = ahora;
   const ahoraS = stamp(ymd, hm);
   // Pedidos de ejemplo (relativos a "ahora") y lo que el dueño hizo con ellos en esta visita
@@ -132,6 +137,16 @@ export function PanelShell({ ahora, listas: todas, children }: { ahora: Ahora; l
     setCambios(c => ({ ...c, [codigo]: { ...c[codigo], cancelado: stamp(ymd, hmP) } }));
     for (const it of p.items) moverStock({ itemId: it.productId, ymd, hm: hmP, tipo: 'libera', qty: it.qty, ref: codigo, note: 'Pedido cancelado' });
   }, [pedidos, ymd, ahoraS, reglas, moverStock]);
+  // El comprobante vive solo en memoria (maqueta): al borrarlo se libera.
+  const borrarComprobante = useCallback((codigo: string) => {
+    const t = pedidos.find(x => x.codigo === codigo)?.transferencia;
+    if (!t?.comprobante) return;
+    URL.revokeObjectURL(t.comprobante.url);
+    setCambios(c => ({ ...c, [codigo]: { ...c[codigo], transferencia: { ...t, comprobante: null } } }));
+  }, [pedidos]);
+  // Tiempo desde el ingreso: lo que dijo el servidor al armar la página más lo que pasó desde entonces en esta pestaña.
+  const [montado] = useState(() => performance.now());
+  const reciente = useCallback(() => ingresoHaceMs + (performance.now() - montado) <= REINGRESO_MS, [ingresoHaceMs, montado]);
   // Menú con los pedidos de cada estado
   const grupos = useMemo<NavGrupo[]>(() => {
     const n = contar(pedidos, ahoraS, reglas);
@@ -211,9 +226,9 @@ export function PanelShell({ ahora, listas: todas, children }: { ahora: Ahora; l
   }, [path, search, closeSheet]);
 
   const value = useMemo<Panel>(() => ({ ...data, sheet, openSheet, closeSheet, extra, agregar, nuevoId, toast, listas, inv, moverStock, ajustar, crear,
-    pedidos, ahoraS, reglas, setRetraso, estadoPedido, reservas, pagarPedido, entregarPedido, cancelarPedido }),
+    pedidos, ahoraS, reglas, setRetraso, estadoPedido, reservas, pagarPedido, entregarPedido, cancelarPedido, borrarComprobante, reciente }),
     [data, sheet, openSheet, closeSheet, extra, agregar, nuevoId, toast, listas, inv, moverStock, ajustar, crear,
-      pedidos, ahoraS, reglas, estadoPedido, reservas, pagarPedido, entregarPedido, cancelarPedido]);
+      pedidos, ahoraS, reglas, estadoPedido, reservas, pagarPedido, entregarPedido, cancelarPedido, borrarComprobante, reciente]);
   return (
     <PanelCtx.Provider value={value}>
       <div className={`pn${cajon ? ' nav-open' : ''}`} inert={!!sheet}>

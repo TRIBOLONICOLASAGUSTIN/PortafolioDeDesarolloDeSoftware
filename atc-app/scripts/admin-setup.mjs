@@ -5,6 +5,8 @@
 //        npm run admin:setup -- --prod
 // genera otra contraseña, otra cuenta en la app del celular y otro secreto, y solo los muestra en la pantalla para
 // copiarlos en el entorno del hosting (no escribe .env.local).
+// También genera ATC_COMPROBANTES_KEY (la clave que cifra los comprobantes de transferencia), pero SOLO si todavía no
+// existe: cambiarla deja ilegibles los comprobantes guardados (los pagos quedan). Nunca se reemplaza sola.
 import { createHmac, randomBytes, scrypt } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -36,10 +38,36 @@ const totp = (key, step) => { const m = Buffer.alloc(8); m.writeBigUInt64BE(BigI
 
 const PROD = process.argv.includes('--prod');
 const current = existsSync(ENV) ? readFileSync(ENV, 'utf8') : '';
+const CLAVE_COMP = 'ATC_COMPROBANTES_KEY';
+// Next lee .env.local con dotenv, que acepta comillas, comentarios, `export`, espacios y BOM. Para saber si la clave ya
+// está se usa el mismo parser (el de dotenv 16 que trae @next/env, copiado), y su línea se reconoce por el nombre.
+const LINEA = /(?:^|^)\s*(?:export\s+)?([\w.-]+)(?:\s*=\s*?|:\s+?)(\s*'(?:\\'|[^'])*'|\s*"(?:\\"|[^"])*"|\s*`(?:\\`|[^`])*`|[^#\r\n]+)?\s*(?:#.*)?(?:$|$)/gm;
+const valorEnv = (texto, nombre) => {
+  let v;
+  for (const m of texto.replace(/\r\n?/gm, '\n').matchAll(LINEA)) if (m[1] === nombre) v = (m[2] || '').trim().replace(/^(['"`])([\s\S]*)\1$/gm, '$2');
+  return v;
+};
+const esLineaClave = l => (/^\uFEFF?\s*(?:export\s+)?([\w.-]+)\s*[=:]/.exec(l) ?? [])[1] === CLAVE_COMP;
+const actual = valorEnv(current, CLAVE_COMP);
+const tieneClave = /^[A-Za-z0-9_-]{43}$/.test(actual ?? '');
+// Un valor que no se reconoce no se pisa nunca: podría ser la clave real escrita de otra forma.
+if (!PROD && actual && !tieneClave) {
+  console.error(`${CLAVE_COMP} en .env.local no tiene la forma esperada (32 bytes en base64url, 43 caracteres). No se cambió nada:`);
+  console.error('revisala a mano (si es la clave con la que se guardaron comprobantes, no la borres) y volvé a correr el comando.');
+  rl.close(); process.exit(1);
+}
+const lineasClave = () => ['# Clave que cifra los comprobantes de transferencia. NO cambiarla: los ya guardados dejarían de abrirse.', `${CLAVE_COMP}=${randomBytes(32).toString('base64url')}`];
 if (PROD) console.log('Claves para PRODUCCIÓN: usá otra contraseña que la de la compu. Nada se guarda en este equipo.\n');
 if (!PROD && /^ATC_ADMIN_PASS_HASH=/m.test(current)) {
   const r = (await ask('Ya hay un superadmin en .env.local. ¿Reemplazarlo? Se cierran sus sesiones abiertas (s/N): ')).trim().toLowerCase();
-  if (r !== 's' && r !== 'si' && r !== 'sí') { console.log('Sin cambios.'); rl.close(); process.exit(0); }
+  if (r !== 's' && r !== 'si' && r !== 'sí') {
+    // Aunque no se cambie el superadmin, si falta la clave de los comprobantes se agrega (nunca se reemplaza).
+    if (!tieneClave) {
+      writeFileSync(ENV, [...current.split(/\r?\n/).filter(l => l.trim() && !esLineaClave(l)), ...lineasClave(), ''].join('\n'), { mode: 0o600 });
+      console.log(`Superadmin sin cambios. Se agregó ${CLAVE_COMP} (cifra los comprobantes) en ${ENV}.`);
+    } else console.log('Sin cambios.');
+    rl.close(); process.exit(0);
+  }
 }
 const user = (await ask('Usuario del superadmin: ')).trim();
 if (!/^[\w.@+-]{3,80}$/.test(user)) { console.error('El usuario tiene que tener entre 3 y 80 caracteres (letras, números, . _ - @ +).'); rl.close(); process.exit(1); }
@@ -62,10 +90,14 @@ const issuer = encodeURIComponent(PROD ? 'AT Computación (prod)' : 'AT Computac
 if (PROD) {
   console.log('\nCopiá estas 4 variables en la configuración de entorno del hosting (nunca en el repo ni en un chat):\n');
   for (const k of KEYS) console.log(`${k}=${values[k]}`);
+  console.log(`\nY, SOLO si el hosting todavía no tiene ${CLAVE_COMP} (cambiarla deja ilegibles los comprobantes de los últimos 90 días),`);
+  console.log('esta (guardala también en tu gestor de contraseñas; nunca en Supabase):\n');
+  console.log(lineasClave()[1]);
 } else {
-  const kept = current.split(/\r?\n/).filter(l => l.trim() && !KEYS.some(k => l.startsWith(`${k}=`)));
-  writeFileSync(ENV, [...kept, '# Superadmin del panel (generado con npm run admin:setup). NUNCA subir este archivo.', ...KEYS.map(k => `${k}=${values[k]}`), ''].join('\n'), { mode: 0o600 });
-  console.log(`\nListo: se guardó en ${ENV}`);
+  // La clave de los comprobantes se conserva tal cual (no está en KEYS); si falta, se agrega.
+  const kept = current.split(/\r?\n/).filter(l => l.trim() && !KEYS.some(k => l.startsWith(`${k}=`)) && (tieneClave || !esLineaClave(l)));
+  writeFileSync(ENV, [...kept, ...(tieneClave ? [] : lineasClave()), '# Superadmin del panel (generado con npm run admin:setup). NUNCA subir este archivo.', ...KEYS.map(k => `${k}=${values[k]}`), ''].join('\n'), { mode: 0o600 });
+  console.log(`\nListo: se guardó en ${ENV}${tieneClave ? '' : ` (con ${CLAVE_COMP}, que cifra los comprobantes)`}`);
 }
 console.log('\nAhora agregá la cuenta en tu app de autenticación (Google Authenticator, Microsoft Authenticator…):');
 console.log('  "Agregar código" → "Ingresar una clave de configuración" → tipo "Basado en tiempo".');

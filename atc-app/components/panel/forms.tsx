@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '../ui';
 import { Chips } from './chips';
@@ -8,8 +8,8 @@ import { Field, aria } from './field';
 import { usePanel } from './panel-shell';
 import { PAYS, type PayId } from '@/lib/whatsapp';
 import { CATS_NUEVO, cobroSchema, editarSchema, errores, gastoSchema, nuevoSchema, pagoSchema, repoSchema, sinNegativo, toInt, ventaSchema } from '@/lib/panel/schemas';
-import { COMPROBANTE_MAX, tipoComprobante } from '@/lib/comprobante';
-import type { Pedido, Transferencia } from '@/lib/panel/pedidos';
+import { COMPROBANTE_MAX, limpiarComprobante, tipoComprobante } from '@/lib/comprobante';
+import type { Comprobante, Pedido } from '@/lib/panel/pedidos';
 import { UMBRAL } from '@/lib/data/inventario';
 import { GRUPOS } from './inventario';
 import { GASTO_CATS, type GastoCat } from '@/lib/panel/types';
@@ -425,20 +425,30 @@ export function TransferenciaForm({ pedido, total, onVolver }: { pedido: Pedido;
   const { hoy, pagarPedido, toast, closeSheet } = usePanel();
   const [pagador, setPagador] = useState('');
   const [monto, setMonto] = useState(String(total));
-  const [comp, setComp] = useState<Transferencia['comprobante'] | null>(null);
+  const [comp, setComp] = useState<(Comprobante & { quitado: boolean }) | null>(null);
   const { err, setErr, limpiar, fallar, alerta } = useErr();
-  useEffect(() => () => { if (comp) URL.revokeObjectURL(comp.url); }, [comp]);
+  const archivo = useRef<HTMLInputElement>(null);
+  // La vista previa se libera al cambiar de archivo o al salir sin registrar. Registrada, la URL pasa al pedido (el enlace
+  // "Ver comprobante" la usa) y la libera el panel cuando se borra el comprobante.
+  const registrado = useRef(false);
+  useEffect(() => () => { if (comp && !registrado.current) URL.revokeObjectURL(comp.url); }, [comp]);
   const m = toInt(monto);
 
+  // El archivo se valida por sus primeros bytes y se le quitan los datos ocultos (ubicación, modelo del celular,
+  // miniatura) antes de mostrarlo: lo mismo que hace el servidor al guardarlo (lib/comprobante.ts).
   const elegir = async (e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
+    e.target.value = '';
     setComp(null);
     if (!f) return;
-    const tipo = tipoComprobante(new Uint8Array(await f.slice(0, 8).arrayBuffer()));
-    const error = f.size > COMPROBANTE_MAX ? 'Hasta 2 MB: sacale una captura o exportalo más liviano' : !tipo ? 'Tiene que ser una foto (JPG o PNG) o un PDF' : '';
+    const bytes = f.size > COMPROBANTE_MAX ? null : new Uint8Array(await f.arrayBuffer());
+    const limpio = bytes && limpiarComprobante(bytes);
+    const error = !bytes || (limpio && limpio.datos.length > COMPROBANTE_MAX) ? 'Hasta 2 MB: sacale una captura o exportalo más liviano'
+      : !tipoComprobante(bytes) ? 'Tiene que ser una foto (JPG o PNG) o un PDF'
+      : !limpio ? 'No se pudo leer el archivo: probá con una captura de pantalla' : '';
     setErr(x => { const n = { ...x }; delete n.comp; return error ? { ...n, comp: error } : n; });
-    if (error || !tipo) { e.target.value = ''; return; }
-    setComp({ url: URL.createObjectURL(f), tipo, nombre: f.name });
+    if (error || !limpio) return;
+    setComp({ url: URL.createObjectURL(new Blob([limpio.datos], { type: limpio.tipo })), tipo: limpio.tipo, nombre: f.name, quitado: limpio.quitado });
   };
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -448,7 +458,8 @@ export function TransferenciaForm({ pedido, total, onVolver }: { pedido: Pedido;
     if (!r.success || Object.keys(ex).length) { fallar(ex, [['pagador', 'f-tpag'], ['monto', 'f-tmonto'], ['comp', 'f-tcomp']]); return; }
     const now = ahoraReal(hoy, toast);
     if (!now || !comp) return;
-    pagarPedido(pedido.codigo, now.hm, { pagador: r.data.pagador, monto: r.data.monto, comprobante: comp });
+    registrado.current = true;
+    pagarPedido(pedido.codigo, now.hm, { pagador: r.data.pagador, monto: r.data.monto, comprobante: { url: comp.url, tipo: comp.tipo, nombre: comp.nombre } });
     toast(`Transferencia de ${r.data.pagador} registrada: el pedido ${pedido.codigo} quedó pagado y la venta entró en Ganancias. Maqueta: no se guardó.`);
     closeSheet();
   };
@@ -461,12 +472,21 @@ export function TransferenciaForm({ pedido, total, onVolver }: { pedido: Pedido;
       </Field>
       <Plata id="f-tmonto" label="Monto transferido" value={monto} onChange={limpiar('monto', setMonto)} error={err.monto}
         hint={dif ? `Es ${fmt(Math.abs(dif))} ${dif > 0 ? 'más' : 'menos'} que el total del pedido (${fmt(total)}).` : `El total del pedido es ${fmt(total)}.`} />
-      <Field id="f-tcomp" label="Comprobante" error={err.comp} hint="Foto (JPG o PNG) o PDF, hasta 2 MB. Lo ves solo vos y se borra a los 90 días.">
-        <input className="pn-in pn-file" type="file" accept="image/jpeg,image/png,application/pdf" onChange={elegir} {...aria('f-tcomp', err.comp, true)} />
+      {/* Botón propio (el del navegador dice "Choose File" según el idioma de la compu). El campo nativo queda oculto. */}
+      <Field id="f-tcomp" label="Comprobante" error={err.comp} hint="Foto (JPG o PNG) o PDF, hasta 2 MB. Lo ves solo vos; se borra a los 90 días, o antes si lo borrás.">
+        <div className="pn-file">
+          <button type="button" className="btn btn-gray pn-file-btn" id="f-tcomp" aria-label="Comprobante: elegir archivo" onClick={() => archivo.current?.click()}
+            aria-describedby={['f-tcomp-n', 'f-tcomp-h', err.comp ? 'f-tcomp-e' : ''].filter(Boolean).join(' ')}><Icon n="receipt" />Elegir archivo</button>
+          <span className="pn-file-n" id="f-tcomp-n">{comp ? comp.nombre : 'Ningún archivo elegido'}</span>
+          <input ref={archivo} id="f-tcomp-in" className="sr" type="file" accept="image/jpeg,image/png,application/pdf" tabIndex={-1} aria-hidden="true" onChange={elegir} />
+        </div>
       </Field>
       {comp && (comp.tipo === 'application/pdf'
-        ? <p className="pn-hint pn-tprev-pdf"><Icon n="receipt" cls="i sm" /> {comp.nombre}</p>
-        : <img className="pn-tprev" src={comp.url} alt="Vista previa del comprobante" />)}
+        ? <p className="pn-hint pn-tprev-pdf" role="status"><Icon n="receipt" cls="i sm" /> {comp.nombre}: los PDF se guardan como vienen (pueden traer datos internos del programa del banco).</p>
+        : <>
+          <img className="pn-tprev" src={comp.url} alt="Vista previa del comprobante" />
+          {comp.quitado && <p className="pn-hint pn-tq" role="status">Se le quitaron a la foto sus datos ocultos (ubicación, modelo del celular y miniatura).</p>}
+        </>)}
       <div className="pn-foot pn-pdet-acts">
         <button className="btn btn-full" type="submit" data-act="registrar-transferencia"><Icon n="check" />Registrar y marcar como pagado</button>
         <button className="btn btn-gray btn-full" type="button" onClick={onVolver}>Volver al pedido</button>

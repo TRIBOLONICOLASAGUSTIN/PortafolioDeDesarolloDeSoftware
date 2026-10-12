@@ -159,11 +159,11 @@ test('FN-1 · Toda función de public y private fija su search_path (y las SECUR
      order by 1`);
   assert.deepEqual(rows.map(r => r.f), [
     'private.anonymize_closed_orders', 'private.autocancelar_pedidos', 'private.gen_pedido_code', 'private.limpiar_comprobantes', 'private.limpiar_pedidos', 'private.purge_attempts',
-    'public.crear_pedido', 'public.gen_public_code', 'public.is_owner', 'public.normalize_code', 'public.registrar_pago',
+    'public.borrar_comprobante', 'public.crear_pedido', 'public.gen_public_code', 'public.is_owner', 'public.normalize_code', 'public.registrar_pago',
     'public.tg_event_updates_order', 'public.tg_sales_order_status', 'public.tg_set_updated_at', 'public.track_order', 'public.ver_comprobante',
   ]);
   for (const r of rows) assert.match(r.cfg, /search_path=pg_catalog, public, pg_temp/, `${r.f} sin search_path fijo`);
-  assert.deepEqual(rows.filter(r => r.definer).map(r => r.f), ['public.crear_pedido', 'public.is_owner', 'public.registrar_pago', 'public.tg_sales_order_status', 'public.track_order', 'public.ver_comprobante']);
+  assert.deepEqual(rows.filter(r => r.definer).map(r => r.f), ['public.borrar_comprobante', 'public.crear_pedido', 'public.is_owner', 'public.registrar_pago', 'public.tg_sales_order_status', 'public.track_order', 'public.ver_comprobante']);
 });
 
 test('FN-2 · track_order solo la ejecuta atc_tracker (ni PUBLIC, ni anon, ni authenticated)', async () => {

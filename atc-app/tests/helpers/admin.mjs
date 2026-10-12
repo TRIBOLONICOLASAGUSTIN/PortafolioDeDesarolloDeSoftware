@@ -46,5 +46,8 @@ export function forgeSession(env, exp, mode = 'local') {
   return `v1.${exp}.${n}.${sig}`;
 }
 
+/** Cookie de una sesión que empezó hace `minutos` (vence a las 8 h de empezar): para probar el "volvé a ingresar". */
+export const sesionHace = (env, minutos) => `atc_s=${forgeSession(env, Math.floor(Date.now() / 1000) + 8 * 3600 - minutos * 60)}`;
+
 /** POST /api/ingresar. */
 export const login = (base, body, headers = {}) => postRuta(base, '/api/ingresar', body, { headers });

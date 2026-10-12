@@ -16,7 +16,14 @@ function sesionDelPedido(request: NextRequest) {
   return cfg.ok && sesionValida(cfg, request.cookies.get(cookieSpec(cfg).name)?.value);
 }
 
+// Una dirección con letras, números o "/" escritos como %XX (/%70anel, /api%2Fpanel%2Fpagos) se saltea las reescrituras
+// de next.config.ts (comparan la dirección tal como llega), pero Next la resuelve igual: su 404 delataba qué rutas
+// existen por el orden de los encabezados. El sitio nunca genera esas direcciones: a todas se les responde lo mismo, sin
+// mirar la ruta, un 404 vacío (seguridad.md §5, fila 17; API-15 y API-34).
+const CODIFICADA = /%(?:3[0-9]|4[1-9a-f]|5[0-9af]|6[1-9a-f]|7[0-9ae]|2[def])/i;
+
 export function proxy(request: NextRequest) {
+  if (CODIFICADA.test(new URL(request.url).pathname)) return new NextResponse(null, { status: 404 });
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
   const dev = process.env.NODE_ENV === 'development';
   const turnstile = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
@@ -52,7 +59,8 @@ export function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     {
-      source: '/((?!api|_next/static|_next/image|favicon.ico).*)',
+      // `api/` con barra: una dirección como /api%2Fpanel también pasa por acá (y recibe el 404 de arriba).
+      source: '/((?!api/|_next/static|_next/image|favicon.ico).*)',
       missing: [
         { type: 'header', key: 'next-router-prefetch' },
         { type: 'header', key: 'purpose', value: 'prefetch' },

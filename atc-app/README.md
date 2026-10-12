@@ -117,7 +117,8 @@ npm test             # todo: tipos, build, base, API, e2e y check:docs
 |---|---|---|
 | `ATC_TRACKER_DATABASE_URL` | Conexión como `atc_tracker`, que solo puede ejecutar `track_order` | Obligatoria |
 | `ATC_TIENDA_DATABASE_URL` | Conexión como `atc_tienda`, que solo puede ejecutar `crear_pedido` (la bolsa registra el pedido) | Para registrar pedidos (sin ella, la bolsa sigue por WhatsApp sin código) |
-| `ATC_PANEL_DATABASE_URL` | Conexión como `atc_panel`, que solo puede registrar pagos y ver comprobantes (siempre después de verificar la sesión del dueño) | Para registrar transferencias |
+| `ATC_PANEL_DATABASE_URL` | Conexión como `atc_panel`, que solo puede registrar pagos y ver o borrar comprobantes (siempre después de verificar la sesión del dueño) | Para registrar transferencias |
+| `ATC_COMPROBANTES_KEY` | Clave que cifra los comprobantes en la base (32 bytes en base64url; la genera `admin:setup` y nunca la cambia sola). Guardala también en tu gestor de contraseñas: si se pierde, los comprobantes guardados no se abren | Para registrar transferencias |
 | `ATC_DB_CA` | Certificado (PEM) de la CA de Supabase: la base va por TLS verificado | Obligatoria |
 | `TURNSTILE_SECRET_KEY` / `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare Turnstile | Obligatoria |
 | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Límite por IP compartido | Obligatoria |

@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import { SESION_FORMA } from './lib/sesion-forma';
 
 // Encabezados de seguridad para todas las respuestas (docs/atc/seguridad.md §5).
 // La CSP con nonce la arma proxy.ts en cada pedido.
@@ -27,14 +28,21 @@ const nextConfig: NextConfig = {
   // y con acceso desde la red local, para probar en el celular por Wi-Fi (http://192.168.x.x:3000).
   devIndicators: false,
   allowedDevOrigins: ['192.168.*.*'],
-  // Sin cookie de sesión, /panel se atiende como una dirección inexistente: el 404 es idéntico al de cualquier otra
-  // (encabezados y armado). Con una cookie (válida o no) decide el panel, que controla la firma en el servidor.
+  // Sin cookie de sesión (o con una que no tiene la forma de una sesión: lib/sesion-forma.ts), /panel se atiende como una
+  // dirección inexistente: el 404 es idéntico al de cualquier otra (encabezados y armado). Con una cookie con esa forma
+  // decide el panel, que controla la firma en el servidor.
+  // /api/panel/… no necesita reescritura: sus rutas y app/api/[...resto] responden el mismo 404 vacío a cualquier método
+  // sin sesión (lib/server/no-existe.ts, API-34).
   async rewrites() {
-    const missing = [{ type: 'cookie' as const, key: 'atc_s' }, { type: 'cookie' as const, key: '__Host-atc_s' }];
+    const missing = [{ type: 'cookie' as const, key: 'atc_s', value: SESION_FORMA }, { type: 'cookie' as const, key: '__Host-atc_s', value: SESION_FORMA }];
     // El destino usa :path* (si no, Next agrega los tramos como ?path=… y el 404 se distinguiría).
-    // Lo mismo para las rutas del panel (/api/panel/…: pagos y comprobantes).
-    return { beforeFiles: [{ source: '/panel', missing, destination: '/_no-existe' }, { source: '/panel/:path*', missing, destination: '/_no-existe/:path*' },
-      { source: '/api/panel/:path*', missing, destination: '/_no-existe/:path*' }], afterFiles: [], fallback: [] };
+    // Dos caminos del enrutador de páginas (este sitio no los usa) en los que Next nombra la ruta encontrada antes de
+    // correrla: el encabezado `x-middleware-prefetch` (`x-matched-path`) y /_next/data/… (`x-nextjs-matched-path`; Next
+    // marca esos pedidos con `x-nextjs-data`). Se atienden como una dirección inexistente: no delatan /api/panel ni /panel.
+    const internos = ['x-middleware-prefetch', 'x-nextjs-data'].map(key => ({ source: '/:path((?!_next/static|_next/image).*)', has: [{ type: 'header' as const, key }], destination: '/_no-existe' }));
+    return { beforeFiles: [...internos,
+      { source: '/panel', missing, destination: '/_no-existe' }, { source: '/panel/:path*', missing, destination: '/_no-existe/:path*' }],
+      afterFiles: [], fallback: [] };
   },
   async headers() {
     return [

@@ -4,6 +4,7 @@ import { promisify } from 'node:util';
 import { cookies } from 'next/headers';
 import { base32 } from './totp';
 import { localPermitido } from './config';
+import { REINGRESO_MS, SESION_FORMA } from '../sesion-forma';
 
 /* =========================================================
    Superadmin único del panel (docs/atc/seguridad.md §3 y §5, fila 17).
@@ -97,19 +98,29 @@ export function nuevaSesion(cfg: Extract<AdminConfig, { ok: true }>, now = Date.
   return `v1.${exp}.${n}.${firma(cfg, exp, n)}`;
 }
 
+const SESION_RE = new RegExp(`^${SESION_FORMA}$`);
 export function sesionValida(cfg: Extract<AdminConfig, { ok: true }>, value: string | undefined, now = Date.now()) {
-  const m = /^v1\.(\d{10})\.([A-Za-z0-9_-]{16})\.([A-Za-z0-9_-]{43})$/.exec(value ?? '');
-  if (!m) return false;
-  const exp = Number(m[1]);
+  if (!value || !SESION_RE.test(value)) return false;
+  const [, e, n, s] = value.split('.');
+  const exp = Number(e);
   if (exp <= Math.floor(now / 1000) || exp > Math.floor(now / 1000) + SESSION_HOURS * 3600 + 60) return false;
-  const want = Buffer.from(firma(cfg, exp, m[2])), got = Buffer.from(m[3]);
+  const want = Buffer.from(firma(cfg, exp, n)), got = Buffer.from(s);
   return want.length === got.length && timingSafeEqual(want, got);
 }
 
-/** ¿El pedido viene del superadmin con una sesión válida? Se usa en cada página y acción del panel. */
-export async function esSuperadmin() {
+/** La sesión válida del superadmin y cuándo empezó (vence a las 8 h), o null. Se usa en cada página y acción del panel. */
+export async function sesionActual(): Promise<{ inicioMs: number } | null> {
   const cfg = adminConfig();
-  if (!cfg.ok) return false;
-  const jar = await cookies();
-  return sesionValida(cfg, jar.get(cookieSpec(cfg).name)?.value);
+  if (!cfg.ok) return null;
+  const value = (await cookies()).get(cookieSpec(cfg).name)?.value;
+  if (!sesionValida(cfg, value)) return null;
+  return { inicioMs: (Number(value!.split('.')[1]) - SESSION_HOURS * 3600) * 1000 };
 }
+
+/** ¿El pedido viene del superadmin con una sesión válida? */
+export async function esSuperadmin() {
+  return (await sesionActual()) !== null;
+}
+
+/** ¿Ingresó hace menos de 15 minutos? Lo pide ver o borrar un comprobante (seguridad.md §5, fila 25). */
+export const reciente = (s: { inicioMs: number }, now = Date.now()) => now - s.inicioMs <= REINGRESO_MS;

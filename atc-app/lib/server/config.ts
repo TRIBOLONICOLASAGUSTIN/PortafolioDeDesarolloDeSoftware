@@ -58,8 +58,20 @@ function configDe(urlVar: string): TrackingConfig {
 export const trackingConfig = () => configDe('ATC_TRACKER_DATABASE_URL');
 /** Pedidos de la bolsa (POST /api/pedidos): misma exigencia, con la conexión de atc_tienda. */
 export const tiendaConfig = () => configDe('ATC_TIENDA_DATABASE_URL');
-/** Pagos del panel (solo con la sesión del superadmin): misma exigencia, con la conexión de atc_panel. */
-export const panelConfig = () => configDe('ATC_PANEL_DATABASE_URL');
+/** Pagos del panel (solo con la sesión del superadmin): misma exigencia, con la conexión de atc_panel, más la clave que
+ *  cifra los comprobantes (ATC_COMPROBANTES_KEY: 32 bytes en base64url, la genera `npm run admin:setup`). */
+export type PanelConfig =
+  | { ok: true; mode: 'demo' }
+  | { ok: true; mode: 'local' | 'prod'; dbUrl: string; clave: Buffer }
+  | { ok: false; missing: string[] };
+export function panelConfig(): PanelConfig {
+  const c = configDe('ATC_PANEL_DATABASE_URL');
+  if (c.ok && c.mode === 'demo') return c;
+  const k = process.env.ATC_COMPROBANTES_KEY ?? '';
+  const falta = /^[A-Za-z0-9_-]{43}$/.test(k) ? [] : [k ? 'ATC_COMPROBANTES_KEY (32 bytes en base64url: generala con npm run admin:setup)' : 'ATC_COMPROBANTES_KEY'];
+  if (!c.ok) return { ok: false, missing: [...c.missing, ...falta] };
+  return falta.length ? { ok: false, missing: falta } : { ...c, clave: Buffer.from(k, 'base64url') };
+}
 
 /**
  * Red que se usa para limitar: la IPv4 tal cual; en IPv6, el /64 (una conexión hogareña o un servidor recibe un /64
