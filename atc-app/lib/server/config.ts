@@ -1,4 +1,5 @@
 import 'server-only';
+import { PRIVADA_RE } from '@/lib/cifrado-comprobante';
 
 // Modo de la ruta /api/seguimiento (docs/atc/seguridad.md §3 y §8):
 // - demo:  fuera de producción y sin base → órdenes de ejemplo. Nunca en producción.
@@ -58,20 +59,26 @@ function configDe(urlVar: string): TrackingConfig {
 export const trackingConfig = () => configDe('ATC_TRACKER_DATABASE_URL');
 /** Pedidos de la bolsa (POST /api/pedidos): misma exigencia, con la conexión de atc_tienda. */
 export const tiendaConfig = () => configDe('ATC_TIENDA_DATABASE_URL');
-/** Pagos del panel (solo con la sesión del superadmin): misma exigencia, con la conexión de atc_panel, más la clave que
- *  cifra los comprobantes (ATC_COMPROBANTES_KEY: 32 bytes en base64url, la genera `npm run admin:setup`). */
+/** Pagos del panel (solo con la sesión del superadmin): misma exigencia, con la conexión de atc_panel, más la llave
+ *  PÚBLICA del dueño para cifrar los comprobantes (ATC_COMPROBANTES_PUBLICA, la genera `npm run admin:setup`). El servidor
+ *  nunca tiene la llave que los abre: esa la desbloquea el dueño en su navegador con su frase (lib/cifrado-comprobante.ts). */
 export type PanelConfig =
   | { ok: true; mode: 'demo' }
-  | { ok: true; mode: 'local' | 'prod'; dbUrl: string; clave: Buffer }
+  | { ok: true; mode: 'local' | 'prod'; dbUrl: string; publica: string }
   | { ok: false; missing: string[] };
 export function panelConfig(): PanelConfig {
   const c = configDe('ATC_PANEL_DATABASE_URL');
   if (c.ok && c.mode === 'demo') return c;
-  const k = process.env.ATC_COMPROBANTES_KEY ?? '';
-  const falta = /^[A-Za-z0-9_-]{43}$/.test(k) ? [] : [k ? 'ATC_COMPROBANTES_KEY (32 bytes en base64url: generala con npm run admin:setup)' : 'ATC_COMPROBANTES_KEY'];
+  const k = llavePublica();
+  const falta = k ? [] : [process.env.ATC_COMPROBANTES_PUBLICA ? 'ATC_COMPROBANTES_PUBLICA (inválida: generala con npm run admin:setup)' : 'ATC_COMPROBANTES_PUBLICA'];
   if (!c.ok) return { ok: false, missing: [...c.missing, ...falta] };
-  return falta.length ? { ok: false, missing: falta } : { ...c, clave: Buffer.from(k, 'base64url') };
+  return k ? { ...c, publica: k } : { ok: false, missing: falta };
 }
+/** Llave pública del dueño (SPKI P-256 en base64url: 122 caracteres) y su llave privada bloqueada con la frase. El panel
+ *  las recibe del servidor solo con la sesión del dueño; la privada no sirve sin la frase. */
+export const llavePublica = () => (/^[A-Za-z0-9_-]{122}$/.test(process.env.ATC_COMPROBANTES_PUBLICA ?? '') ? process.env.ATC_COMPROBANTES_PUBLICA! : null);
+/** La llave privada BLOQUEADA con la frase (sin abrir: el servidor no tiene la frase); null si no tiene la forma esperada. */
+export const llavePrivadaBloqueada = () => (PRIVADA_RE.test(process.env.ATC_COMPROBANTES_PRIVADA ?? '') ? process.env.ATC_COMPROBANTES_PRIVADA! : null);
 
 /**
  * Red que se usa para limitar: la IPv4 tal cual; en IPv6, el /64 (una conexión hogareña o un servidor recibe un /64

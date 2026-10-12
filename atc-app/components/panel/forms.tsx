@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '../ui';
 import { Chips } from './chips';
@@ -8,8 +8,9 @@ import { Field, aria } from './field';
 import { usePanel } from './panel-shell';
 import { PAYS, type PayId } from '@/lib/whatsapp';
 import { CATS_NUEVO, cobroSchema, editarSchema, errores, gastoSchema, nuevoSchema, pagoSchema, repoSchema, sinNegativo, toInt, ventaSchema } from '@/lib/panel/schemas';
-import { COMPROBANTE_MAX, limpiarComprobante, tipoComprobante } from '@/lib/comprobante';
-import type { Comprobante, Pedido } from '@/lib/panel/pedidos';
+import { COMPROBANTE_MAX, limpiarComprobante, tipoComprobante, type TipoComprobante } from '@/lib/comprobante';
+import { redibujarFoto } from '@/lib/foto';
+import type { Pedido } from '@/lib/panel/pedidos';
 import { UMBRAL } from '@/lib/data/inventario';
 import { GRUPOS } from './inventario';
 import { GASTO_CATS, type GastoCat } from '@/lib/panel/types';
@@ -421,51 +422,72 @@ export function NuevoForm() {
 /* Transferencia de un pedido: el dueño adjunta el comprobante que el cliente le mandó por WhatsApp. Se guardan el nombre
    de quien pagó y el monto (siempre mayor a 0); el comprobante lo ve solo el dueño. Nunca CBU, alias ni número de cuenta.
    Maqueta: el archivo queda en memoria durante la visita (en la etapa 2 va a POST /api/panel/pagos, que ya está lista). */
+const FOTO_MAX = 20 * 1024 * 1024; // una foto del celular entra entera: se redibuja y se achica a menos de 2 MB
+const peso = (n: number) => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1024 / 1024).toFixed(1).replace('.', ',')} MB`);
+type Elegido = { vista: string; datos: Uint8Array<ArrayBuffer>; tipo: TipoComprobante; nombre: string; nota: string };
+
 export function TransferenciaForm({ pedido, total, onVolver }: { pedido: Pedido; total: number; onVolver: () => void }) {
-  const { hoy, pagarPedido, toast, closeSheet } = usePanel();
+  const { hoy, pagarPedido, toast, closeSheet, llave } = usePanel();
   const [pagador, setPagador] = useState('');
   const [monto, setMonto] = useState(String(total));
-  const [comp, setComp] = useState<(Comprobante & { quitado: boolean }) | null>(null);
+  const [comp, setComp] = useState<Elegido | null>(null);
+  const [ocupado, setOcupado] = useState<'' | 'foto' | 'cifrando'>('');
   const { err, setErr, limpiar, fallar, alerta } = useErr();
   const archivo = useRef<HTMLInputElement>(null);
-  // La vista previa se libera al cambiar de archivo o al salir sin registrar. Registrada, la URL pasa al pedido (el enlace
-  // "Ver comprobante" la usa) y la libera el panel cuando se borra el comprobante.
-  const registrado = useRef(false);
-  useEffect(() => () => { if (comp && !registrado.current) URL.revokeObjectURL(comp.url); }, [comp]);
+  // La vista previa (la foto ya limpia) vive solo mientras el formulario está abierto.
+  useEffect(() => () => { if (comp) URL.revokeObjectURL(comp.vista); }, [comp]);
   const m = toInt(monto);
+  const errorComp = (msg: string) => setErr(x => { const n = { ...x }; delete n.comp; return msg ? { ...n, comp: msg } : n; });
 
-  // El archivo se valida por sus primeros bytes y se le quitan los datos ocultos (ubicación, modelo del celular,
-  // miniatura) antes de mostrarlo: lo mismo que hace el servidor al guardarlo (lib/comprobante.ts).
-  const elegir = async (e: ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    e.target.value = '';
+  // Foto: se redibuja desde sus píxeles en el navegador (lib/foto.ts): el archivo nuevo no arrastra nada del original
+  // (ubicación, celular, miniaturas, bytes escondidos de una foto dañada), queda derecha y, si es grande, se achica.
+  // PDF: se valida por sus primeros bytes y queda como viene. El servidor vuelve a limpiar todo al guardarlo.
+  const tomar = async (f: File | undefined) => {
     setComp(null);
     if (!f) return;
-    const bytes = f.size > COMPROBANTE_MAX ? null : new Uint8Array(await f.arrayBuffer());
-    const limpio = bytes && limpiarComprobante(bytes);
-    const error = !bytes || (limpio && limpio.datos.length > COMPROBANTE_MAX) ? 'Hasta 2 MB: sacale una captura o exportalo más liviano'
-      : !tipoComprobante(bytes) ? 'Tiene que ser una foto (JPG o PNG) o un PDF'
-      : !limpio ? 'No se pudo leer el archivo: probá con una captura de pantalla' : '';
-    setErr(x => { const n = { ...x }; delete n.comp; return error ? { ...n, comp: error } : n; });
-    if (error || !limpio) return;
-    setComp({ url: URL.createObjectURL(new Blob([limpio.datos], { type: limpio.tipo })), tipo: limpio.tipo, nombre: f.name, quitado: limpio.quitado });
+    const tipo = tipoComprobante(new Uint8Array(await f.slice(0, 8).arrayBuffer()));
+    if (!tipo) return errorComp('Tiene que ser una foto (JPG o PNG) o un PDF');
+    if (tipo === 'application/pdf' ? f.size > COMPROBANTE_MAX : f.size > FOTO_MAX) return errorComp(tipo === 'application/pdf' ? 'El PDF pesa más de 2 MB: sacale una captura' : 'La foto pesa más de 20 MB');
+    setOcupado('foto');
+    try {
+      const nueva = tipo === 'application/pdf' ? null : await redibujarFoto(f, tipo);
+      if (tipo !== 'application/pdf' && !nueva) return errorComp('No se pudo leer la foto: probá con una captura de pantalla');
+      const limpio = limpiarComprobante(nueva ? nueva.datos : new Uint8Array(await f.arrayBuffer()));
+      if (!limpio || limpio.datos.length > COMPROBANTE_MAX) return errorComp('No se pudo leer el archivo: probá con una captura de pantalla');
+      errorComp('');
+      const nota = !nueva ? 'Los PDF se guardan como vienen: pueden traer datos internos del programa del banco.'
+        : `Foto redibujada: sin ubicación, sin datos del celular y sin nada escondido.${f.size > limpio.datos.length * 1.5 ? ` Se achicó de ${peso(f.size)} a ${peso(limpio.datos.length)}.` : ''}`;
+      setComp({ vista: URL.createObjectURL(new Blob([limpio.datos], { type: limpio.tipo })), datos: limpio.datos, tipo: limpio.tipo, nombre: f.name, nota });
+    } finally {
+      setOcupado('');
+    }
   };
-  const submit = (e: FormEvent) => {
+  const elegir = (e: ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; e.target.value = ''; void tomar(f); };
+  // En la compu también se puede soltar el archivo sobre el recuadro.
+  const [encima, setEncima] = useState(false);
+  const soltar = (e: DragEvent<HTMLDivElement>) => { e.preventDefault(); setEncima(false); if (!ocupado) void tomar(e.dataTransfer.files?.[0]); };
+
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
+    if (ocupado) return;
     const r = pagoSchema.safeParse({ pagador, monto: m });
     const ex = r.success ? {} : errores(r.error);
     if (!comp && !ex.comp) ex.comp = err.comp || 'Adjuntá el comprobante';
+    if (comp && !llave.disponible) ex.comp = 'Falta la llave de los comprobantes: corré npm run admin:setup';
     if (!r.success || Object.keys(ex).length) { fallar(ex, [['pagador', 'f-tpag'], ['monto', 'f-tmonto'], ['comp', 'f-tcomp']]); return; }
     const now = ahoraReal(hoy, toast);
     if (!now || !comp) return;
-    registrado.current = true;
-    pagarPedido(pedido.codigo, now.hm, { pagador: r.data.pagador, monto: r.data.monto, comprobante: { url: comp.url, tipo: comp.tipo, nombre: comp.nombre } });
+    // Se cifra acá, con la llave pública: desde este momento solo se abre con la frase del dueño.
+    setOcupado('cifrando');
+    let sobre: Uint8Array<ArrayBuffer>;
+    try { sobre = await llave.cifrar(comp.tipo, comp.datos); } catch { setOcupado(''); fallar({ comp: 'No se pudo cifrar el comprobante: probá de nuevo' }, [['comp', 'f-tcomp']]); return; }
+    pagarPedido(pedido.codigo, now.hm, { pagador: r.data.pagador, monto: r.data.monto, comprobante: { sobre, tipo: comp.tipo, nombre: comp.nombre, peso: comp.datos.length } });
     toast(`Transferencia de ${r.data.pagador} registrada: el pedido ${pedido.codigo} quedó pagado y la venta entró en Ganancias. Maqueta: no se guardó.`);
     closeSheet();
   };
   const dif = Number.isFinite(m) && m > 0 && m !== total ? m - total : 0;
   return (
-    <form className="pn-form pn-tform" noValidate onSubmit={submit} aria-label={`Registrar la transferencia del pedido ${pedido.codigo}`}>
+    <form className="pn-form pn-tform" noValidate onSubmit={submit} aria-label={`Registrar la transferencia del pedido ${pedido.codigo}`} aria-busy={!!ocupado}>
       {alerta}
       <Field id="f-tpag" label="Quién pagó" error={err.pagador} hint="El nombre que figura en la transferencia. No hace falta CBU, alias ni número de cuenta.">
         <input className="pn-in" maxLength={80} autoComplete="off" value={pagador} data-autofocus onChange={e => limpiar('pagador', setPagador)(e.target.value)} {...aria('f-tpag', err.pagador, true)} />
@@ -473,22 +495,22 @@ export function TransferenciaForm({ pedido, total, onVolver }: { pedido: Pedido;
       <Plata id="f-tmonto" label="Monto transferido" value={monto} onChange={limpiar('monto', setMonto)} error={err.monto}
         hint={dif ? `Es ${fmt(Math.abs(dif))} ${dif > 0 ? 'más' : 'menos'} que el total del pedido (${fmt(total)}).` : `El total del pedido es ${fmt(total)}.`} />
       {/* Botón propio (el del navegador dice "Choose File" según el idioma de la compu). El campo nativo queda oculto. */}
-      <Field id="f-tcomp" label="Comprobante" error={err.comp} hint="Foto (JPG o PNG) o PDF, hasta 2 MB. Lo ves solo vos; se borra a los 90 días, o antes si lo borrás.">
-        <div className="pn-file">
-          <button type="button" className="btn btn-gray pn-file-btn" id="f-tcomp" aria-label="Comprobante: elegir archivo" onClick={() => archivo.current?.click()}
-            aria-describedby={['f-tcomp-n', 'f-tcomp-h', err.comp ? 'f-tcomp-e' : ''].filter(Boolean).join(' ')}><Icon n="receipt" />Elegir archivo</button>
-          <span className="pn-file-n" id="f-tcomp-n">{comp ? comp.nombre : 'Ningún archivo elegido'}</span>
-          <input ref={archivo} id="f-tcomp-in" className="sr" type="file" accept="image/jpeg,image/png,application/pdf" tabIndex={-1} aria-hidden="true" onChange={elegir} />
+      <Field id="f-tcomp" label="Comprobante" error={err.comp} hint="Foto o PDF. Se guarda cifrado: lo abrís solo vos, con tu frase. Se borra a los 90 días, o antes si lo borrás.">
+        <div className={`pn-drop${encima ? ' encima' : ''}${comp ? ' lleno' : ''}`} onDragOver={e => { e.preventDefault(); setEncima(true); }} onDragLeave={() => setEncima(false)} onDrop={soltar}>
+          {comp && (comp.tipo === 'application/pdf'
+            ? <span className="pn-drop-pdf" aria-hidden="true"><Icon n="receipt" />PDF</span>
+            : <img className="pn-tprev" src={comp.vista} alt="Vista previa del comprobante, ya redibujado" />)}
+          <div className="pn-file">
+            <button type="button" className="btn btn-gray pn-file-btn" id="f-tcomp" aria-label={`Comprobante: ${comp ? 'elegir otro archivo' : 'elegir archivo'}`} onClick={() => archivo.current?.click()} disabled={!!ocupado}
+              aria-describedby={['f-tcomp-n', 'f-tcomp-h', err.comp ? 'f-tcomp-e' : ''].filter(Boolean).join(' ')}><Icon n={comp ? 'refresh' : 'receipt'} />{comp ? 'Elegir otro' : 'Elegir archivo'}</button>
+            <span className="pn-file-n" id="f-tcomp-n">{ocupado === 'foto' ? 'Preparando la foto…' : comp ? `${comp.nombre} · ${peso(comp.datos.length)}` : 'Ningún archivo elegido'}</span>
+            <input ref={archivo} id="f-tcomp-in" className="sr" type="file" accept="image/jpeg,image/png,application/pdf" tabIndex={-1} aria-hidden="true" onChange={elegir} />
+          </div>
         </div>
       </Field>
-      {comp && (comp.tipo === 'application/pdf'
-        ? <p className="pn-hint pn-tprev-pdf" role="status"><Icon n="receipt" cls="i sm" /> {comp.nombre}: los PDF se guardan como vienen (pueden traer datos internos del programa del banco).</p>
-        : <>
-          <img className="pn-tprev" src={comp.url} alt="Vista previa del comprobante" />
-          {comp.quitado && <p className="pn-hint pn-tq" role="status">Se le quitaron a la foto sus datos ocultos (ubicación, modelo del celular y miniatura).</p>}
-        </>)}
+      {comp && <p className="pn-hint pn-tq" role="status"><Icon n="shield" cls="i sm" />{comp.nota}</p>}
       <div className="pn-foot pn-pdet-acts">
-        <button className="btn btn-full" type="submit" data-act="registrar-transferencia"><Icon n="check" />Registrar y marcar como pagado</button>
+        <button className="btn btn-full" type="submit" data-act="registrar-transferencia" disabled={!!ocupado}><Icon n="check" />{ocupado === 'cifrando' ? 'Cifrando…' : 'Registrar y marcar como pagado'}</button>
         <button className="btn btn-gray btn-full" type="button" onClick={onVolver}>Volver al pedido</button>
       </div>
     </form>

@@ -12,9 +12,10 @@ let c;
 before(async () => { c = await connect(); });
 after(async () => { await c?.end(); });
 
-// El servidor manda el archivo cifrado: un sobre que empieza con la versión 1 (lib/server/cifrado.ts). Para la base son
-// bytes opacos; acá alcanza con la versión y bytes al azar. Archivos sin cifrar, para ver que se rechazan:
-const SOBRE = Buffer.concat([Buffer.of(1), randomBytes(60)]);
+// El servidor manda el archivo cifrado con la llave del dueño: un sobre que empieza con la versión 2
+// (lib/cifrado-comprobante.ts). Para la base son bytes opacos; acá alcanza con la versión y bytes al azar.
+// Archivos sin cifrar (y un sobre viejo, versión 1), para ver que se rechazan:
+const SOBRE = Buffer.concat([Buffer.of(2), randomBytes(120)]);
 const PNG = Buffer.concat([Buffer.from('89504e470d0a1a0a', 'hex'), Buffer.from('resto del png de prueba al menos 30 bytes')]);
 const JPG = Buffer.concat([Buffer.from('ffd8ffe0', 'hex'), Buffer.from('resto del jpg de prueba al menos 30 bytes')]);
 const PDF = Buffer.from('%PDF-1.7\nresto del pdf de prueba al menos 30 bytes');
@@ -31,15 +32,16 @@ test('FN-11 · registrar_pago: el pedido pasa a pagado; montos de 0 o negativos,
     for (const monto of [0, -500, -1, 100000001]) assert.deepEqual(await pagar(p.codigo, { monto }), no, `monto ${monto}`);
     // El archivo tiene que llegar cifrado: una foto o un PDF tal cual (aunque sean válidos) se rechazan
     for (const [tipo, datos] of [['image/png', PNG], ['image/jpeg', JPG], ['application/pdf', PDF]]) assert.deepEqual(await pagar(p.codigo, { tipo, datos }), no, `${tipo} sin cifrar`);
-    assert.deepEqual(await pagar(p.codigo, { datos: Buffer.concat([Buffer.of(2), randomBytes(60)]) }), no, 'sobre de otra versión');
-    assert.deepEqual(await pagar(p.codigo, { datos: Buffer.concat([Buffer.of(1), randomBytes(28)]) }), no, 'sobre de menos de 30 bytes');
-    assert.deepEqual(await pagar(p.codigo, { datos: Buffer.concat([Buffer.of(1), randomBytes(2097181)]) }), no, 'más de 2 MB + el sobre');
+    assert.deepEqual(await pagar(p.codigo, { datos: Buffer.concat([Buffer.of(1), randomBytes(120)]) }), no, 'sobre viejo (versión 1, con la clave del servidor)');
+    assert.deepEqual(await pagar(p.codigo, { datos: Buffer.concat([Buffer.of(3), randomBytes(120)]) }), no, 'sobre de otra versión');
+    assert.deepEqual(await pagar(p.codigo, { datos: Buffer.concat([Buffer.of(2), randomBytes(93)]) }), no, 'sobre de menos de 95 bytes');
+    assert.deepEqual(await pagar(p.codigo, { datos: Buffer.concat([Buffer.of(2), randomBytes(2097246)]) }), no, 'más de 2 MB + el sobre');
     assert.deepEqual(await pagar(p.codigo, { tipo: 'image/svg+xml' }), no, 'SVG no');
     assert.deepEqual(await pagar(p.codigo, { pagador: ' ' }), no, 'sin nombre');
     assert.deepEqual(await pagar('P-0000-00'), { ok: false, motivo: 'pedido' }, 'pedido inexistente');
     const r = await pagar(p.codigo, { pagador: '  Lucía Martínez ' });
     assert.equal(r.ok, true); assert.equal(r.estado, 'pagado'); assert.equal(r.pagador, 'Lucía Martínez'); assert.equal(r.monto, 24999);
-    const grande = Buffer.concat([Buffer.of(1), randomBytes(2097180)]);
+    const grande = Buffer.concat([Buffer.of(2), randomBytes(2097245)]);
     for (const [tipo, datos] of [['image/jpeg', SOBRE], ['application/pdf', grande]]) assert.equal((await pagar(p.codigo, { tipo, datos })).ok, true, `${tipo} vale`);
     assert.deepEqual(await pagar(p.codigo), { ok: false, motivo: 'demasiados_pagos' }, 'como mucho 3 por pedido');
     const ver = (await c.query('select * from public.ver_comprobante($1)', [r.pago])).rows[0];

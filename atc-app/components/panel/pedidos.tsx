@@ -1,14 +1,15 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Icon } from '../ui';
 import { Chips } from './chips';
 import { usePanel } from './panel-shell';
 import { DemoBanner } from './demo-banner';
 import { TransferenciaForm } from './forms';
 import { cerrarSesion } from './salir';
-import { ESTADO_IDS, ESTADO_PEDIDO, ESTADOS, minutosEntre, total, vence, type EstadoPedido, type Pedido, type Vista } from '@/lib/panel/pedidos';
+import { ESTADO_IDS, ESTADO_PEDIDO, ESTADOS, minutosEntre, total, vence, type EstadoPedido, type Pedido, type Transferencia, type Vista } from '@/lib/panel/pedidos';
+import { fraseValida } from '@/lib/cifrado-comprobante';
 import { productName, payLabel } from '@/lib/panel/labels';
 import { diaLargo, long, short } from '@/lib/panel/dates';
 import { storeStamp } from '@/lib/hours';
@@ -89,14 +90,101 @@ function hmAhora(hoy: string, toast: (m: string) => void) {
   return now.hm;
 }
 
+/* ---------- Comprobante: frase y visor ----------
+   El comprobante está cifrado con la llave del dueño. Para verlo, el panel le pide su frase una vez por visita: con ella
+   desbloquea la llave EN ESTE NAVEGADOR (la frase nunca viaja al servidor) y lo abre acá mismo, sin abrir otra pestaña. */
+function FraseComprobantes({ onListo, onVolver }: { onListo: () => void; onVolver: () => void }) {
+  const { llave } = usePanel();
+  const [frase, setFrase] = useState('');
+  const [ver, setVer] = useState(false);
+  const [error, setError] = useState('');
+  const [abriendo, setAbriendo] = useState(false);
+  const enviar = async (ev: FormEvent) => {
+    ev.preventDefault();
+    if (abriendo) return;
+    if (!fraseValida(frase)) { setError('La frase tiene 20 letras y números, en 5 grupos de 4 (por ejemplo, K7QM-2VXP-…).'); return; }
+    setAbriendo(true);
+    const ok = await llave.desbloquear(frase);
+    setAbriendo(false);
+    if (ok) { setFrase(''); onListo(); } else setError('Esa no es la frase. Revisala en tu gestor de contraseñas.');
+  };
+  return (
+    <form className="pn-form pn-frase" noValidate onSubmit={enviar} aria-label="Desbloquear los comprobantes" aria-busy={abriendo}>
+      <span className="pn-frase-ic" aria-hidden="true"><Icon n="lock" /></span>
+      <h2 id="pn-sh-h" className="pn-sh-t">Tu frase de comprobantes</h2>
+      <p className="pn-hint">Los comprobantes están cifrados con tu llave. Escribí tu frase para abrirlos en este navegador: nunca se manda al servidor y queda abierta hasta que cierres o recargues el panel.</p>
+      <div className="pn-fld">
+        <label htmlFor="f-frase">Frase</label>
+        <div className="pn-frase-in">
+          <input id="f-frase" className="pn-in" type={ver ? 'text' : 'password'} value={frase} autoComplete="off" autoCapitalize="characters" spellCheck={false}
+            placeholder="XXXX-XXXX-XXXX-XXXX-XXXX" maxLength={40} data-autofocus aria-invalid={error ? true : undefined} aria-describedby={error ? 'f-frase-e' : undefined}
+            onChange={e => { setFrase(e.target.value); setError(''); }} />
+          <button type="button" className="pn-frase-ver" aria-pressed={ver} onClick={() => setVer(v => !v)}>{ver ? 'Ocultar' : 'Mostrar'}</button>
+        </div>
+        {error && <p className="pn-err" id="f-frase-e" role="alert">{error}</p>}
+      </div>
+      <div className="pn-foot pn-pdet-acts">
+        <button className="btn btn-full" type="submit" data-act="abrir-comp" disabled={abriendo}><Icon n="lock" />{abriendo ? 'Abriendo…' : 'Abrir comprobante'}</button>
+        <button className="btn btn-gray btn-full" type="button" onClick={onVolver}>Volver al pedido</button>
+      </div>
+    </form>
+  );
+}
+
+const pesoLegible = (n: number) => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1024 / 1024).toFixed(1).replace('.', ',')} MB`);
+function VisorComprobante({ t, codigo, onVolver }: { t: Transferencia; codigo: string; onVolver: () => void }) {
+  const { llave } = usePanel();
+  const c = t.comprobante!;
+  const [url, setUrl] = useState<string | null>(null);
+  const [fallo, setFallo] = useState(false);
+  const volver = useRef<HTMLButtonElement>(null);
+  // Se abre en memoria y se libera al cerrar el visor: el archivo abierto no queda en ningún lado.
+  useEffect(() => {
+    let vivo = true, u: string | null = null;
+    llave.abrir(c).then(plano => {
+      if (!vivo) return;
+      if (!plano) { setFallo(true); return; }
+      u = URL.createObjectURL(new Blob([plano], { type: c.tipo }));
+      setUrl(u);
+    });
+    return () => { vivo = false; if (u) URL.revokeObjectURL(u); };
+  }, [llave, c]);
+  const pdf = c.tipo === 'application/pdf', ext = pdf ? 'pdf' : c.tipo === 'image/png' ? 'png' : 'jpg';
+  return (
+    <div className="pn-visor">
+      <h2 id="pn-sh-h" className="pn-sh-t">Comprobante de {t.pagador}</h2>
+      <p className="pn-hint"><span className="pn-num">{fmt(t.monto)}</span> · {pdf ? 'PDF' : 'Foto'} de {pesoLegible(c.peso)} · abierto solo en este navegador</p>
+      <div className="pn-visor-marco" aria-busy={!url && !fallo}>
+        {fallo ? <p className="pn-err" role="alert">No se pudo abrir: la llave cambió o el comprobante está dañado.</p>
+          : !url ? <p className="pn-hint" role="status">Abriendo…</p>
+          : pdf ? <p className="pn-visor-pdf"><Icon n="receipt" /><span>Los PDF se abren descargándolos.</span></p>
+          : <img className="pn-visor-img" src={url} alt={`Comprobante de la transferencia de ${t.pagador}`} />}
+      </div>
+      <div className="pn-foot pn-pdet-acts">
+        {url && <a className="btn btn-full" href={url} download={`comprobante-${codigo}.${ext}`} data-act="descargar-comp"><Icon n="download" />{pdf ? 'Descargar PDF' : 'Descargar'}</a>}
+        <button ref={volver} className="btn btn-gray btn-full" type="button" data-act="volver-pedido" data-autofocus onClick={onVolver}>Volver al pedido</button>
+        <button className="pn-visor-bloq" type="button" data-act="bloquear-comp" onClick={() => { llave.bloquear(); onVolver(); }}><Icon n="lock" cls="i sm" />Cerrar con llave</button>
+      </div>
+    </div>
+  );
+}
+
 // Detalle de un pedido, con lo que se puede hacer según su estado.
 export function PedidoDetalle({ codigo }: { codigo: string }) {
-  const { pedidos, estadoPedido, ahoraS, hoy, toast, closeSheet, pagarPedido, entregarPedido, cancelarPedido, borrarComprobante, reciente } = usePanel();
+  const { pedidos, estadoPedido, ahoraS, hoy, toast, closeSheet, pagarPedido, entregarPedido, cancelarPedido, borrarComprobante, reciente, llave } = usePanel();
   const [confirmar, setConfirmar] = useState(false);
   const [transferir, setTransferir] = useState(false);
-  // Ver o borrar el comprobante pide haber ingresado hace menos de 15 minutos (lo exige el servidor; acá se avisa antes).
+  // Ver el comprobante pide la frase (una vez por visita); borrarlo, haber ingresado hace menos de 15 minutos (lo exige el
+  // servidor; acá se avisa antes).
+  const [vista, setVista] = useState<'detalle' | 'frase' | 'visor'>('detalle');
   const [reingresar, setReingresar] = useState(false);
   const [borrar, setBorrar] = useState(false);
+  // Al cambiar de vista dentro de la hoja, el foco va a lo principal de la nueva (si no, quedaría en un botón que ya no está).
+  const primera = useRef(true);
+  useEffect(() => {
+    if (primera.current) { primera.current = false; return; }
+    requestAnimationFrame(() => document.querySelector<HTMLElement>('.pn-sheet.open [data-autofocus]')?.focus());
+  }, [vista, transferir]);
   const p = pedidos.find(x => x.codigo === codigo);
   if (!p) return <h2 id="pn-sh-h" className="pn-sh-t">No encontramos ese pedido</h2>;
   const e = estadoPedido(p);
@@ -107,6 +195,13 @@ export function PedidoDetalle({ codigo }: { codigo: string }) {
     </div>
   );
   const t = p.transferencia;
+  if (t?.comprobante && vista !== 'detalle') return (
+    <div className="pn-det pn-pdet" data-codigo={p.codigo} data-vista={vista}>
+      {vista === 'frase' || !llave.abierta
+        ? <FraseComprobantes onListo={() => setVista('visor')} onVolver={() => setVista('detalle')} />
+        : <VisorComprobante t={t} codigo={p.codigo} onVolver={() => setVista('detalle')} />}
+    </div>
+  );
   const accion = (fn: (c: string, hm: string) => void, msg: string) => () => {
     const hm = hmAhora(hoy, toast);
     if (!hm) return;
@@ -131,15 +226,15 @@ export function PedidoDetalle({ codigo }: { codigo: string }) {
         {p.pagado && <div><dt>Pagado</dt><dd>{fecha(p.pagado)}</dd></div>}
         {t && <div><dt>Transferencia</dt><dd>{t.pagador} · <span className="pn-num">{fmt(t.monto)}</span></dd></div>}
         {t && <div><dt>Comprobante</dt><dd>{t.comprobante
-          ? <><a className="lnk" href={t.comprobante.url} target="_blank" rel="noopener" data-act="ver-comp" {...(t.comprobante.tipo === 'application/pdf' ? { download: t.comprobante.nombre } : {})}
-            onClick={ev => { if (!reciente()) { ev.preventDefault(); setReingresar(true); } }}>Ver comprobante</a> <small>(solo lo ves vos)</small></>
+          ? <><button type="button" className="lnk pn-vercomp" data-act="ver-comp" onClick={() => setVista(llave.abierta ? 'visor' : 'frase')}>
+            <Icon n={llave.abierta ? 'receipt' : 'lock'} cls="i sm" />Ver comprobante</button> <small>(cifrado: lo abrís solo vos)</small></>
           : 'Borrado (quedan el nombre y el monto)'}</dd></div>}
         {p.entregado && <div><dt>Entregado</dt><dd>{fecha(p.entregado)}</dd></div>}
         {e === 'autocancelado' && <div><dt>Se canceló solo</dt><dd>{fecha(vence(p))} · el stock volvió</dd></div>}
         {p.cancelado && <div><dt>Cancelado</dt><dd>{fecha(p.cancelado)} · el stock volvió</dd></div>}
       </dl>
       {reingresar && <div className="pn-hint pn-pdet-aviso pn-reing" role="status">
-        <p>Por seguridad, para ver o borrar el comprobante volvé a ingresar: pasaron más de 15 minutos desde que entraste. Maqueta: lo que cargaste en esta visita se pierde al volver a ingresar.</p>
+        <p>Por seguridad, para borrar el comprobante volvé a ingresar: pasaron más de 15 minutos desde que entraste. Maqueta: lo que cargaste en esta visita se pierde al volver a ingresar.</p>
         <button type="button" className="btn btn-full" data-act="reingresar" onClick={() => cerrarSesion('/ingresar', toast)}>Volver a ingresar</button>
       </div>}
       <div className="pn-foot pn-pdet-acts">

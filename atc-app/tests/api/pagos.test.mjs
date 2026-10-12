@@ -6,9 +6,9 @@
 // Corren contra `next start` y la base local de pruebas. Correr con: npm run test:api
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { createDecipheriv } from 'node:crypto';
 import { crc32 } from 'node:zlib';
-import { startServer, LOCAL_ENV, CLAVE_PRUEBA } from '../helpers/server.mjs';
+import { startServer, LOCAL_ENV } from '../helpers/server.mjs';
+import { abrirSobre, FRASE_PRUEBA, LLAVES_PRUEBA } from '../helpers/llaves.mjs';
 import { adminEnv, forgeSession, sesionHace } from '../helpers/admin.mjs';
 import { crudo, enOrden, postRuta } from '../helpers/http.mjs';
 import { readFileSync } from 'node:fs';
@@ -43,6 +43,13 @@ async function pagar(campos, { cookie = sesion(), headers = {}, archivo = PNG, n
 }
 const comprobante = (id, { cookie = sesion(), method = 'GET', headers = {}, base = srv.base } = {}) =>
   fetch(`${base}/api/panel/pagos/${id}/comprobante`, { method, headers: { ...(cookie ? { cookie } : {}), ...headers } });
+/** El comprobante tal como lo abre el panel del dueño: pide el sobre y lo abre con la llave privada (de prueba). */
+async function abierto(id) {
+  const r = await comprobante(id);
+  assert.equal(r.status, 200);
+  const j = await r.json();
+  return abrirSobre(Buffer.from(j.sobre, 'base64url'), j.tipo);
+}
 const pagoOk = async (archivo = PNG, nombreArchivo = 'comprobante.png') => {
   const p = await pedido();
   const r = await pagar({ codigo: p.codigo, pagador: 'Lucía Martínez', monto: '12499' }, { archivo, nombreArchivo });
@@ -147,24 +154,24 @@ test('API-35 · Registrar un pago: montos de 0, negativos o con decimales, archi
   assert.match(r.json.pago, /^[0-9a-f-]{36}$/);
 });
 
-test('API-36 · El comprobante se sirve solo con sesión, aislado (nosniff, CSP sandbox, sin caché) y los PDF se descargan', async () => {
+test('API-36 · El comprobante se entrega solo con sesión, sin caché y siempre cifrado: el servidor devuelve el sobre (lo abre el dueño con su frase) y nunca el archivo', async () => {
   const png = await pagoOk(), pdf = await pagoOk(PDF, 'c.pdf');
   const a = await comprobante(png.pago);
   assert.equal(a.status, 200);
-  assert.equal(a.headers.get('content-type'), 'image/png');
-  assert.ok(Buffer.from(await a.arrayBuffer()).equals(PNG), 'el archivo es el mismo');
+  assert.match(a.headers.get('content-type') ?? '', /^application\/json/);
   assert.equal(a.headers.get('x-content-type-options'), 'nosniff');
-  assert.match(a.headers.get('content-security-policy') ?? '', /sandbox/);
-  assert.match(a.headers.get('cache-control') ?? '', /private, no-store/);
-  assert.match(a.headers.get('content-disposition') ?? '', /^inline/);
-  const b = await comprobante(pdf.pago);
-  assert.equal(b.headers.get('content-type'), 'application/pdf');
-  assert.match(b.headers.get('content-disposition') ?? '', /^attachment/);
-  assert.ok(Buffer.from(await b.arrayBuffer()).equals(PDF), 'el PDF vuelve como vino');
+  assert.match(a.headers.get('cache-control') ?? '', /no-store/);
+  const j = await a.json();
+  assert.equal(j.tipo, 'image/png');
+  const sobre = Buffer.from(j.sobre, 'base64url');
+  assert.equal(sobre[0], 2, 'sobre versión 2');
+  assert.equal(sobre.indexOf(PNG.subarray(0, 8)), -1, 'la foto no viaja a la vista');
+  assert.ok((await abrirSobre(sobre, j.tipo)).equals(PNG), 'con la llave del dueño se abre el archivo limpio');
+  assert.ok((await abierto(pdf.pago)).equals(PDF), 'el PDF vuelve como vino');
   for (const [id, cookie] of [[png.pago, null], [png.pago, 'atc_s=admin'], ['3f2b8c1e-0000-4000-8000-000000000000', sesion()], ['no-es-un-id', sesion()]]) {
     const r = await comprobante(id, { cookie });
     assert.equal(r.status, 404, `${id} ${cookie}`);
-    assert.doesNotMatch(await r.text(), /PNG|%PDF/);
+    assert.doesNotMatch(await r.text(), /sobre|PNG|%PDF/);
   }
 });
 
@@ -222,7 +229,7 @@ const marcadores = b => { const ms = []; for (let i = 2; i + 4 <= b.length;) { c
 
 test('API-37 · Los datos ocultos se quitan antes de guardar: en un JPEG, Exif (marca, GPS, miniatura), XMP, ICC, IPTC, comentarios y lo que sigue al final; en un PNG, textos, eXIf, fecha, perfil y cola. La imagen queda igual y conserva su orientación; un bloque con el largo alterado se rechaza', async () => {
   const j = await pagoOk(JPEG, 'foto.jpg');
-  const limpio = Buffer.from(await (await comprobante(j.pago)).arrayBuffer());
+  const limpio = await abierto(j.pago);
   for (const s of SECRETOS_JPEG) assert.equal(limpio.indexOf(asc(s)), -1, `quedó ${s}`);
   assert.ok(limpio.subarray(0, 2).equals(Buffer.from('ffd8', 'hex')) && limpio.subarray(-2).equals(Buffer.from('ffd9', 'hex')), 'empieza y termina como un JPEG');
   const ms = marcadores(limpio);
@@ -234,7 +241,7 @@ test('API-37 · Los datos ocultos se quitan antes de guardar: en un JPEG, Exif (
   assert.deepEqual(ms.filter(([m]) => m < 0xe0 || m > 0xef).map(([m]) => m), [0xdb, 0xc0, 0xc4], 'tablas y encabezado en orden');
 
   const p = await pagoOk(PNG_SUCIO);
-  const png = Buffer.from(await (await comprobante(p.pago)).arrayBuffer());
+  const png = await abierto(p.pago);
   for (const s of SECRETOS_PNG) assert.equal(png.indexOf(asc(s)), -1, `quedó ${s}`);
   assert.ok(png.equals(PNG), 'del PNG quedan solo IHDR, IDAT e IEND');
   // Un bloque desconocido que la imagen necesita no se puede quitar: se rechaza
@@ -268,53 +275,51 @@ test('API-37 · Los datos ocultos se quitan antes de guardar: en un JPEG, Exif (
   assert.ok(estados[409] > 0 && estados[400] > 0, JSON.stringify(estados));
 });
 
-test('API-38 · El comprobante se guarda cifrado: la base solo ve el sobre (sin la foto ni sus primeros bytes), un cambio en la base no se puede abrir (500) y sin la clave la ruta no funciona (503)', async () => {
+test('API-38 · El comprobante se guarda cifrado con la llave del dueño: ni la base ni el servidor lo pueden abrir, un cambio en la base lo invalida y sin la llave pública la ruta no funciona (503)', async () => {
   const r = await pagoOk();
   const db = await connect();
-  let fila;
   try {
-    fila = (await db.query('select tipo, datos from private.comprobantes where payment_id = $1', [r.pago])).rows[0];
-    assert.equal(fila.datos[0], 1, 'versión del sobre');
-    assert.equal(fila.datos.length, PNG.length + 29, 'el archivo + 29 bytes de sobre');
+    const fila = (await db.query('select tipo, datos from private.comprobantes where payment_id = $1', [r.pago])).rows[0];
+    assert.equal(fila.datos[0], 2, 'sobre versión 2');
+    assert.equal(fila.datos.length, PNG.length + 94, 'el archivo + 94 bytes de sobre');
     assert.equal(fila.datos.indexOf(PNG.subarray(0, 8)), -1, 'la firma del PNG no está a la vista');
     assert.equal(fila.datos.indexOf(PNG.subarray(16, 33)), -1, 'ni el encabezado de la imagen');
-    // Con la clave (solo el servidor la tiene) se recupera el archivo limpio
-    const d = createDecipheriv('aes-256-gcm', Buffer.from(CLAVE_PRUEBA, 'base64url'), fila.datos.subarray(1, 13), { authTagLength: 16 });
-    d.setAAD(Buffer.from('atc-comprobante.v1|image/png')); d.setAuthTag(fila.datos.subarray(-16));
-    assert.ok(Buffer.concat([d.update(fila.datos.subarray(13, -16)), d.final()]).equals(PNG));
-    // Alguien cambia un byte o el tipo directamente en la base: no se abre
-    const alterado = Buffer.from(fila.datos); alterado[20] ^= 1;
-    await db.query('update private.comprobantes set datos = $1 where payment_id = $2', [alterado, r.pago]);
-    const a = await comprobante(r.pago);
-    assert.equal(a.status, 500); assert.equal((await a.json()).motivo, 'no_se_pudo_abrir');
-    await db.query(`update private.comprobantes set datos = $1, tipo = 'application/pdf' where payment_id = $2`, [fila.datos, r.pago]);
-    assert.equal((await comprobante(r.pago)).status, 500, 'tipo cambiado');
-    await db.query(`update private.comprobantes set tipo = 'image/png' where payment_id = $1`, [r.pago]);
-    assert.equal((await comprobante(r.pago)).status, 200, 'restaurado, se abre');
+    // Solo con la llave privada del dueño (que el servidor no tiene) se recupera el archivo limpio
+    assert.ok((await abrirSobre(fila.datos, fila.tipo)).equals(PNG));
+    const otra = await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveBits']);
+    await assert.rejects(abrirSobre(fila.datos, fila.tipo, otra.privateKey), 'otra llave no lo abre');
+    // Alguien cambia un byte o el tipo directamente en la base: ya no se abre
+    const alterado = Buffer.from(fila.datos); alterado[100] ^= 1;
+    await assert.rejects(abrirSobre(alterado, fila.tipo), 'un byte cambiado');
+    await assert.rejects(abrirSobre(fila.datos, 'application/pdf'), 'el tipo cambiado');
   } finally { await db.end(); }
-  // Sin ATC_COMPROBANTES_KEY (o mal formada): 503, nunca se guarda sin cifrar
-  for (const clave of ['', 'corta']) {
-    const otro = await startServer({ port: 3149, env: { ...ENV, ATC_COMPROBANTES_KEY: clave } });
+  // El servidor solo tiene la llave pública y la privada bloqueada: nunca la frase
+  assert.ok(!Object.values(ENV).some(v => String(v).replaceAll('-', '').includes(FRASE_PRUEBA.replaceAll('-', ''))), 'la frase no está en el entorno');
+  assert.match(LLAVES_PRUEBA.privada, /^p1\.600000\./);
+  // Sin ATC_COMPROBANTES_PUBLICA (o inválida): 503, nunca se guarda sin cifrar
+  for (const publica of ['', 'corta', 'A'.repeat(122)]) {
+    const otro = await startServer({ port: 3149, env: { ...ENV, ATC_COMPROBANTES_PUBLICA: publica } });
     try {
       const p = await pedido();
-      assert.equal((await pagar({ codigo: p.codigo, pagador: 'Lucía Martínez', monto: '1' }, { base: otro.base })).status, 503, `POST con clave "${clave}"`);
-      assert.equal((await comprobante(r.pago, { base: otro.base })).status, 503, `GET con clave "${clave}"`);
+      assert.equal((await pagar({ codigo: p.codigo, pagador: 'Lucía Martínez', monto: '1' }, { base: otro.base })).status, 503, `POST con la llave "${publica.slice(0, 8)}"`);
+      if (publica.length !== 122) assert.equal((await comprobante(r.pago, { base: otro.base })).status, 503, `GET con la llave "${publica.slice(0, 8)}"`);
     } finally { await otro.stop(); }
   }
 });
 
-test('API-39 · Ver o borrar un comprobante pide haber ingresado hace menos de 15 minutos (403 "reingresar"); registrar un pago no', async () => {
+test('API-39 · Borrar un comprobante pide haber ingresado hace menos de 15 minutos (403 "reingresar"); verlo no (llega cifrado y hace falta la frase), ni registrar un pago', async () => {
   const r = await pagoOk();
   const vieja = sesionHace(ENV, 16), nueva = sesionHace(ENV, 1);
-  for (const method of ['GET', 'DELETE']) {
-    const a = await comprobante(r.pago, { cookie: vieja, method });
-    assert.equal(a.status, 403, method);
-    assert.deepEqual(await a.json(), { ok: false, motivo: 'reingresar' });
-    assert.match(a.headers.get('cache-control') ?? '', /no-store/);
-  }
+  const a = await comprobante(r.pago, { cookie: vieja, method: 'DELETE' });
+  assert.equal(a.status, 403);
+  assert.deepEqual(await a.json(), { ok: false, motivo: 'reingresar' });
+  assert.match(a.headers.get('cache-control') ?? '', /no-store/);
+  const v = await comprobante(r.pago, { cookie: vieja });
+  assert.equal(v.status, 200, 'ver con una sesión de 16 minutos');
+  assert.equal(Buffer.from((await v.json()).sobre, 'base64url')[0], 2, 'pero llega cifrado');
   const p = await pedido();
   assert.equal((await pagar({ codigo: p.codigo, pagador: 'Lucía Martínez', monto: '1' }, { cookie: vieja })).status, 200, 'registrar no pide volver a ingresar');
-  assert.equal((await comprobante(r.pago, { cookie: nueva })).status, 200);
+  assert.equal((await comprobante(r.pago, { cookie: nueva, method: 'DELETE' })).status, 200, 'con una sesión de 1 minuto se borra');
   // Una sesión de hace 16 minutos sigue siendo válida para el resto del panel
   assert.equal((await fetch(`${srv.base}/panel`, { headers: { cookie: vieja } })).status, 200);
 });

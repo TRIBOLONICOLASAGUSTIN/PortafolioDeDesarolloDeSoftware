@@ -3,7 +3,7 @@ import { esSuperadmin } from '@/lib/server/admin';
 import { avisoFaltante, readBytes, respuestas, sameSite } from '@/lib/server/http';
 import { panelConfig } from '@/lib/server/config';
 import { rpc } from '@/lib/server/db';
-import { cifrar } from '@/lib/server/cifrado';
+import { cifrarComprobante, importarPublica } from '@/lib/cifrado-comprobante';
 import { noExiste } from '@/lib/server/no-existe';
 import { COMPROBANTE_MAX, limpiarComprobante } from '@/lib/comprobante';
 import { CODIGO_PEDIDO_RE, pagoSchema } from '@/lib/panel/schemas';
@@ -13,8 +13,9 @@ import { CODIGO_PEDIDO_RE, pagoSchema } from '@/lib/panel/schemas';
 // mismo 404 que cualquier otra); con una cookie que no vale, 404 también.
 // Orden: sesión → mismo sitio → cuerpo de hasta 2 MB + margen (con tiempo límite) → campos (Zod: código, quién pagó y
 // monto mayor a 0) → tipo por los primeros bytes (no por la extensión) y sin datos ocultos (ubicación, celular,
-// miniatura: lib/comprobante.ts) → configuración → cifrado (lib/server/cifrado.ts) → base (registrar_pago con atc_panel,
-// que vuelve a validar todo, rechaza un archivo sin cifrar y pasa el pedido a pagado) → respuesta sin caché.
+// miniatura: lib/comprobante.ts) → configuración → cifrado con la llave PÚBLICA del dueño (lib/cifrado-comprobante.ts:
+// el servidor puede cifrar pero no abrir) → base (registrar_pago con atc_panel, que vuelve a validar todo, rechaza un
+// archivo sin cifrar y pasa el pedido a pagado) → respuesta sin caché.
 // Del pago se guardan el nombre de quien pagó y el monto; el archivo lo ve solo el dueño y se borra a los 90 días.
 // Los demás métodos responden como una dirección inexistente (si no, Next contestaría OPTIONS y 405 por su cuenta).
 export const dynamic = 'force-dynamic';
@@ -48,9 +49,12 @@ export async function POST(req: Request) {
   if (!cfg.ok) { avisar(cfg.missing); return r.noDisponible(); }
   // Sin base (modo demo, solo fuera de producción): el panel sigue en maqueta y no se guarda nada.
   if (cfg.mode === 'demo') return r.noDisponible();
+  const publica = await importarPublica(cfg.publica);
+  if (!publica) { avisar(['ATC_COMPROBANTES_PUBLICA (no es una llave P-256)']); return r.noDisponible(); }
+  const sobre = Buffer.from(await cifrarComprobante(publica, limpio.tipo, limpio.datos));
   try {
     const res = await rpc<{ ok: boolean; motivo?: string }>('panel', cfg.dbUrl, cfg.mode, 'select public.registrar_pago($1, $2, $3, $4, $5) as r',
-      [codigo, datos.data.pagador, datos.data.monto, limpio.tipo, cifrar(cfg.clave, limpio.tipo, limpio.datos)]);
+      [codigo, datos.data.pagador, datos.data.monto, limpio.tipo, sobre]);
     return json(res, res.ok ? 200 : res.motivo === 'solicitud_invalida' ? 400 : 409);
   } catch (e) {
     // Nunca se registran el nombre, el monto ni el archivo.

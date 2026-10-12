@@ -17,7 +17,7 @@ Las reglas de abajo aplican a todo lo de AT Computación.
 - Datos de ejemplo hasta que el dueño pase los reales: WhatsApp `5493420000000`, dirección, mail, precios, tiempos del cotizador, stock y reseñas.
 - **No mergear a `main`** mientras haya datos de ejemplo: GitHub Pages lo publicaría. Se trabaja en ramas.
 - La compra no cobra online. La bolsa registra el pedido (código `P-XXXX-XX`), la base aparta el stock 48 h y se abre WhatsApp con el código (entrega, pago y nombre). Si no se paga, se cancela solo y el stock vuelve. Si el servidor falla, WhatsApp se abre igual sin código. Nada de datos de tarjeta.
-- Transferencias: del pago se guardan el nombre de quien pagó y el monto (siempre mayor a 0). El comprobante lo sube **solo el dueño** desde el panel (el cliente se lo manda por WhatsApp; no hay subida pública), lo ve solo él y se borra a los 90 días, o antes con "Ya lo revisé". Se guarda **cifrado** (`ATC_COMPROBANTES_KEY`, solo en el servidor; la base rechaza uno sin cifrar), a las fotos se les quitan los datos ocultos (ubicación, celular, miniatura) y para verlo o borrarlo hay que haber ingresado hace menos de 15 minutos. Nunca se piden ni se escriben CBU, alias, banco ni número de cuenta del cliente.
+- Transferencias: del pago se guardan el nombre de quien pagó y el monto (siempre mayor a 0). El comprobante lo sube **solo el dueño** desde el panel (el cliente se lo manda por WhatsApp; no hay subida pública), lo ve solo él y se borra a los 90 días, o antes con "Ya lo revisé". Se guarda **cifrado con la llave del dueño**: el servidor tiene solo la pública (`ATC_COMPROBANTES_PUBLICA`, cifra pero no abre); la privada (`ATC_COMPROBANTES_PRIVADA`) está bloqueada con una frase que genera `admin:setup` y que va solo al gestor de contraseñas del dueño (nunca al hosting, al repo ni al chat, y nunca viaja al servidor). La base rechaza uno sin cifrar. Las fotos se redibujan en el navegador (sin ubicación, celular, miniatura ni bytes escondidos) y el servidor las limpia igual. Verlo pide la frase; borrarlo, haber ingresado hace menos de 15 minutos. Nunca se piden ni se escriben CBU, alias, banco ni número de cuenta del cliente.
 - Ningún campo de plata ni de cantidades acepta montos negativos (el panel no deja escribir el signo menos y la base los rechaza).
 
 ## Estilo (inspirado en apple.com, calmo, que no canse la vista)
@@ -102,7 +102,7 @@ Las reglas de abajo aplican a todo lo de AT Computación.
   - `supabase/`: migraciones.
   - `tests/`: pruebas.
 - **Antes de cada commit:** `npm test`.
-  - Corre tipos, build, base (34), API (40), e2e (525) y `check:docs`.
+  - Corre tipos, build, base (34), API (40), e2e (528) y `check:docs`.
   - Aparte, `npm run carga` es la prueba de carga (Linux o WSL). No prueba resistencia a DDoS: eso es del borde (`seguridad.md` §8 punto 10).
   - Usa un Postgres 16 temporal que imita Supabase; `npm run db:stop` lo borra.
   - En la nube, el e2e necesita `PW="$(npm root -g)/playwright/index.mjs"`.

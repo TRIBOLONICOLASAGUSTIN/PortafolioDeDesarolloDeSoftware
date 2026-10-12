@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { exigirPanel, panelAcceso } from '@/lib/server/panel';
 import { sesionActual } from '@/lib/server/admin';
+import { llavePrivadaBloqueada, llavePublica } from '@/lib/server/config';
 import { storeStamp } from '@/lib/hours';
 import { DEMO_ORDERS } from '@/lib/data/demo-orders';
 import { Sprites } from '@/components/sprites';
@@ -26,13 +27,17 @@ export default async function PanelLayout({ children }: { children: React.ReactN
   // Órdenes listas para retirar (de ejemplo; en la etapa 2, de la base). Se pasan armadas desde el servidor:
   // así las órdenes de ejemplo no terminan en el JS que descarga la tienda.
   const listas = Object.values(DEMO_ORDERS).map(o => o.r).filter(r => r.estado === 'listo').map(r => ({ codigo: r.codigo, equipo: r.equipo, presupuesto: r.presupuesto }));
-  // Hace cuánto ingresó: ver o borrar un comprobante pide menos de 15 minutos (el panel avisa antes; el servidor lo exige).
+  // Hace cuánto ingresó: borrar un comprobante pide menos de 15 minutos (el panel avisa antes; el servidor lo exige).
   const s = await sesionActual();
   const ingresoHaceMs = s ? Math.max(0, Date.now() - s.inicioMs) : Number.MAX_SAFE_INTEGER;
+  // Llave de los comprobantes: la pública (para cifrar) y la privada BLOQUEADA con la frase del dueño (para abrir en su
+  // navegador). Sin la frase no sirve; igual llega solo con la sesión del dueño (este layout ya la exigió).
+  const publica = llavePublica(), privada = llavePrivadaBloqueada();
+  const llaves = publica && privada ? { publica, privada } : null;
   return (
     <>
       <Sprites />
-      <PanelShell ahora={storeStamp()} listas={listas} ingresoHaceMs={ingresoHaceMs}>{children}</PanelShell>
+      <PanelShell ahora={storeStamp()} listas={listas} ingresoHaceMs={ingresoHaceMs} llaves={llaves}>{children}</PanelShell>
     </>
   );
 }

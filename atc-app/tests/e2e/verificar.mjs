@@ -7,6 +7,7 @@
 import { fileURLToPath } from 'node:url';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { startServer, LOCAL_ENV } from '../helpers/server.mjs';
+import { FRASE_PRUEBA } from '../helpers/llaves.mjs';
 import { ADMIN, adminEnv, forgeSession, sesionHace, stableNow, totpCode } from '../helpers/admin.mjs';
 
 let pw;
@@ -1015,7 +1016,8 @@ for (const [w, h, scheme] of [[390, 844, 'dark'], [1440, 900, 'light']]) {
     const prev = await p.evaluate(() => { const i = document.querySelector('.pn-tprev'); return { w: i?.naturalWidth, h: i?.naturalHeight, nota: document.querySelector('.pn-tq')?.textContent ?? '', nombre: document.querySelector('#f-tcomp-n')?.textContent }; });
     const [dl] = await Promise.all([p.waitForEvent('download'), p.evaluate(() => { const a = document.createElement('a'); a.href = document.querySelector('.pn-tprev').src; a.download = 'previa.jpg'; document.body.append(a); a.click(); a.remove(); })]);
     const limpia = readFileSync(await dl.path());
-    const sinDatos = limpia.indexOf('MarcaSecreta') < 0 && limpia.indexOf('GPS-31') < 0 && limpia.indexOf(Buffer.from('0112000300000001' + '0006', 'hex')) > 0 && limpia.subarray(-2).toString('hex') === 'ffd9';
+    // Redibujada: un JPEG nuevo desde los píxeles (sin Exif: la orientación ya está aplicada en la imagen)
+    const sinDatos = limpia.indexOf('MarcaSecreta') < 0 && limpia.indexOf('GPS-31') < 0 && limpia.indexOf('Exif') < 0 && limpia.subarray(0, 2).toString('hex') === 'ffd8' && limpia.subarray(-2).toString('hex') === 'ffd9';
     await p.fill('#f-tpag', 'Lucía Martínez'); await p.fill('#f-tmonto', '49998');
     const form = await p.evaluate(() => ({ prev: !!document.querySelector('.pn-tprev'), err: document.querySelectorAll('.pn-tform .pn-err').length, ancho: document.documentElement.scrollWidth - innerWidth }));
     const ta = await p.evaluate(panelA11y, '.pn-sheet.open'), tc = await p.evaluate(panelContrast, '.pn-sheet.open *');
@@ -1025,25 +1027,43 @@ for (const [w, h, scheme] of [[390, 844, 'dark'], [1440, 900, 'light']]) {
       && form.prev && form.err === 0 && form.ancho <= 0 && ta.tiny.length === 0 && ta.small.length === 0 && tc.length === 0, JSON.stringify({ sinMenos, errVacio, errFalso, form, tiny: ta.tiny, small: ta.small, c: tc.slice(0, 3) }));
     check(tag, 'comprobante: botón "Elegir archivo" en castellano (44 px, el campo nativo oculto y fuera del Tab); a la foto se le quitan marca y GPS y queda derecha',
       boton.tag === 'BUTTON' && boton.txt === 'Elegir archivo' && boton.alto >= 44 && boton.inTab === -1 && boton.inOculto === 'true' && !boton.choose
-      && prev.w === 8 && prev.h === 16 && /datos ocultos/.test(prev.nota) && prev.nombre === 'foto.jpg' && sinDatos, JSON.stringify({ boton, prev, sinDatos, bytes: limpia.length }));
+      && prev.w === 8 && prev.h === 16 && /Foto redibujada/.test(prev.nota) && /^foto\.jpg · /.test(prev.nombre ?? '') && sinDatos, JSON.stringify({ boton, prev, sinDatos, bytes: limpia.length }));
     // Pagar el otro pendiente con "Marcar como pagado"
     await accion('P-8WRB-2C', 'pagar');
     const n1 = await cuenta(), fl = await filas();
     await p.click('label.pn-chip:has(input[name="pn-ped"][value="pagado"])'); await p.waitForTimeout(300);
     await p.click('.pn-ped[data-codigo="P-7KQ2-4M"]'); await p.waitForTimeout(450);
-    const detT = await p.evaluate(() => { const s = document.querySelector('.pn-sheet.open'); const a = s?.querySelector('a[href^="blob:"]'); return { txt: s?.textContent ?? '', blob: !!a, alto: a ? Math.round(a.getBoundingClientRect().height) : 0 }; });
-    // "Ver comprobante" abre la foto de verdad (en L15 la vista previa se liberaba al cerrar el formulario y el enlace no abría)
-    const [ventana] = await Promise.all([ctx.waitForEvent('page'), p.click('.pn-sheet.open [data-act="ver-comp"]')]);
-    await ventana.waitForLoadState().catch(() => {});
-    const abre = await ventana.evaluate(() => { const i = document.images[0]; return i ? { w: i.naturalWidth, h: i.naturalHeight } : null; }).catch(e => e.message);
-    await ventana.close();
+    const detT = await p.evaluate(() => { const s = document.querySelector('.pn-sheet.open'); const b = s?.querySelector('[data-act="ver-comp"]'); return { txt: s?.textContent ?? '', blob: !!s?.querySelector('[href^="blob:"]'), ver: !!b, alto: b ? Math.round(b.getBoundingClientRect().height) : 0 }; });
+    // "Ver comprobante": está cifrado, así que primero pide la frase (una mal avisa); con la buena se abre acá mismo
+    await p.click('.pn-sheet.open [data-act="ver-comp"]'); await p.waitForTimeout(400);
+    const frase = await p.evaluate(() => ({ campo: !!document.querySelector('.pn-sheet.open #f-frase'), foco: document.activeElement?.id }));
+    await p.fill('#f-frase', 'AAAA-BBBB-CCCC-DDDD-EEEE'); await p.click('[data-act="abrir-comp"]');
+    await p.waitForSelector('#f-frase-e', { timeout: 15000 });
+    const fraseMal = await p.evaluate(() => document.querySelector('#f-frase-e')?.textContent ?? '');
+    const fa = await p.evaluate(panelA11y, '.pn-sheet.open'), fc = await p.evaluate(panelContrast, '.pn-sheet.open *');
+    await p.fill('#f-frase', FRASE_PRUEBA.toLowerCase().replaceAll('-', ' ')); await p.click('[data-act="abrir-comp"]');
+    await p.waitForSelector('.pn-visor-img', { timeout: 15000 }); await p.waitForTimeout(300);
+    const abre = await p.evaluate(() => { const i = document.querySelector('.pn-visor-img'); return i ? { w: i.naturalWidth, h: i.naturalHeight, t: document.querySelector('.pn-visor')?.textContent ?? '' } : null; });
+    const [bajada] = await Promise.all([p.waitForEvent('download'), p.click('[data-act="descargar-comp"]')]);
+    const bajo = readFileSync(await bajada.path());
+    const va = await p.evaluate(panelA11y, '.pn-sheet.open'), vc = await p.evaluate(panelContrast, '.pn-sheet.open *');
+    await p.click('[data-act="volver-pedido"]'); await p.waitForTimeout(300);
+    // Abierta en esta visita: la segunda vez va directo al visor
+    await p.click('.pn-sheet.open [data-act="ver-comp"]'); await p.waitForSelector('.pn-visor-img', { timeout: 15000 });
+    const directo = await p.evaluate(() => !document.querySelector('#f-frase'));
+    await p.click('[data-act="volver-pedido"]'); await p.waitForTimeout(300);
+    check(tag, 'ver el comprobante pide la frase (una equivocada avisa); con la frase se abre dentro del panel, se descarga limpio y queda abierto en la visita',
+      frase.campo && frase.foco === 'f-frase' && /no es la frase/.test(fraseMal) && abre?.w === 8 && abre?.h === 16 && /Lucía Martínez/.test(abre.t)
+      && bajo.subarray(0, 2).toString('hex') === 'ffd8' && bajo.indexOf('MarcaSecreta') < 0 && bajada.suggestedFilename() === 'comprobante-P-7KQ2-4M.jpg' && directo
+      && fa.tiny.length === 0 && fa.small.length === 0 && fc.length === 0 && va.tiny.length === 0 && va.small.length === 0 && vc.length === 0,
+      JSON.stringify({ frase, fraseMal, abre: abre && { w: abre.w, h: abre.h }, nombre: bajada.suggestedFilename(), directo, a11y: [...fa.tiny, ...fa.small, ...va.tiny, ...va.small], c: [...fc, ...vc].slice(0, 3) }));
     // "Ya lo revisé": se borra el comprobante; quedan el nombre y el monto
     await p.click('.pn-sheet.open [data-act="borrar-comp"]'); await p.waitForTimeout(250);
     await p.click('.pn-sheet.open [data-act="borrar-comp-ok"]'); await p.waitForTimeout(400);
     const borrado = await p.evaluate(() => { const s = document.querySelector('.pn-sheet.open'); return { txt: s?.textContent ?? '', blob: !!s?.querySelector('a[href^="blob:"]'), acts: [...(s?.querySelectorAll('[data-act]') ?? [])].map(b => b.dataset.act) }; });
-    check(tag, 'el comprobante registrado se abre en otra pestaña y "Ya lo revisé" lo borra (quedan quién pagó y el monto)',
-      abre?.w === 8 && abre?.h === 16 && /Borrado \(quedan el nombre y el monto\)/.test(borrado.txt) && !borrado.blob && /Lucía Martínez/.test(borrado.txt) && !borrado.acts.includes('borrar-comp'),
-      JSON.stringify({ abre, borrado: { blob: borrado.blob, acts: borrado.acts, txt: borrado.txt.slice(0, 160) } }));
+    check(tag, '"Ya lo revisé" borra el comprobante (quedan quién pagó y el monto)',
+      /Borrado \(quedan el nombre y el monto\)/.test(borrado.txt) && !borrado.blob && /Lucía Martínez/.test(borrado.txt) && !borrado.acts.includes('borrar-comp') && !borrado.acts.includes('ver-comp'),
+      JSON.stringify({ borrado: { blob: borrado.blob, acts: borrado.acts, txt: borrado.txt.slice(0, 160) } }));
     await p.keyboard.press('Escape'); await p.waitForTimeout(400);
     await ir('/panel/inventario');
     const g1 = await p.evaluate(() => +document.querySelector('.pn-inv[data-id="per-g203"]').dataset.stock);
@@ -1052,7 +1072,7 @@ for (const [w, h, scheme] of [[390, 844, 'dark'], [1440, 900, 'light']]) {
     check(tag, 'cancelar devuelve el stock; pagar (con transferencia o sin ella) pasa el pedido a Pagados y su venta entra en Movimientos',
       g1 - g0 === 1 && fl.join() === '' && n1.pendiente === 0 && n1.pagado === 4 && /49\.998/.test(mov) && /729\.999/.test(mov), JSON.stringify({ g0, g1, n1, fl, mov: mov.slice(0, 200) }));
     check(tag, 'el pedido pagado por transferencia muestra quién pagó, el monto y el comprobante (solo en el panel, 44 px)',
-      /Transferencia/.test(detT.txt) && /Lucía Martínez/.test(detT.txt) && /49\.998/.test(detT.txt) && /Ver comprobante/.test(detT.txt) && detT.blob && detT.alto >= 44, JSON.stringify({ blob: detT.blob, alto: detT.alto, txt: detT.txt.slice(0, 200) }));
+      /Transferencia/.test(detT.txt) && /Lucía Martínez/.test(detT.txt) && /49\.998/.test(detT.txt) && /Ver comprobante/.test(detT.txt) && detT.ver && !detT.blob && detT.alto >= 44, JSON.stringify({ blob: detT.blob, alto: detT.alto, txt: detT.txt.slice(0, 200) }));
 
     // Retrasados: el umbral se cambia (con 7 días queda uno) y "Marcar como entregado" lo saca de la lista
     await ir('/panel/pedidos?estado=retrasado');
@@ -1078,8 +1098,8 @@ for (const [w, h, scheme] of [[390, 844, 'dark'], [1440, 900, 'light']]) {
   await ctx.close();
 }
 
-// Ver o borrar un comprobante pide haber ingresado hace menos de 15 minutos: con una sesión de hace 16, registrar se
-// puede, pero "Ver comprobante" y "Ya lo revisé" avisan que hay que volver a ingresar, y el botón lleva al ingreso.
+// Borrar un comprobante pide haber ingresado hace menos de 15 minutos; verlo, la frase. Con una sesión de hace 16,
+// registrar y ver (con la frase) se puede, pero "Ya lo revisé" avisa que hay que volver a ingresar y lleva al ingreso.
 {
   const tag = 'panel-reingreso-390-claro';
   const { ctx, p, errs } = await panelPage(390, 844, 'light', { cookie: sesionHace(ADMIN_ENV, 16) });
@@ -1087,24 +1107,41 @@ for (const [w, h, scheme] of [[390, 844, 'dark'], [1440, 900, 'light']]) {
     await p.goto(PANEL + '/pedidos?estado=pendiente'); await p.waitForTimeout(600);
     await p.click('.pn-ped[data-codigo="P-7KQ2-4M"]'); await p.waitForTimeout(450);
     await p.click('.pn-sheet [data-act="transferencia"]'); await p.waitForTimeout(450);
-    const PNG1 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
-    await p.setInputFiles('#f-tcomp-in', { name: 'comprobante.png', mimeType: 'image/png', buffer: PNG1 }); await p.waitForTimeout(300);
+    // Una foto grande del celular (más de 2 MB) que además trae bytes escondidos al final (como una foto dañada o el
+    // video de una "foto en movimiento"): se redibuja, se achica a menos de 2 MB y no queda nada escondido.
+    const grande = Buffer.from((await p.evaluate(() => { const c = document.createElement('canvas'); c.width = 2400; c.height = 3200; const g = c.getContext('2d');
+      const im = g.createImageData(2400, 3200); for (let i = 0; i < im.data.length; i += 4) { const v = (i * 2654435761) % 255; im.data[i] = v; im.data[i + 1] = 255 - v; im.data[i + 2] = (v * 7) % 255; im.data[i + 3] = 255; }
+      g.putImageData(im, 0, 0); return c.toDataURL('image/jpeg', .98); })).split(',')[1], 'base64');
+    const FOTO = Buffer.concat([grande, Buffer.from('VIDEO-ESCONDIDO', 'latin1')]);
+    await p.setInputFiles('#f-tcomp-in', { name: 'IMG_2041.jpg', mimeType: 'image/jpeg', buffer: FOTO });
+    await p.waitForSelector('.pn-tprev', { timeout: 30000 }); await p.waitForTimeout(200);
+    const achica = await p.evaluate(() => ({ nota: document.querySelector('.pn-tq')?.textContent ?? '', n: document.querySelector('#f-tcomp-n')?.textContent ?? '' }));
     await p.fill('#f-tpag', 'Lucía Martínez');
-    await p.click('[data-act="registrar-transferencia"]'); await p.waitForTimeout(500);
+    await p.click('[data-act="registrar-transferencia"]'); await p.waitForTimeout(600);
     await p.click('label.pn-chip:has(input[name="pn-ped"][value="pagado"])'); await p.waitForTimeout(300);
     await p.click('.pn-ped[data-codigo="P-7KQ2-4M"]'); await p.waitForTimeout(450);
-    let ventanas = 0; ctx.on('page', () => ventanas++);
+    // Ver: no pide volver a ingresar (está cifrado y hace falta la frase, que una sesión robada no tiene)
     await p.click('.pn-sheet.open [data-act="ver-comp"]'); await p.waitForTimeout(400);
-    const aviso = await p.evaluate(() => document.querySelector('.pn-sheet.open .pn-reing')?.textContent ?? '');
+    const pideFrase = await p.evaluate(() => !!document.querySelector('.pn-sheet.open #f-frase') && !document.querySelector('.pn-sheet.open .pn-reing'));
+    await p.fill('#f-frase', FRASE_PRUEBA); await p.click('[data-act="abrir-comp"]');
+    await p.waitForSelector('.pn-visor-img', { timeout: 15000 });
+    const [bajada] = await Promise.all([p.waitForEvent('download'), p.click('[data-act="descargar-comp"]')]);
+    const bajo = readFileSync(await bajada.path());
+    await p.click('[data-act="volver-pedido"]'); await p.waitForTimeout(300);
+    check(tag, 'una foto grande del celular con bytes escondidos se redibuja a menos de 2 MB (sin lo escondido); con una sesión de hace 16 minutos se ve con la frase, sin volver a ingresar',
+      FOTO.length > 2 * 1024 * 1024 && /Se achicó de/.test(achica.nota) && bajo.length <= 2 * 1024 * 1024 && bajo.indexOf('VIDEO-ESCONDIDO') < 0 && bajo.subarray(-2).toString('hex') === 'ffd9' && pideFrase,
+      JSON.stringify({ entrada: FOTO.length, salida: bajo.length, achica, pideFrase }));
+    // Borrar: sí pide volver a ingresar, y el botón lleva al ingreso
     await p.click('.pn-sheet.open [data-act="borrar-comp"]'); await p.waitForTimeout(250);
-    const sigue = await p.evaluate(() => ({ ok: !!document.querySelector('.pn-sheet.open [data-act="borrar-comp-ok"]'), blob: !!document.querySelector('.pn-sheet.open a[href^="blob:"]') }));
+    const aviso = await p.evaluate(() => document.querySelector('.pn-sheet.open .pn-reing')?.textContent ?? '');
+    const sigue = await p.evaluate(() => ({ ok: !!document.querySelector('.pn-sheet.open [data-act="borrar-comp-ok"]'), ver: !!document.querySelector('.pn-sheet.open [data-act="ver-comp"]') }));
     const c = await p.evaluate(panelContrast, '.pn-sheet.open *'), a = await p.evaluate(panelA11y, '.pn-sheet.open');
     await Promise.all([p.waitForURL('**/ingresar', { timeout: 15000 }), p.click('.pn-sheet.open [data-act="reingresar"]')]);
     await p.waitForTimeout(400);
     const ingreso = await p.evaluate(() => ({ h1: document.querySelector('h1')?.textContent, url: location.pathname }));
-    check(tag, 'con una sesión de hace 16 minutos se registra la transferencia, pero ver o borrar el comprobante pide volver a ingresar (sale y va al ingreso)',
-      ventanas === 0 && /volvé a ingresar/.test(aviso) && /15 minutos/.test(aviso) && !sigue.ok && sigue.blob && ingreso.h1 === 'Ingresar' && ingreso.url === '/ingresar'
-      && c.length === 0 && a.tiny.length === 0 && a.small.length === 0, JSON.stringify({ ventanas, aviso: aviso.slice(0, 80), sigue, ingreso, c: c.slice(0, 3), tiny: a.tiny, small: a.small }));
+    check(tag, 'con una sesión de hace 16 minutos, borrar el comprobante pide volver a ingresar (sale y va al ingreso)',
+      /volvé a ingresar/.test(aviso) && /15 minutos/.test(aviso) && !sigue.ok && sigue.ver && ingreso.h1 === 'Ingresar' && ingreso.url === '/ingresar'
+      && c.length === 0 && a.tiny.length === 0 && a.small.length === 0, JSON.stringify({ aviso: aviso.slice(0, 80), sigue, ingreso, c: c.slice(0, 3), tiny: a.tiny, small: a.small }));
     check(tag, 'sin errores de consola', errs.length === 0, errs.slice(0, 3).join(' | '));
   } catch (e) {
     check(tag, 'reingreso sin excepciones', false, e.message.split('\n')[0]);
