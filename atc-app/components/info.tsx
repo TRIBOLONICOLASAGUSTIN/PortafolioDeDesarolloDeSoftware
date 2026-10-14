@@ -8,7 +8,7 @@ const Stars = () => <span className="stars" role="img" aria-label="5 de 5 estrel
 
 // Reseñas DE EJEMPLO: reemplazar por reseñas reales antes de publicar (CLAUDE.md).
 const REVIEWS: [string, string, string, string][] = [
-  ['“Me cambiaron el conector de carga en dos días y pude seguir todo desde la web. Súper claros con el presupuesto.”', 'LM', 'Lucía M.', 'Reparación de notebook'],
+  ['“Me cambiaron el conector de carga y pude seguir todo desde la web. Súper claros con el presupuesto.”', 'LM', 'Lucía M.', 'Reparación de notebook'],
   ['“Compramos los tóners para la oficina siempre acá. Te asesoran de verdad y los precios son claros.”', 'RA', 'Estudio R&A', 'Cliente de insumos'],
   ['“Me armaron una PC para diseño dentro de mi presupuesto y me explicaron cada componente.”', 'TG', 'Tomás G.', 'PC armada a medida'],
 ];

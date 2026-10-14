@@ -64,6 +64,8 @@
 
 Un solo acento azul. El degradé queda reservado para una única palabra del título del inicio.
 
+**Bandas oscuras:** "Por qué elegirnos" (debajo del inicio, con dos luces quietas azul y violeta) y "Servicio técnico" son negras en los dos temas; la barra se oscurece sobre ellas. Las ilustraciones de "Por qué elegirnos" siguen el estilo de los productos (luz de arriba, degradés suaves, sombra de piso): nada de íconos brillantes con destellos de plantilla.
+
 ### E. Ilustraciones y fotos
 - Hoy los productos son ilustraciones SVG propias, con luz cenital, aluminio y negro mate, y una sombra de piso.
 - Cuando haya fotos: fondo blanco liso, producto centrado ocupando el 70–80 % del cuadro, la misma luz en todas y en WebP/AVIF.

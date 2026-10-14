@@ -4,6 +4,7 @@ import { Sprites } from '@/components/sprites';
 import { Nav } from '@/components/nav';
 import { Ribbon } from '@/components/ribbon';
 import { Hero } from '@/components/hero';
+import { PorQue } from '@/components/por-que';
 import { Values } from '@/components/values';
 import { Shop } from '@/components/shop';
 import { Tiers } from '@/components/tiers';
@@ -32,6 +33,7 @@ export default async function Home() {
       <Ribbon />
       <main>
         <Hero />
+        <PorQue />
         <Values />
         <Shop />
         <Tiers />

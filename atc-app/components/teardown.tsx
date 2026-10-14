@@ -246,8 +246,8 @@ export function Teardown() {
           {[0, .48, .85].map((m, i) => <i key={m} className={`td-prog-m m${i + 1}`} data-m={m}></i>)}
         </div>
         <div className="td-copy">
-          <h3>Conocemos cada pieza.</h3>
-          <p>Abrimos tu equipo, encontramos la falla y te pasamos el presupuesto antes de reparar.</p>
+          <h3>Así es tu notebook por dentro.</h3>
+          <p>La abrimos, buscamos la falla y te pasamos el presupuesto antes de reparar.</p>
         </div>
         <div className="td-scene">
           <canvas className="td-canvas" aria-hidden="true"></canvas>

@@ -13,7 +13,7 @@ function Card({ p }: { p: Product }) {
   return (
     <article className="pcard" data-id={p.id}>
       <button className="p-hit" data-open={p.id} aria-label={`Ver detalles de ${nombreProducto(p)}`} onClick={() => openQV(p.id)}></button>
-      <span className="p-tag">{p.tag ?? ''}</span>
+      <span className={`p-tag${p.tag === 'Oferta' ? ' of' : ''}`}>{p.tag ?? ''}</span>
       <div className="p-img"><Render r={p.r} wall={p.wall} /></div>
       <span className="p-brand">{p.brand}</span>
       <h3 className="p-name">{p.name}</h3>
@@ -53,7 +53,7 @@ export function Shop() {
         <div className="head center rv">
           <span className="kicker">Tienda</span>
           <h2 className="h2">La forma más simple de comprar tu tecnología.</h2>
-          <p className="lede">Stock real, precios claros y el asesoramiento de quien después le hace el service a tu equipo.</p>
+          <p className="lede">Stock que actualiza el local, precios claros y el asesoramiento de quien después le hace el service a tu equipo.</p>
           <div className="shop-links">
             <Wa className="lnk" text="¡Hola! Necesito ayuda para elegir un producto.">Te ayudamos a elegir</Wa>
             <a className="lnk" href="#notebooks">Comparar notebooks</a>

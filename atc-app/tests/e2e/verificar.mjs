@@ -358,22 +358,42 @@ for (const w of [768, 820, 900]) {
   await p.close();
 }
 
-// La banda "Servicio técnico" queda oscura en ambos temas (decisión de diseño: banda oscura prolija)
+// Las bandas "Por qué elegirnos" y "Servicio técnico" quedan oscuras en ambos temas (decisión de diseño)
 for (const scheme of ['light', 'dark']) {
   const p = await browser.newPage({ viewport: { width: 1440, height: 900 }, colorScheme: scheme });
   await p.goto(HTML); await p.waitForTimeout(300);
-  const bg = await p.evaluate(() => getComputedStyle(document.getElementById('servicio')).backgroundColor);
-  check('banda', `#servicio oscura en ${scheme}`, bg === 'rgb(0, 0, 0)', bg);
+  for (const id of ['por-que', 'servicio']) {
+    const bg = await p.evaluate(id => getComputedStyle(document.getElementById(id)).backgroundColor, id);
+    check('banda', `#${id} oscura en ${scheme}`, bg === 'rgb(0, 0, 0)', bg);
+  }
   await p.close();
 }
 
-// Grilla bento: en compu "90 días" ocupa 2×2 y "Tu OK" 2×1; en celular, una sola columna
-for (const w of [1440, 390]) {
+// "Por qué elegirnos" (D3): tres tarjetas del mismo ancho en una fila en compu y tableta acostada, una columna en tableta
+// y celular. Cada una con su ilustración propia (decorativa) y los dos sellos permitidos tal cual. Ni la sección ni el
+// inicio prometen plazos ni capacidad que una persona no tiene (CLAUDE.md).
+for (const [w, cols] of [[1440, 3], [1024, 3], [820, 1], [390, 1]]) {
   const p = await browser.newPage({ viewport: { width: w, height: 900 } }); await p.goto(HTML); await p.waitForTimeout(300);
-  const r = await p.evaluate(() => [...document.querySelectorAll('.values .val')].map(v => { const b = v.getBoundingClientRect(); return [Math.round(b.width), Math.round(b.height)]; }));
-  const [big, wide, s1, s2] = r;
-  const ok = w > 1068 ? big[0] > s1[0] * 2 && big[1] > s1[1] * 1.8 && wide[0] > s1[0] * 2 && Math.abs(s1[0] - s2[0]) < 2 : r.every(([x]) => Math.abs(x - big[0]) < 2);
-  check('bento', w > 1068 ? 'mosaico grande 2×2 y ancho 2×1 en compu' : 'una sola columna en celular', ok, JSON.stringify(r));
+  const r = await p.evaluate(() => {
+    const cards = [...document.querySelectorAll('#por-que .values .val')].map(v => { const b = v.getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top), Math.round(b.width)]; });
+    const ill = [...document.querySelectorAll('#por-que .val-ill')].map(s => ({ aria: s.getAttribute('aria-hidden'), w: Math.round(s.getBoundingClientRect().width) }));
+    return { cards, ill, filas: new Set(cards.map(c => c[1])).size };
+  });
+  const anchos = r.cards.map(c => c[2]);
+  const ok = r.cards.length === 3 && Math.max(...anchos) - Math.min(...anchos) <= 2 && r.filas === 3 / cols && r.ill.length === 3 && r.ill.every(i => i.aria === 'true' && i.w > 80);
+  check(`por-que-${w}`, cols === 3 ? 'tres tarjetas iguales en una fila, con su ilustración' : 'una columna, con su ilustración', ok, JSON.stringify(r));
+  await p.close();
+}
+{
+  const p = await browser.newPage({ viewport: { width: 1440, height: 900 } }); await p.goto(HTML); await p.waitForTimeout(300);
+  const t = await p.evaluate(() => ({ porque: document.getElementById('por-que').textContent, inicio: document.getElementById('inicio').textContent,
+    // Títulos de la página sin saltos de nivel (las maquetas decorativas, con aria-hidden, no cuentan)
+    hs: [...document.querySelectorAll('h1, h2, h3, h4, h5, h6')].filter(h => !h.closest('[aria-hidden="true"]') && h.getClientRects().length).map(h => +h.tagName[1]) }));
+  const prohibido = /inmediat|puntual|llegamos cuando|especialista|nuestro equipo|oficial|certificad|en el d[ií]a|minutos|plomer|24 ?h/i;
+  check('por-que', 'lleva los dos sellos permitidos tal cual', t.porque.includes('Garantía escrita de 90 días') && t.porque.includes('Te atiende el técnico, sin intermediarios'), t.porque.slice(0, 120));
+  check('por-que', 'ni "Por qué elegirnos" ni el inicio prometen plazos ni capacidad que no hay', !prohibido.test(t.porque) && !prohibido.test(t.inicio), [t.porque.match(prohibido)?.[0], t.inicio.match(prohibido)?.[0]].join(' | '));
+  const salto = t.hs.findIndex((n, i) => i > 0 && n > t.hs[i - 1] + 1);
+  check('titulos', 'la página tiene un solo h1 y los títulos no saltan de nivel', t.hs.filter(n => n === 1).length === 1 && t.hs[0] === 1 && salto === -1, `${t.hs.join(',')} (salto en ${salto})`);
   await p.close();
 }
 
@@ -391,7 +411,7 @@ for (const w of [1440, 834, 390, 320]) {
     const hit = (a, b) => a.right > b.left + .5 && b.right > a.left + .5 && a.bottom > b.top + .5 && b.bottom > a.top + .5;
     const name = e => `${(e.className && e.className.toString().split(' ')[0]) || e.tagName}:${e.textContent.trim().slice(0, 18)}`;
     const cats = [...document.querySelectorAll('.cat')];
-    const boxes = [...document.querySelectorAll('.cat, .hint button, .btn-sm, .sbadge, .ex, .ex b, .ex small, .btn-full, .pay-i')].filter(e => e.getClientRects().length && !e.closest('[aria-hidden="true"]'));
+    const boxes = [...document.querySelectorAll('.cat, .hint button, .btn-sm, .sbadge, .ex, .ex b, .ex small, .btn-full, .pay-i, .val, .val h3, .val p, .why-f')].filter(e => e.getClientRects().length && !e.closest('[aria-hidden="true"]'));
     const over = [...boxes.filter(e => e.scrollWidth > e.clientWidth + 1).map(name), ...cats.slice(1).filter((c, i) => hit(c.getBoundingClientRect(), cats[i].getBoundingClientRect())).map(name)];
     const nav = document.querySelector('.nav'), tight = nav.classList.contains('tight');
     const links = [...document.querySelectorAll('.links a')].filter(a => a.getClientRects().length && getComputedStyle(a).visibility === 'visible');

@@ -19,12 +19,12 @@ export const CATS: Category[] = [
 ];
 
 export const PRODUCTS: Product[] = [
-  { id: 'nb-ideapad', cat: 'notebooks', r: 'laptop', brand: 'Lenovo', name: 'IdeaPad Slim 3 15"', short: 'Ryzen 5 · 16 GB · SSD 512 GB', price: 849999, stock: 4, tag: 'Más vendido',
+  { id: 'nb-ideapad', cat: 'notebooks', r: 'laptop', brand: 'Lenovo', name: 'IdeaPad Slim 3 15"', short: 'Ryzen 5 · 16 GB · SSD 512 GB', price: 849999, stock: 4,
     specs: ['Procesador AMD Ryzen 5 7520U', '16 GB de memoria RAM', 'SSD NVMe de 512 GB', 'Pantalla 15,6" Full HD', 'Windows 11 instalado y listo'] },
   { id: 'nb-hp250', cat: 'notebooks', r: 'laptop', wall: 'b', brand: 'HP', name: '250 G10', short: 'Core i5 · 8 GB · SSD 512 GB', price: 729999, stock: 3,
     specs: ['Intel Core i5 de 13.ª generación', '8 GB de RAM, ampliable a 16 GB', 'SSD de 512 GB', 'Pantalla 15,6" HD'] },
   { id: 'pc-office', cat: 'pc', r: 'tower', brand: 'AT Computación', name: 'PC Oficina AT', short: 'Ryzen 5 8600G · 16 GB · SSD 512 GB', price: 699999, stock: 3, tag: 'Armada por nosotros',
-    specs: ['AMD Ryzen 5 8600G con gráficos integrados', '16 GB DDR5', 'SSD NVMe de 512 GB', 'Probada 24 h antes de entregarla', 'Garantía de armado de 12 meses'] },
+    specs: ['AMD Ryzen 5 8600G con gráficos integrados', '16 GB DDR5', 'SSD NVMe de 512 GB', 'Probada antes de entregarla'] },
   { id: 'imp-l3250', cat: 'impresoras', r: 'printer', brand: 'Epson', name: 'EcoTank L3250', short: 'Multifunción · Wi-Fi · Sistema continuo', price: 389999, stock: 6, tag: 'Sistema continuo',
     specs: ['Imprime, copia y escanea', 'Wi-Fi y app Epson Smart Panel', 'Tanques de tinta recargables', 'Incluye kit de tintas inicial'] },
   { id: 'ins-105a', cat: 'insumos', r: 'toner', brand: 'Compatible', name: 'Tóner compatible con HP 105A', short: 'Rinde hasta 1.000 páginas', price: 24999, stock: 18,
@@ -64,5 +64,5 @@ export const PAGES = [
   { t: 'Tienda', h: '#tienda', ic: 'bag' }, { t: '¿Qué notebook es para vos?', h: '#notebooks', ic: 'laptop' },
   { t: 'Servicio técnico', h: '#servicio', ic: 'wrench' }, { t: 'Seguir mi reparación', h: '#seguimiento', ic: 'scan' },
   { t: 'Calcular presupuesto', h: '#presupuesto', ic: 'zap' }, { t: 'Preguntas frecuentes', h: '#faq', ic: 'msg' },
-  { t: 'Contacto y horarios', h: '#contacto', ic: 'pin' },
+  { t: 'Contacto y horarios', h: '#contacto', ic: 'pin' }, { t: 'Por qué elegirnos', h: '#por-que', ic: 'shield' },
 ];

@@ -106,7 +106,7 @@ export function Tracker({ demo }: { demo: boolean }) {
           <h2 className="h2">¿Cómo va tu reparación? <span className="muted">Miralo ahora.</span></h2>
           <p className="lede">Ingresá el código de tu comprobante y seguí cada paso, sin tener que llamar.</p>
           <ul className="feat">
-            <li><Icon n="check-c" /><span><b>Siempre al día.</b> Cada vez que el técnico actualiza la orden, lo ves acá.</span></li>
+            <li><Icon n="check-c" /><span><b>Al día.</b> Cada vez que el técnico actualiza la orden, lo ves acá.</span></li>
             <li><Icon n="check-c" /><span><b>Notas del técnico</b> en cada etapa, en palabras simples.</span></li>
             <li><Icon n="check-c" /><span><b>Aviso por WhatsApp</b> cuando tu equipo está listo.</span></li>
             <li><Icon n="lock" /><span><b>Privado.</b> Se necesita el código de tu comprobante y tu teléfono. Mostramos solo lo mínimo.</span></li>

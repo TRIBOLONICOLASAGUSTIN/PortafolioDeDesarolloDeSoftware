@@ -7,7 +7,7 @@ import type { OrderStatus, TrackFound } from './tracking';
 const ev = (estado: OrderStatus, fecha: string, nota: string) => ({ estado, nota, fecha });
 export const DEMO_ORDERS: Record<string, { tel: string; r: TrackFound }> = {
   'AT-7KQ2-9M': { tel: '321', r: { ok: true, codigo: 'AT-7KQ2-9M', equipo: 'Notebook Lenovo IdeaPad 3', cliente: 'Nicolás T.', estado: 'listo', presupuesto: 45000, garantia_hasta: '2027-01-04', novedades: [
-    ev('listo', '2026-10-06T18:10:00-03:00', '¡Listo! Lo probamos 24 h con carga y batería. Podés retirarlo.'),
+    ev('listo', '2026-10-06T18:10:00-03:00', '¡Listo! Lo probamos con carga y batería. Podés retirarlo.'),
     ev('reparacion', '2026-10-03T11:30:00-03:00', 'Presupuesto aprobado. Reemplazamos el conector y revisamos la placa.'),
     ev('aprobacion', '2026-10-03T09:05:00-03:00', 'Te enviamos el presupuesto por WhatsApp: $45.000.'),
     ev('diagnostico', '2026-10-02T16:40:00-03:00', 'El conector de carga (DC jack) está dañado y no hace contacto.'),

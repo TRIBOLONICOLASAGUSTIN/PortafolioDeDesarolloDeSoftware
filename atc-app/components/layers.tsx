@@ -32,7 +32,7 @@ function QuickView() {
       <div className="qv-img" id="qvImg">{p && <Render r={p.r} wall={p.wall} />}</div>
       <div className="qv-info" id="qvInfo">
         {p && st && <>
-          <span className="p-tag">{p.tag ?? ''}</span>
+          <span className={`p-tag${p.tag === 'Oferta' ? ' of' : ''}`}>{p.tag ?? ''}</span>
           <span className="p-brand" style={{ marginTop: 4 }}>{p.brand}</span>
           <h3 id="qvName">{p.name}</h3>
           <p className="qv-price">{fmt(p.price)} <span className={`stock ${st.c}`} style={{ display: 'inline', marginLeft: 8 }}>{st.t}</span></p>

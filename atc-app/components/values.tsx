@@ -1,14 +1,7 @@
 import { Icon } from './ui';
 import { Marquee } from './marquee';
-import { vars } from '@/lib/format';
 import { MARCAS_CARRUSEL } from '@/lib/data/marcas';
 
-const VALUES: [string, string, string][] = [
-  ['shield', '90 días', 'de garantía escrita en cada reparación.'],
-  ['check-c', 'Tu OK', 'antes de reparar: presupuesto y plazo por WhatsApp.'],
-  ['user', '1 a 1', 'te atiende el técnico, sin intermediarios.'],
-  ['scan', 'Online', 'seguís tu reparación paso a paso.'],
-];
 const PAYMENTS: [string, string, string][] = [
   ['cash', 'Efectivo', 'En el local, al retirar.'],
   ['transfer', 'Transferencia', 'Te pasamos el alias por WhatsApp.'],
@@ -18,15 +11,10 @@ const PAYMENTS: [string, string, string][] = [
 
 export function Values() {
   return (
-    <section className="sec" aria-label="Por qué AT Computación" style={{ paddingTop: 'clamp(64px,8vw,110px)' }}>
+    <section className="sec" aria-labelledby="pay-t">
       <div className="wrap">
-        <div className="values">
-          {VALUES.map(([ic, b, p], i) => (
-            <div key={b} className={`val rv${i === 0 ? ' big' : i === 1 ? ' wide' : ''}`} style={i ? vars({ '--d': `${(i * .08).toFixed(2)}s` }) : undefined}><Icon n={ic} /><b>{b}</b><p>{p}</p></div>
-          ))}
-        </div>
-        <div className="pay rv" role="group" aria-label="Medios de pago">
-          <h3 className="pay-t">Pagás como te quede más cómodo. <span>Sin vueltas.</span></h3>
+        <div className="pay rv" role="group" aria-labelledby="pay-t">
+          <h2 className="pay-t" id="pay-t">Pagás como te quede más cómodo. <span>Sin vueltas.</span></h2>
           <div className="pay-grid">
             {PAYMENTS.map(([ic, b, s]) => <div key={b} className="pay-i"><span className="pay-ic"><Icon n={ic} /></span><b>{b}</b><small>{s}</small></div>)}
           </div>

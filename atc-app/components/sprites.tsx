@@ -8,6 +8,7 @@ const SPRITES = `<defs>
 <linearGradient id="g-wall-c" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffb340"/><stop offset="1" stop-color="#ff375f"/></linearGradient>
 <linearGradient id="g-wall-d" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#64d2ff"/><stop offset="1" stop-color="#5e5ce6"/></linearGradient>
 <linearGradient id="g-rgb" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff375f"/><stop offset=".33" stop-color="#ffd60a"/><stop offset=".66" stop-color="#30d158"/><stop offset="1" stop-color="#0a84ff"/></linearGradient>
+<linearGradient id="g-glow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#64d2ff"/><stop offset=".5" stop-color="#0a84ff"/><stop offset="1" stop-color="#5e5ce6"/></linearGradient>
 <linearGradient id="g-paper" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e6e8ec"/></linearGradient>
 <linearGradient id="g-label" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3b82f6"/><stop offset="1" stop-color="#1e3a8a"/></linearGradient>
 <radialGradient id="g-sh"><stop offset="0" style="stop-color:#000;stop-opacity:var(--sh-o,.22)"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>

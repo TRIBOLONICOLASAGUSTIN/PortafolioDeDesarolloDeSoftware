@@ -4,11 +4,11 @@
 -- =====================================================================
 insert into public.products (slug, category, brand, name, short, specs, price_ars, stock, tag) values
   ('nb-ideapad', 'notebooks', 'Lenovo', 'IdeaPad Slim 3 15"', 'Ryzen 5 · 16 GB · SSD 512 GB',
-   '["Procesador AMD Ryzen 5 7520U","16 GB de memoria RAM","SSD NVMe de 512 GB","Pantalla 15,6\" Full HD","Windows 11 instalado y listo"]', 849999, 4, 'Más vendido'),
+   '["Procesador AMD Ryzen 5 7520U","16 GB de memoria RAM","SSD NVMe de 512 GB","Pantalla 15,6\" Full HD","Windows 11 instalado y listo"]', 849999, 4, null),
   ('nb-hp250', 'notebooks', 'HP', '250 G10', 'Core i5 · 8 GB · SSD 512 GB',
    '["Intel Core i5 de 13.ª generación","8 GB de RAM, ampliable a 16 GB","SSD de 512 GB","Pantalla 15,6\" HD"]', 729999, 3, null),
   ('pc-office', 'pc', 'AT Computación', 'PC Oficina AT', 'Ryzen 5 8600G · 16 GB · SSD 512 GB',
-   '["AMD Ryzen 5 8600G con gráficos integrados","16 GB DDR5","SSD NVMe de 512 GB","Probada 24 h antes de entregarla","Garantía de armado de 12 meses"]', 699999, 3, 'Armada por nosotros'),
+   '["AMD Ryzen 5 8600G con gráficos integrados","16 GB DDR5","SSD NVMe de 512 GB","Probada antes de entregarla"]', 699999, 3, 'Armada por nosotros'),
   ('imp-l3250', 'impresoras', 'Epson', 'EcoTank L3250', 'Multifunción · Wi-Fi · Sistema continuo',
    '["Imprime, copia y escanea","Wi-Fi y app Epson Smart Panel","Tanques de tinta recargables","Incluye kit de tintas inicial"]', 389999, 6, 'Sistema continuo'),
   ('ins-105a', 'insumos', 'Compatible', 'Tóner compatible con HP 105A', 'Rinde hasta 1.000 páginas',
@@ -40,7 +40,7 @@ select o.id, e.status::public.order_status, e.note, e.at::timestamptz
     ('AT-7KQ2-9M', 'diagnostico', 'El conector de carga (DC jack) está dañado y no hace contacto.',      '2026-10-02 16:40-03'),
     ('AT-7KQ2-9M', 'aprobacion',  'Te enviamos el presupuesto por WhatsApp: $45.000.',                   '2026-10-03 09:05-03'),
     ('AT-7KQ2-9M', 'reparacion',  'Presupuesto aprobado. Reemplazamos el conector y revisamos la placa.', '2026-10-03 11:30-03'),
-    ('AT-7KQ2-9M', 'listo',       '¡Listo! Lo probamos 24 h con carga y batería. Podés retirarlo.',      '2026-10-06 18:10-03'),
+    ('AT-7KQ2-9M', 'listo',       '¡Listo! Lo probamos con carga y batería. Podés retirarlo.',          '2026-10-06 18:10-03'),
     ('AT-3FJ8-WX', 'ingresado',   'Ingresó la impresora sin cables.',                                    '2026-10-05 11:02-03'),
     ('AT-3FJ8-WX', 'diagnostico', 'Cabezal obstruido en el color negro. Recomendamos reemplazarlo.',     '2026-10-06 10:20-03'),
     ('AT-3FJ8-WX', 'aprobacion',  'Presupuesto enviado: $38.500. Esperamos tu confirmación.',            '2026-10-06 12:45-03'),
