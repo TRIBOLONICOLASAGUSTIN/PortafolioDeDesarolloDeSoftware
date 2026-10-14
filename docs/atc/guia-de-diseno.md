@@ -28,7 +28,7 @@
 
   | Uso | Tamaño | Peso | Tracking |
   |---|---|---|---|
-  | Título del inicio | `clamp(44px, 5.4vw, 80px)` en la escena (`clamp(44px, 7.6vw, 92px)` sin ella) | 600 | −0,035 em |
+  | Título del inicio | `clamp(44px, 7.6vw, 92px)` (72 px en compu baja, 44 px a ≤ 420 px); "tecnología" lleva el único degradé del sitio | 600 | −0,035 em |
   | Título de sección | `clamp(34px, 5.2vw, 56px)` | 600 | −0,035 em |
   | Bajada | `clamp(19px, 2vw, 21px)` | 400–500 | −0,017 em |
   | Cuerpo | 17 px / 1,47 | 400 | −0,011 em |

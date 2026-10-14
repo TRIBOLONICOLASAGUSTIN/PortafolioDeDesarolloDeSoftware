@@ -23,7 +23,7 @@ export function Nav() {
   useEffect(() => {
     let ticking = false;
     const root = document.documentElement, main = document.querySelector('main');
-    const story = document.getElementById('servicio'), hero = document.getElementById('inicio');
+    const bandas = [...document.querySelectorAll<HTMLElement>('#servicio')];
     let lastY = scrollY;
     const onScroll = () => {
       if (ticking) return; ticking = true;
@@ -32,11 +32,10 @@ export function Nav() {
         const nav = navRef.current; if (!nav) return;
         // El rebote de iOS (arriba y abajo) no cuenta como subir o bajar
         const y = Math.min(Math.max(scrollY, 0), Math.max(0, root.scrollHeight - innerHeight));
-        const sr = story?.getBoundingClientRect(), hr = hero?.getBoundingClientRect();
         const dy = y - lastY; lastY = y;
         nav.classList.toggle('scrolled', y > 8);
-        // Oscura sobre el inicio (negro, también al cargar, con la cinta arriba) y sobre Servicio técnico
-        nav.classList.toggle('on-dark', (!!hr && hr.top <= 140 && hr.bottom > 52) || (!!sr && sr.top <= 52 && sr.bottom > 52));
+        // Oscura sobre las bandas negras (Servicio técnico); el inicio sigue el tema
+        nav.classList.toggle('on-dark', bandas.some(b => { const r = b.getBoundingClientRect(); return r.top <= 52 && r.bottom > 52; }));
         if (root.classList.contains('lock')) return;
         if (y <= (main?.offsetTop ?? 120)) { acc.current = 0; nav.classList.remove('hide'); return; }
         // Margen de 24 px: un temblor del dedo o de la rueda no la hace aparecer y desaparecer

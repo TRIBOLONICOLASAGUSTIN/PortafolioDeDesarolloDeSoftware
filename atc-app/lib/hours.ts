@@ -1,7 +1,6 @@
 import { CONFIG } from './data/config';
 
 const DAYS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-const SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
 /** Día, hora y minutos en la zona horaria del local, sin importar dónde esté el visitante o el servidor. */
 export function storeNow(now = new Date()) {
@@ -21,12 +20,6 @@ export function openStatus(now = new Date()) {
     for (const [a] of CONFIG.hours[dd]) if (i > 0 || a > h) return { open: false, txt: `Cerrado · abrimos ${i === 0 ? 'hoy' : i === 1 ? 'mañana' : 'el ' + DAYS[dd]} a las ${a}:00` };
   }
   return { open: false, txt: 'Cerrado' };
-}
-
-/** "Jue 14:37" para la barra de la notebook del inicio. */
-export function clockLabel(now = new Date()) {
-  const { day, hour, minute } = storeNow(now);
-  return `${SHORT[day]} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 }
 
 export function greeting(now = new Date()) {
