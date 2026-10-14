@@ -206,6 +206,11 @@ for (const [w, scheme] of [[1440, 'light'], [1440, 'dark'], [390, 'light'], [390
   // Recorrer toda la barra con Shift+Tab: la página no se mueve con ningún botón (antes, cada uno la saltaba ~450 px)
   const tour = await recorrerBarra(p);
   check(tag, 'recorrer la barra con el teclado no mueve la página', tour.every(t => Math.abs(t.d) <= 1 && t.top >= 0), JSON.stringify(tour));
+  // Con el foco del teclado adentro, bajar no la marca para irse (en Safari, un clic posterior, que no enfoca, la haría
+  // irse en el medio del clic)
+  await p.focus('#themeBtn'); await por(300);
+  const kf = await p.evaluate(() => ({ fv: !!document.querySelector('#nav :focus-visible'), hide: document.getElementById('nav').classList.contains('hide'), top: Math.round(document.getElementById('nav').getBoundingClientRect().top) }));
+  check(tag, 'con el foco del teclado en la barra, bajar no la esconde', kf.fv && !kf.hide && kf.top === 0, JSON.stringify(kf));
   await p.evaluate(() => document.activeElement.blur());
 
   // Agregar a la bolsa con la barra escondida: vuelve y se ve el número
@@ -249,6 +254,12 @@ for (const [w, scheme] of [[1440, 'light'], [1440, 'dark'], [390, 'light'], [390
   await p.waitForTimeout(1400);
   const an = await p.evaluate(() => ({ head: Math.round(document.querySelector('#tienda .head').getBoundingClientRect().top), nav: Math.round(document.getElementById('nav').getBoundingClientRect().bottom) }));
   check(tag, 'el link "Tienda" deja su encabezado a la vista', an.head >= 52 && an.head < 200, JSON.stringify(an));
+  if (w >= 900) {
+    // Un clic con el mouse deja el foco en el link (Chrome) pero sin :focus-visible: la barra se sigue escondiendo al bajar
+    await por(300);
+    const mc = await p.evaluate(() => ({ hide: document.getElementById('nav').classList.contains('hide'), foco: !!document.activeElement.closest('#nav') }));
+    check(tag, 'después de un clic con el mouse en la barra, bajar la sigue escondiendo', mc.hide, JSON.stringify(mc));
+  }
 
   const ov = await p.evaluate(() => document.documentElement.scrollWidth - innerWidth);
   check(tag, 'sin errores de consola ni scroll horizontal', errs.length === 0 && ov <= 0, JSON.stringify({ errs: errs.slice(0, 3), ov }));
@@ -917,6 +928,12 @@ for (const [w, h, scheme] of [[320, 568, 'light'], [390, 844, 'dark'], [820, 118
     await p.keyboard.press('Tab');
     const skip = await p.evaluate(() => { const e = document.activeElement, r = e.getBoundingClientRect(); return { cls: e.className, txt: e.textContent, h: Math.round(r.height), top: Math.round(r.top) }; });
     check(tag, '"Ir al contenido" es lo primero con el teclado y se ve al enfocarlo', /pn-skip/.test(skip.cls) && skip.txt === 'Ir al contenido' && skip.h >= 44 && skip.top >= 0, JSON.stringify(skip));
+    // Activarlo deja el contenido entero a la vista (la fecha y el título), no debajo de la barra de arriba (celular y
+    // tableta: .pn-mbar). El main es el destino y no es descendiente de sí mismo: necesita su propio scroll-margin.
+    await p.keyboard.press('Enter'); await p.waitForTimeout(800);
+    const salto = await p.evaluate(() => { const bar = document.querySelector('.pn-mbar'), b = bar && getComputedStyle(bar).display !== 'none' ? bar.getBoundingClientRect().bottom : 0, m = document.querySelector('#pn-main'), uno = m.querySelector('.pn-head > *'); return { bar: Math.round(b), main: Math.round(m.getBoundingClientRect().top), primero: Math.round(uno.getBoundingClientRect().top), y: Math.round(scrollY) }; });
+    check(tag, '"Ir al contenido" deja el contenido a la vista, no debajo de la barra', salto.main >= salto.bar && salto.primero >= salto.bar, JSON.stringify(salto));
+    await p.goto(PANEL); await p.waitForTimeout(700); await p.keyboard.press('Tab');
     await p.keyboard.press('Shift+Tab');
     const s0 = await st();
     if (w >= 1024) {

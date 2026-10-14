@@ -4,7 +4,7 @@
 /* "Por qué elegirnos": banda oscura en los dos temas (como la referencia que eligió el dueño) con dos luces quietas,
    azul y violeta. Tres tarjetas con ilustración propia, título y texto; sin hover porque no se pueden tocar. */
 .why{position:relative;isolation:isolate;overflow:clip;padding:clamp(88px,11vw,144px) 0;background:#000;color:#f5f5f7;
-  --text:#f5f5f7;--text-2:#a1a1a6;--text-3:#86868b;--line-2:rgba(255,255,255,.1);--card:#161617;--link:#2997ff;--sh-o:.55}
+  --text:#f5f5f7;--text-2:#a1a1a6;--text-3:#86868b;--line-2:rgba(255,255,255,.1);--card:#161617;--link:#2997ff}
 .why::before{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;
   background:radial-gradient(60% 55% at 12% 0%,rgba(41,151,255,.16),transparent 70%),radial-gradient(55% 55% at 90% 100%,rgba(94,92,230,.16),transparent 70%)}
 .why .h2 .muted{color:#86868b}

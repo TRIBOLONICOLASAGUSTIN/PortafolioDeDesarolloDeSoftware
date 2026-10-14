@@ -56,7 +56,7 @@ const Garantia = () => (
 const TARJETAS: [() => React.JSX.Element, string, string][] = [
   [Tecnico, 'Te atiende el técnico, sin intermediarios.', 'Le contás qué le pasa a tu equipo a la misma persona que lo revisa. Sin call center.'],
   [Ok, 'Nada se toca sin tu OK.', 'Te explicamos qué tiene tu equipo en palabras simples y te pasamos el presupuesto por WhatsApp. Si aprobás la reparación, el diagnóstico no se cobra.'],
-  [Garantia, 'Garantía escrita de 90 días.', 'Sobre el trabajo realizado y los repuestos colocados. La fecha de vencimiento la ves en el seguimiento online.'],
+  [Garantia, 'Garantía escrita de 90 días.', 'Sobre el trabajo realizado. La fecha de vencimiento la ves en el seguimiento online.'],
 ];
 
 export function PorQue() {

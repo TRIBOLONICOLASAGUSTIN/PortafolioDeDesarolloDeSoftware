@@ -117,9 +117,10 @@ Cada fila es un componente de React. El prototipo HTML original se reemplazó po
 
 | Sección | Qué hace | Regla clave |
 |---|---|---|
-| Barra superior | Logo, secciones, buscador, **tema claro/oscuro junto a la bolsa** | Vidrio translúcido; en el celular, menú a pantalla completa |
-| Inicio | Fondo negro en los dos temas (idea tomada de Resend, sin su violeta ni su serifa). Título, bajada y 2 accesos al lado de la notebook 3D cerrada; al bajar se abre, gira de frente y se funde con la compu del seguimiento, que se corre y deja lugar a su texto ("Seguí tu reparación desde acá.") | La animación sigue al scroll; no corre sola (el cubo de Resend gira solo: acá no, sin bucles). Con "reducir movimiento", todo quieto y sin 3D; sin WebGL, la compu HTML hace el recorrido |
-| Valores y pagos | 4 promesas honestas + tarjetas de medios de pago | Sin cifras inventadas |
+| Barra superior | Logo, secciones, buscador, **tema claro/oscuro junto a la bolsa** | Vidrio translúcido; se esconde al bajar y vuelve al subir (fija con "reducir movimiento", con el menú abierto o el foco adentro); en el celular, menú a pantalla completa |
+| Inicio | Sigue el tema (blanco o negro). Píldora abierto/cerrado, título con "tecnología" en degradé, bajada, los dos caminos (tienda y servicio técnico) y una vidriera quieta con los productos del local | Sin 3D ni scroll fijado: la notebook 3D vive en el despiece de Servicio técnico. Aparece una sola vez |
+| Por qué elegirnos | Banda oscura con 3 tarjetas ilustradas: "Te atiende el técnico, sin intermediarios.", "Nada se toca sin tu OK." y "Garantía escrita de 90 días." | Solo lo que el local cumple; sin plazos ni cifras. Las ilustraciones, en el estilo de los productos |
+| Pagos | Tarjetas de medios de pago | Sin cifras inventadas |
 | Marcas | Carrusel lento; cada logo lleva a sus productos (píldora "Marca: X ✕" para limpiar el filtro) | Única excepción de movimiento; con "reducir movimiento", grilla quieta y clicable; marca sin productos → vacío honesto que invita a consultar |
 | Tienda | Encabezado centrado, categorías, tarjetas deslizables, ficha y bolsa | La bolsa registra el pedido (código `P-XXXX-XX`, stock apartado 48 h) y termina en WhatsApp; no se cobra online. Si el servidor falla, WhatsApp igual abre sin código |
 | ¿Qué notebook es para vos? | 3 perfiles por uso | Recomendar por uso, no por precio |

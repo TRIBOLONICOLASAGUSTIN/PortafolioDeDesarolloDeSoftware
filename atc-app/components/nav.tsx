@@ -40,7 +40,9 @@ export function Nav() {
         if (y <= (main?.offsetTop ?? 120)) { acc.current = 0; nav.classList.remove('hide'); return; }
         // Margen de 24 px: un temblor del dedo o de la rueda no la hace aparecer y desaparecer
         acc.current = Math.sign(dy) === Math.sign(acc.current) ? acc.current + dy : dy;
-        if (acc.current > 24) nav.classList.add('hide'); else if (acc.current < -24) nav.classList.remove('hide');
+        // Con el foco del teclado adentro no se marca: si no, en Safari un clic después (que no enfoca) la haría irse
+        // en el medio del clic. Un clic con el mouse en Chrome deja el foco sin :focus-visible y no la retiene.
+        if (acc.current > 24 && !nav.querySelector(':focus-visible')) nav.classList.add('hide'); else if (acc.current < -24) nav.classList.remove('hide');
       });
     };
     // El foco entra a la barra escondida (Tab o Shift+Tab): se destapa antes de que el navegador calcule si tiene que

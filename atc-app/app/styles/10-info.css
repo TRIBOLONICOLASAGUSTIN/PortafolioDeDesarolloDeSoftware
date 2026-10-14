@@ -3,7 +3,7 @@
    ========================================================= */
 .revs{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:40px}
 .rev{display:flex;flex-direction:column;gap:22px;margin:0;padding:32px;border-radius:24px;background:var(--card)}
-.stars{display:flex;gap:2px;color:#ff9f0a}
+.stars{display:flex;gap:2px;color:var(--text)}
 .stars .i{width:16px;height:16px;fill:currentColor;stroke:none}
 .rev blockquote{margin:0;font-size:19px;line-height:1.45;letter-spacing:-.018em;font-weight:500}
 .who{display:flex;align-items:center;gap:12px;margin-top:auto;font-size:15px}

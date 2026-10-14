@@ -4,7 +4,7 @@ export type OrderStatus = 'ingresado' | 'diagnostico' | 'aprobacion' | 'reparaci
 export const STEPS: { id: OrderStatus; t: string; s?: string; ic: string; c: string }[] = [
   { id: 'ingresado', t: 'Ingresado', ic: 'package', c: 'var(--text-2)' },
   { id: 'diagnostico', t: 'Diagnóstico', ic: 'scan', c: '#5e5ce6' },
-  { id: 'aprobacion', t: 'Esperando aprobación', s: 'Aprobación', ic: 'msg', c: 'var(--warn)' },
+  { id: 'aprobacion', t: 'Esperando aprobación', s: 'Aprobación', ic: 'msg', c: 'var(--text)' },
   { id: 'reparacion', t: 'En reparación', s: 'Reparación', ic: 'wrench', c: 'var(--link)' },
   { id: 'listo', t: 'Listo para retirar', s: 'Listo', ic: 'check', c: 'var(--ok)' },
   { id: 'entregado', t: 'Entregado', ic: 'bag', c: 'var(--ok)' },

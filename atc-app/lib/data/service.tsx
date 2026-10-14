@@ -12,7 +12,7 @@ export const STORY: StoryStep[] = [
   { n: 'Paso 2', h: 'Diagnóstico claro.', p: <>Buscamos la falla y te la <b>explicamos en palabras simples</b>, con fotos si hace falta.</>,
     scr: { t: 'Diagnóstico', pill: ['En revisión', '#5e5ce6'], pg: 35, bub: 'El conector de carga está dañado y no hace contacto. Te enviamos el presupuesto.' } },
   { n: 'Paso 3', h: 'Vos decidís.', p: <>Te mandamos el presupuesto por WhatsApp. <b>No tocamos nada sin tu OK.</b></>,
-    scr: { t: 'Presupuesto', pill: ['Esperando tu OK', '#c75c00'], pg: 55, budget: true } },
+    scr: { t: 'Presupuesto', pill: ['Esperando tu OK', '#1d1d1f'], pg: 55, budget: true } },
   { n: 'Paso 4', h: 'Reparamos con repuestos de calidad.', p: <>Y lo probamos a fondo antes de entregarlo. Cada vez que el técnico actualiza la orden, <b>lo ves en la web</b>.</>,
     scr: { t: 'En reparación', pill: ['En curso', '#0071e3'], pg: 80, bub: 'Reemplazamos el conector y lo estamos probando con carga y batería.' } },
   { n: 'Paso 5', h: 'Listo. Con garantía escrita.', p: <>Te avisamos por WhatsApp y lo retirás con <b>90 días de garantía</b> sobre el trabajo.</>,

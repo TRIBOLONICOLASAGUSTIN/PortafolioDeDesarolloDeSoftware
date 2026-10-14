@@ -38,7 +38,7 @@ const FAQ: [string, string][] = [
   ['¿Cuánto tarda una reparación?', 'Depende del equipo, de la falla y de los repuestos. Al recibirlo te decimos un plazo estimado, y cada avance lo ves en el seguimiento online. Si lo necesitás para una fecha puntual, avisanos al dejarlo y te decimos con sinceridad si llegamos.'],
   ['¿El diagnóstico tiene costo?', 'Si aprobás la reparación, el diagnóstico no se cobra. Si decidís no reparar, tiene un costo mínimo que te informamos al ingresar el equipo.'],
   ['¿Cómo sigo el estado de mi equipo?', 'Con el código de tu comprobante (por ejemplo AT-7KQ2-9M) y los últimos 3 dígitos de tu teléfono, en la sección Seguimiento. También te avisamos por WhatsApp en cada cambio importante.'],
-  ['¿Las reparaciones tienen garantía?', 'Sí, todas las reparaciones tienen garantía escrita de 90 días sobre el trabajo realizado y los repuestos colocados.'],
+  ['¿Las reparaciones tienen garantía?', 'Sí, todas las reparaciones tienen garantía escrita de 90 días sobre el trabajo realizado.'],
   ['¿Cómo compro en la tienda?', 'Agregá los productos a tu bolsa, elegí si lo retirás o te lo enviamos y cómo vas a pagar. Se abre WhatsApp con el pedido armado y te confirmamos stock y total. No se cobra nada online.'],
   ['¿Quién repara mi equipo?', 'El dueño del local, que es el técnico: el mismo que te atiende y te explica el diagnóstico. Si algún trabajo necesita un laboratorio especializado (por ejemplo, un disco con daño físico), te lo decimos antes de hacer nada.'],
   ['¿Qué medios de pago aceptan?', 'Efectivo, transferencia, Mercado Pago y tarjetas de débito y crédito, con cuotas en productos seleccionados.'],
