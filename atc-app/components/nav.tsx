@@ -13,24 +13,44 @@ export function Nav() {
   const { count, bump } = useBag();
   const navRef = useRef<HTMLElement>(null);
   const badgeRef = useRef<HTMLSpanElement>(null);
+  // Desplazamiento acumulado en la misma dirección (lo comparte el aviso de la bolsa, que lo reinicia).
+  const acc = useRef(0);
 
-  // Borde al hacer scroll y barra oscura sobre el inicio y sobre la sección de Servicio técnico.
+  // Borde al hacer scroll, barra oscura sobre el inicio y sobre Servicio técnico, y barra que se esconde: al bajar se
+  // va (translateY, sin mover nada de la página) y al subir un poco vuelve. Arriba del todo, con algo abierto
+  // (html.lock: menú, bolsa, ficha o buscador), con el foco del teclado adentro (CSS :has(:focus-visible)) o con
+  // "reducir movimiento" (la regla de .hide solo existe sin esa preferencia) se ve siempre.
   useEffect(() => {
     let ticking = false;
+    const root = document.documentElement, main = document.querySelector('main');
     const story = document.getElementById('servicio'), hero = document.getElementById('inicio');
+    let lastY = scrollY;
     const onScroll = () => {
       if (ticking) return; ticking = true;
       requestAnimationFrame(() => {
         ticking = false;
         const nav = navRef.current; if (!nav) return;
-        nav.classList.toggle('scrolled', scrollY > 8);
+        // El rebote de iOS (arriba y abajo) no cuenta como subir o bajar
+        const y = Math.min(Math.max(scrollY, 0), Math.max(0, root.scrollHeight - innerHeight));
         const sr = story?.getBoundingClientRect(), hr = hero?.getBoundingClientRect();
+        const dy = y - lastY; lastY = y;
+        nav.classList.toggle('scrolled', y > 8);
         // Oscura sobre el inicio (negro, también al cargar, con la cinta arriba) y sobre Servicio técnico
         nav.classList.toggle('on-dark', (!!hr && hr.top <= 140 && hr.bottom > 52) || (!!sr && sr.top <= 52 && sr.bottom > 52));
+        if (root.classList.contains('lock')) return;
+        if (y <= (main?.offsetTop ?? 120)) { acc.current = 0; nav.classList.remove('hide'); return; }
+        // Margen de 24 px: un temblor del dedo o de la rueda no la hace aparecer y desaparecer
+        acc.current = Math.sign(dy) === Math.sign(acc.current) ? acc.current + dy : dy;
+        if (acc.current > 24) nav.classList.add('hide'); else if (acc.current < -24) nav.classList.remove('hide');
       });
     };
+    // El foco entra a la barra escondida (Tab o Shift+Tab): se destapa antes de que el navegador calcule si tiene que
+    // correr la página para mostrar el botón enfocado, así la página no se mueve (WCAG 2.4.11).
+    const onFocus = () => { const nav = navRef.current; if (!nav?.classList.contains('hide')) return; acc.current = 0; nav.classList.remove('hide'); void nav.offsetHeight; };
+    const nav0 = navRef.current;
     addEventListener('scroll', onScroll, { passive: true }); onScroll();
-    return () => removeEventListener('scroll', onScroll);
+    nav0?.addEventListener('focusin', onFocus);
+    return () => { removeEventListener('scroll', onScroll); nav0?.removeEventListener('focusin', onFocus); };
   }, []);
 
   // Si los links no entran en la barra (texto agrandado), se muestran en el menú del celular.
@@ -52,6 +72,8 @@ export function Nav() {
   // El número de la bolsa "salta" una vez al agregar (confirma la acción).
   useEffect(() => {
     const b = badgeRef.current; if (!b || !bump) return;
+    // Que se vea el número: la barra vuelve si estaba escondida
+    navRef.current?.classList.remove('hide'); acc.current = 0;
     b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
   }, [bump]);
 

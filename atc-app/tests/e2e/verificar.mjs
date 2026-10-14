@@ -25,6 +25,23 @@ if (WANT_SHOTS) mkdirSync(SHOTS, { recursive: true });
 const results = [];
 const check = (vp, name, ok, detail = '') => results.push({ vp, name, ok: !!ok, detail });
 const nb = s => String(s ?? '').replace(/ /g, ' ').trim();
+// La barra se esconde al bajar (D1): antes de tocar la bolsa o el menú después de bajar, se sube un poco para que vuelva.
+// Shift+Tab por los botones de la barra (desde el que tenga el foco); devuelve cuánto se movió la página en cada uno.
+const recorrerBarra = async p => {
+  const out = [];
+  for (let i = 0; i < 6; i++) {
+    const y0 = await p.evaluate(() => scrollY);
+    await p.keyboard.press('Shift+Tab'); await p.waitForTimeout(500);
+    const t = await p.evaluate(y0 => { const a = document.activeElement; return { el: a.id || a.className || a.tagName, enBarra: !!a.closest('#nav'), top: Math.round(a.getBoundingClientRect().top), d: Math.round(y0 - scrollY) }; }, y0);
+    if (!t.enBarra) break;
+    out.push(t);
+  }
+  return out;
+};
+const verBarra = async p => {
+  await p.evaluate(() => scrollBy({ top: -120, behavior: 'instant' }));
+  await p.waitForFunction(() => document.getElementById('nav').getBoundingClientRect().top === 0, null, { timeout: 2000 }).catch(() => {});
+};
 
 const VIEWPORTS = [
   { id: 'cel-320-claro', w: 320, h: 640, scheme: 'light' },
@@ -65,7 +82,7 @@ for (const v of VIEWPORTS) {
     check(v.id, 'agregar 2 desde la ficha', nb(await p.textContent('#badge')) === '3');
 
     // Bolsa: entrega, pago, nombre → mensaje de WhatsApp
-    await p.click('#bagBtn'); await p.waitForTimeout(600);
+    await verBarra(p); await p.click('#bagBtn'); await p.waitForTimeout(600);
     await p.click('[data-ent="envio"]'); await p.fill('#bDir', 'Barrio Centro');
     await p.click('[data-pay="mp"]'); await p.fill('#bName', 'Nico');
     const msg = decodeURIComponent((await p.getAttribute('#checkout', 'href')).split('text=')[1] || '');
@@ -166,6 +183,101 @@ for (const [w, h, scheme] of [[1440, 900, 'light'], [1440, 900, 'dark'], [390, 8
   await ctx.close();
 }
 
+// Barra que se esconde (D1): al bajar se va (transform: la página no salta) y al subir un poco vuelve. Se ve siempre
+// arriba del todo, con el menú o una ventana abierta, con el foco del teclado adentro y al agregar a la bolsa; con
+// "reducir movimiento" queda fija. Las anclas no quedan tapadas y el celular de Servicio no se ve por la franja de arriba.
+for (const [w, scheme] of [[1440, 'light'], [1440, 'dark'], [390, 'light'], [390, 'dark']]) {
+  const tag = `barra-${w}-${scheme === 'light' ? 'claro' : 'oscuro'}`;
+  const ctx = await browser.newContext({ viewport: { width: w, height: w > 900 ? 900 : 844 }, colorScheme: scheme, hasTouch: w < 900 });
+  const p = await ctx.newPage();
+  const errs = [];
+  p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
+  await p.goto(HTML); await p.waitForTimeout(500);
+  const barra = () => p.evaluate(() => { const n = document.getElementById('nav'), r = n.getBoundingClientRect(); return { top: Math.round(r.top), bottom: Math.round(r.bottom), hide: n.classList.contains('hide'), main: document.querySelector('main').offsetTop }; });
+  const ir = async y => { await p.evaluate(y => scrollTo({ top: y, behavior: 'instant' }), y); await p.waitForTimeout(450); };
+  const por = async dy => { await p.evaluate(dy => scrollBy({ top: dy, behavior: 'instant' }), dy); await p.waitForTimeout(450); };
+  const b0 = await barra();
+  await ir(1400); await por(300);
+  const b1 = await barra();
+  await por(10); await por(-10);
+  const b2 = await barra();
+  await por(-120);
+  const b3 = await barra();
+  check(tag, 'la barra se ve al cargar, se esconde al bajar, vuelve al subir un poco y no tiembla; la página no salta',
+    b0.top === 0 && !b0.hide && b1.hide && b1.bottom <= 0 && b2.hide && !b3.hide && b3.top === 0 && b0.main === b1.main, JSON.stringify({ b0, b1, b2, b3 }));
+
+  // Foco del teclado con la barra escondida: Shift+Tab desde la cinta (que va después de la barra) entra a la barra, que
+  // aparece al instante sin correr la página (WCAG 2.4.11: el foco nunca queda tapado).
+  await por(400);
+  const k0 = await p.evaluate(() => { document.querySelector('.ribbon a').focus({ preventScroll: true }); return { y: scrollY, hide: document.getElementById('nav').classList.contains('hide') }; });
+  await p.keyboard.press('Shift+Tab'); await p.waitForTimeout(100);
+  const k1 = await p.evaluate(() => { const a = document.activeElement, r = a.getBoundingClientRect(); return { y: scrollY, enBarra: !!a.closest('#nav'), top: Math.round(r.top), navTop: Math.round(document.getElementById('nav').getBoundingClientRect().top) }; });
+  check(tag, 'con el teclado, el foco entra a la barra escondida y la barra aparece sin mover la página', k0.hide && k1.enBarra && k1.top >= 0 && k1.navTop === 0 && Math.abs(k1.y - k0.y) <= 1, JSON.stringify({ k0, k1 }));
+  // Recorrer toda la barra con Shift+Tab: la página no se mueve con ningún botón (antes, cada uno la saltaba ~450 px)
+  const tour = await recorrerBarra(p);
+  check(tag, 'recorrer la barra con el teclado no mueve la página', tour.every(t => Math.abs(t.d) <= 1 && t.top >= 0), JSON.stringify(tour));
+  await p.evaluate(() => document.activeElement.blur());
+
+  // Agregar a la bolsa con la barra escondida: vuelve y se ve el número
+  await por(400); await por(200);
+  const h0 = (await barra()).hide;
+  await p.evaluate(() => document.querySelector('#shelf [data-add]').click()); await p.waitForTimeout(500);
+  const bb = await barra(), badge = nb(await p.textContent('#badge'));
+  check(tag, 'al agregar a la bolsa con la barra escondida, la barra vuelve y muestra el número', h0 && !bb.hide && bb.top === 0 && badge === '1', JSON.stringify({ h0, bb, badge }));
+
+  // Ctrl+K y "/" abren el buscador aunque la barra esté escondida
+  await por(300);
+  const h1 = (await barra()).hide;
+  await p.keyboard.press('Control+k'); await p.waitForTimeout(400);
+  const s1 = await p.evaluate(() => document.getElementById('spot').classList.contains('open'));
+  await p.keyboard.press('Escape'); await p.waitForTimeout(400);
+  await p.keyboard.press('/'); await p.waitForTimeout(400);
+  const s2 = await p.evaluate(() => document.getElementById('spot').classList.contains('open'));
+  await p.keyboard.press('Escape'); await p.waitForTimeout(400);
+  check(tag, 'Ctrl+K y "/" abren el buscador con la barra escondida', h1 && s1 && s2, JSON.stringify({ h1, s1, s2 }));
+
+  if (w < 900) {
+    // Menú del celular: después de bajar, se sube un poco y se abre; con el menú abierto la barra no se va
+    await por(300); await verBarra(p);
+    await p.click('#menuBtn'); await p.waitForTimeout(500);
+    await p.mouse.wheel(0, 600); await p.waitForTimeout(500);
+    const m = await p.evaluate(() => ({ nav: Math.round(document.getElementById('nav').getBoundingClientRect().top), menu: Math.round(document.getElementById('mmenu').getBoundingClientRect().top), lock: document.documentElement.classList.contains('lock'), open: document.body.classList.contains('menu-open') }));
+    await p.click('#menuBtn'); await p.waitForTimeout(500);
+    const m2 = await p.evaluate(() => ({ lock: document.documentElement.classList.contains('lock'), nav: Math.round(document.getElementById('nav').getBoundingClientRect().top) }));
+    check(tag, 'con el menú abierto la barra queda visible y el menú pegado debajo; al cerrarlo, todo sigue igual', m.open && m.lock && m.nav === 0 && m.menu === 52 && !m2.lock && m2.nav === 0, JSON.stringify({ m, m2 }));
+
+    // Celular de Servicio pegado arriba: con la barra escondida, por la franja de arriba no se ve pasar el texto de los pasos
+    await p.evaluate(() => { const s = document.getElementById('stepsTxt'); scrollTo({ top: s.getBoundingClientRect().top + scrollY - 200, behavior: 'instant' }); });
+    await p.waitForTimeout(300); await por(250);
+    const st = await p.evaluate(() => { const e = document.elementFromPoint(innerWidth / 2, 20); return { hide: document.getElementById('nav').classList.contains('hide'), cae: e ? (e.closest('.stx') ? 'stx' : String(e.className).slice(0, 40)) : null }; });
+    check(tag, 'en el celular, con la barra escondida, el texto de Servicio no se ve pasar por la franja de arriba', st.hide && st.cae !== 'stx', JSON.stringify(st));
+  }
+
+  // Anclas: "Tienda" desde arriba deja el encabezado a la vista (no tapado por la barra)
+  await ir(0);
+  if (w >= 900) { await p.click('.links a[href="#tienda"]'); } else { await p.click('#menuBtn'); await p.waitForTimeout(400); await p.click('#mmenu a[href="#tienda"]'); }
+  await p.waitForTimeout(1400);
+  const an = await p.evaluate(() => ({ head: Math.round(document.querySelector('#tienda .head').getBoundingClientRect().top), nav: Math.round(document.getElementById('nav').getBoundingClientRect().bottom) }));
+  check(tag, 'el link "Tienda" deja su encabezado a la vista', an.head >= 52 && an.head < 200, JSON.stringify(an));
+
+  const ov = await p.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+  check(tag, 'sin errores de consola ni scroll horizontal', errs.length === 0 && ov <= 0, JSON.stringify({ errs: errs.slice(0, 3), ov }));
+  await ctx.close();
+}
+{
+  // Con "reducir movimiento" la barra no se mueve
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
+  const p = await ctx.newPage(); await p.goto(HTML); await p.waitForTimeout(400);
+  await p.evaluate(() => scrollTo({ top: 2000, behavior: 'instant' })); await p.waitForTimeout(300);
+  await p.evaluate(() => scrollBy({ top: 300, behavior: 'instant' })); await p.waitForTimeout(400);
+  const top = await p.evaluate(() => Math.round(document.getElementById('nav').getBoundingClientRect().top));
+  check('barra-reducir', 'con "reducir movimiento" la barra queda fija arriba', top === 0, String(top));
+  await p.evaluate(() => document.querySelector('.ribbon a').focus({ preventScroll: true }));
+  const tour = await recorrerBarra(p);
+  check('barra-reducir', 'recorrer la barra con el teclado no mueve la página', tour.every(t => Math.abs(t.d) <= 1 && t.top >= 0), JSON.stringify(tour));
+  await ctx.close();
+}
+
 // Lectores de pantalla y bordes: búsqueda anunciada, campos de la bolsa con nombre, bolsa vacía sin pie (A11, K12)
 {
   const p = await browser.newPage({ viewport: { width: 1440, height: 900 } });
@@ -181,7 +293,7 @@ for (const [w, h, scheme] of [[1440, 900, 'light'], [1440, 900, 'dark'], [390, 8
   await p.keyboard.press('Escape'); await p.waitForTimeout(400);
   await p.locator('#tienda').scrollIntoViewIfNeeded();
   await p.locator('#shelf [data-add]').first().click(); await p.waitForTimeout(300);
-  await p.click('#bagBtn'); await p.waitForTimeout(500); await p.click('[data-ent="envio"]');
+  await verBarra(p); await p.click('#bagBtn'); await p.waitForTimeout(500); await p.click('[data-ent="envio"]');
   const named = [await p.getByLabel('Tu nombre').count(), await p.getByLabel('Dirección de entrega').count()];
   check('accesibilidad', 'campos de la bolsa con nombre accesible', named[0] === 1 && named[1] === 1, named.join('/'));
   await p.close();
@@ -636,7 +748,7 @@ for (const [w, scheme] of [[390, 'light'], [1440, 'dark']]) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
   const p = await ctx.newPage(); await p.goto(HTML); await p.waitForTimeout(400);
   await p.locator('#shelf [data-add]').first().click(); await p.waitForTimeout(200);
-  await p.click('#bagBtn'); await p.waitForTimeout(500); await p.fill('#bName', 'Nico Pérez'); await p.keyboard.press('Escape'); await p.waitForTimeout(300);
+  await verBarra(p); await p.click('#bagBtn'); await p.waitForTimeout(500); await p.fill('#bName', 'Nico Pérez'); await p.keyboard.press('Escape'); await p.waitForTimeout(300);
   await p.locator('#shelf [data-open]').first().click(); await p.waitForTimeout(400); await p.keyboard.press('Escape'); await p.waitForTimeout(300);
   await p.click('[data-demo]'); await p.waitForTimeout(1200);
   for (const path of ['/privacidad', '/cookies', '/terminos', '/arrepentimiento']) { await p.goto(server.base + path); await p.waitForTimeout(200); }
@@ -720,7 +832,7 @@ for (const [w, scheme] of [[390, 'light'], [1440, 'dark']]) {
   };
   const llenar = async () => {
     await p.locator('#shelf [data-add]').first().click(); await p.waitForTimeout(300);
-    await p.click('#bagBtn'); await p.waitForTimeout(600);
+    await verBarra(p); await p.click('#bagBtn'); await p.waitForTimeout(600);
     await p.fill('#bName', 'Nico Pérez');
   };
   try {

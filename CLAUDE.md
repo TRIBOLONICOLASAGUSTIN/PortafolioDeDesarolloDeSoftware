@@ -102,7 +102,7 @@ Las reglas de abajo aplican a todo lo de AT Computación.
   - `supabase/`: migraciones.
   - `tests/`: pruebas.
 - **Antes de cada commit:** `npm test`.
-  - Corre tipos, build, base (39), API (40), e2e (528) y `check:docs`.
+  - Corre tipos, build, base (39), API (40), e2e (562) y `check:docs`.
   - Aparte, `npm run carga` es la prueba de carga (Linux o WSL). No prueba resistencia a DDoS: eso es del borde (`seguridad.md` §8 punto 10).
   - Usa un Postgres 16 temporal que imita Supabase; `npm run db:stop` lo borra.
   - En la nube, el e2e necesita `PW="$(npm root -g)/playwright/index.mjs"`.

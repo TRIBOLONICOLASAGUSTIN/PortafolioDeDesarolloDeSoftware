@@ -1,8 +1,13 @@
 /* =========================================================
    Nav
    ========================================================= */
-.nav{position:sticky;top:0;z-index:60;height:52px;background:var(--nav);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid transparent;transition:border-color .3s,background-color .35s}
+.nav{position:sticky;top:0;z-index:60;height:52px;background:var(--nav);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid transparent;transition:border-color .3s,background-color .35s,transform .3s var(--ease)}
 .nav.scrolled{border-color:var(--line-2)}
+/* Se esconde al bajar y vuelve al subir (nav.tsx). Solo con movimiento: con "reducir movimiento" queda fija. Nunca con
+   el menú abierto ni con el foco del teclado adentro; el foco la muestra sin transición, así el navegador no corre la
+   página para enfocar (WCAG 2.4.11). transform no mueve nada: el lugar de la barra sigue en la página. */
+@media (prefers-reduced-motion:no-preference){body:not(.menu-open) .nav.hide:not(:has(:focus-visible)){transform:translateY(-100%)}}
+.nav:has(:focus-visible){transition-property:border-color,background-color}
 .nav.on-dark{--text:#f5f5f7;--bg:#2c2c2e;--fill-2:rgba(255,255,255,.08);background:rgba(22,22,23,.8);color:#f5f5f7;border-color:rgba(255,255,255,.08)}
 .nav-in{display:flex;align-items:center;height:100%;gap:20px}
 .brand{display:flex;align-items:center;gap:10px;font-family:var(--font-d);font-size:17px;font-weight:600;letter-spacing:-.02em}
